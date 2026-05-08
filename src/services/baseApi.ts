@@ -41,15 +41,14 @@ const baseQueryWithReAuth: BaseQueryFn<
     );
 
     if (refreshResult.data) {
-      const refreshData = refreshResult.data as {
-        accessToken?: string;
-        user?: RootState["auth"]["user"];
-      };
+      const refreshData = refreshResult.data as any;
 
       api.dispatch(
         setCredentials({
-          accessToken: refreshData.accessToken ?? null,
-          user: refreshData.user ?? (api.getState() as RootState).auth.user,
+          accessToken: refreshData?.accessToken ?? null,
+          user:
+            refreshData?.user ??
+            (api.getState() as RootState).auth.user,
         })
       );
 
