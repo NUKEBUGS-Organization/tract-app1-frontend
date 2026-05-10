@@ -1,3 +1,5 @@
+// src/pages/auth/SignUp.tsx
+
 import {
   ShieldCheck,
   User,
@@ -11,38 +13,27 @@ import {
   Users,
   Briefcase,
   ArrowRight,
+  Calendar,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 
 import AuthLayout from "../../layouts/AuthLayout";
-import AppButton from "../../components/common/Button";
+import Button from "../../components/common/Button";
+import { useRegisterMutation } from "../../services/authService";
+import {
+  registerSchema,
+  type RegisterFormValues,
+} from "../../features/auth/authSchemas";
 
-const schema = z
-  .object({
-    fullName: z.string().min(1, "Full name is required"),
-    email: z.string().email("Invalid email address"),
-    phone: z.string().min(10, "Valid phone number is required"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string(),
-    state: z.string().min(1, "Please select a state"),
-    role: z.enum(["seller", "partner", "licensed"]),
-    terms: z
-      .boolean()
-      .refine((value) => value === true, "You must agree to the terms"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-type FormData = z.infer<typeof schema>;
-
-export default function EntryPage() {
+export default function SignUp() {
   const navigate = useNavigate();
+
+  const [registerUser, { isLoading }] = useRegisterMutation();
+
+  const [apiError, setApiError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -52,8 +43,8 @@ export default function EntryPage() {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       role: "seller",
       terms: false,
@@ -62,186 +53,259 @@ export default function EntryPage() {
 
   const selectedRole = watch("role");
 
-  const onSubmit = (data: FormData) => {
-    console.log("Form submitted:", data);
+  const normalizePhone = (phone: string) => {
+    const trimmedPhone = phone.trim();
 
-    if (data.role === "seller") navigate("/seller/dashboard");
-    else if (data.role === "partner") navigate("/partner/dashboard");
-    else if (data.role === "licensed") navigate("/realtor/dashboard");
+    if (trimmedPhone.startsWith("+")) {
+      return trimmedPhone;
+    }
+
+    if (trimmedPhone.startsWith("0")) {
+      return `+92${trimmedPhone.slice(1)}`;
+    }
+
+    return trimmedPhone;
+  };
+
+  const onSubmit = async (data: RegisterFormValues) => {
+    console.log("Signup submit fired:", data);
+
+    const payload = {
+      full_name: data.fullName,
+      email: data.email,
+      phone: normalizePhone(data.phone),
+      password: data.password,
+      role: data.role,
+      state_code: data.state,
+      dob: data.dob,
+    };
+
+    console.log("Signup API payload:", payload);
+
+    try {
+      setApiError(null);
+
+      await registerUser(payload).unwrap();
+
+      navigate("/auth/verify", {
+        state: {
+          email: data.email,
+          purpose: "login",
+        },
+      });
+    } catch (error: any) {
+      console.error("Register failed:", error);
+
+      const message =
+        error?.data?.message ||
+        error?.data?.error ||
+        error?.error ||
+        "Registration failed. Please try again.";
+
+      setApiError(message);
+    }
   };
 
   const inputClass = (hasError?: boolean) =>
-    `block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] ${hasError
-      ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
-      : "border-transparent"
+    `block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 2xl:py-4 2xl:text-base ${
+      hasError
+        ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
+        : "border-transparent"
     }`;
 
   return (
     <AuthLayout>
-      <div className="mb-8 text-center">
-        <h2 className="text-2xl sm:text-3xl 2xl:text-4xl font-bold text-[var(--color-text-main)]">
+      <div className="mb-6 text-center sm:mb-8 2xl:mb-10">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)] sm:text-3xl xl:text-[32px] 2xl:text-4xl">
           Create your account
         </h2>
 
-        <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-          Join TRACT and unlock the future of real estate.
+        <p className="mt-2 text-xs leading-6 text-[var(--color-text-muted)] sm:text-sm 2xl:text-base">
+          Join TRACT App 1 and unlock the future of real estate.
         </p>
 
-        <div className="my-6 flex items-center justify-center">
-          <div className="h-px w-16 bg-[var(--color-border-light)]" />
-          <div className="mx-4 h-2 w-2 rounded-full bg-[var(--color-secondary)]" />
-          <div className="h-px w-16 bg-[var(--color-border-light)]" />
+        <div className="my-5 flex items-center justify-center sm:my-6 2xl:my-8">
+          <div className="h-px w-12 bg-[var(--color-border-light)] sm:w-16 2xl:w-20" />
+          <div className="mx-3 h-2 w-2 rotate-45 bg-[var(--color-secondary)] sm:mx-4" />
+          <div className="h-px w-12 bg-[var(--color-border-light)] sm:w-16 2xl:w-20" />
         </div>
       </div>
 
-      <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+      {apiError && (
+        <div className="mb-5 rounded-[var(--radius-input)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-xs font-medium text-[var(--color-danger)] sm:text-sm">
+          {apiError}
+        </div>
+      )}
+
+      <form
+        className="space-y-4 sm:space-y-5 2xl:space-y-6"
+        onSubmit={handleSubmit(onSubmit, (validationErrors) => {
+          console.log("Signup validation errors:", validationErrors);
+        })}
+      >
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-main)]">
+          <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
             Full name
           </label>
 
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)]">
-              <User className="h-5 w-5" />
-            </div>
+            <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
             <input
               {...register("fullName")}
               type="text"
               placeholder="Enter your full name"
-              className={`${inputClass(Boolean(errors.fullName))} pl-10 pr-3`}
+              className={`${inputClass(Boolean(errors.fullName))} pl-9 pr-3 sm:pl-10 2xl:pl-12`}
             />
           </div>
 
           {errors.fullName && (
-            <p className="mt-1 text-xs text-[var(--color-danger)]">
+            <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
               {errors.fullName.message}
             </p>
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-main)]">
+            <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
               Email address
             </label>
 
             <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)]">
-                <Mail className="h-5 w-5" />
-              </div>
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
               <input
                 {...register("email")}
                 type="email"
                 placeholder="you@company.com"
-                className={`${inputClass(Boolean(errors.email))} pl-10 pr-3`}
+                className={`${inputClass(Boolean(errors.email))} pl-9 pr-3 sm:pl-10 2xl:pl-12`}
               />
             </div>
 
             {errors.email && (
-              <p className="mt-1 text-xs text-[var(--color-danger)]">
+              <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
                 {errors.email.message}
               </p>
             )}
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-main)]">
+            <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
               Phone number
             </label>
 
             <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)]">
-                <Phone className="h-5 w-5" />
-              </div>
+              <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
               <input
                 {...register("phone")}
                 type="tel"
-                placeholder="(555) 123-4567"
-                className={`${inputClass(Boolean(errors.phone))} pl-10 pr-3`}
+                placeholder="+12345678900"
+                className={`${inputClass(Boolean(errors.phone))} pl-9 pr-3 sm:pl-10 2xl:pl-12`}
               />
             </div>
 
             {errors.phone && (
-              <p className="mt-1 text-xs text-[var(--color-danger)]">
+              <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
                 {errors.phone.message}
               </p>
             )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
+            Date of birth
+          </label>
+
+          <div className="relative">
+            <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
+
+            <input
+              {...register("dob")}
+              type="date"
+              className={`${inputClass(Boolean(errors.dob))} pl-9 pr-3 sm:pl-10 2xl:pl-12`}
+            />
+          </div>
+
+          {errors.dob && (
+            <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
+              {errors.dob.message}
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-main)]">
+            <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
               Password
             </label>
 
             <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)]">
-                <Lock className="h-5 w-5" />
-              </div>
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
               <input
                 {...register("password")}
                 type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                className={`${inputClass(Boolean(errors.password))} pl-10 pr-10`}
+                placeholder="StrongPass123!"
+                className={`${inputClass(Boolean(errors.password))} pl-9 pr-10 sm:pl-10 2xl:pl-12 2xl:pr-12`}
               />
 
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-main)] 2xl:pr-4"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
+                  <EyeOff className="h-4 w-4 sm:h-5 sm:w-5 2xl:h-6 2xl:w-6" />
                 ) : (
-                  <Eye className="h-5 w-5" />
+                  <Eye className="h-4 w-4 sm:h-5 sm:w-5 2xl:h-6 2xl:w-6" />
                 )}
               </button>
             </div>
 
             {errors.password && (
-              <p className="mt-1 text-xs text-[var(--color-danger)]">
+              <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
                 {errors.password.message}
               </p>
             )}
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-main)]">
+            <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
               Confirm password
             </label>
 
             <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)]">
-                <Lock className="h-5 w-5" />
-              </div>
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
               <input
                 {...register("confirmPassword")}
                 type={showConfirmPassword ? "text" : "password"}
-                placeholder="••••••••"
-                className={`${inputClass(Boolean(errors.confirmPassword))} pl-10 pr-10`}
+                placeholder="StrongPass123!"
+                className={`${inputClass(Boolean(errors.confirmPassword))} pl-9 pr-10 sm:pl-10 2xl:pl-12 2xl:pr-12`}
               />
 
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-main)] 2xl:pr-4"
+                aria-label={
+                  showConfirmPassword ? "Hide password" : "Show password"
+                }
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="h-5 w-5" />
+                  <EyeOff className="h-4 w-4 sm:h-5 sm:w-5 2xl:h-6 2xl:w-6" />
                 ) : (
-                  <Eye className="h-5 w-5" />
+                  <Eye className="h-4 w-4 sm:h-5 sm:w-5 2xl:h-6 2xl:w-6" />
                 )}
               </button>
             </div>
 
             {errors.confirmPassword && (
-              <p className="mt-1 text-xs text-[var(--color-danger)]">
+              <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
                 {errors.confirmPassword.message}
               </p>
             )}
@@ -249,43 +313,38 @@ export default function EntryPage() {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-main)]">
+          <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
             State
           </label>
 
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)]">
-              <Map className="h-5 w-5" />
-            </div>
+            <Map className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
             <select
               {...register("state")}
-              className={`${inputClass(Boolean(errors.state))} appearance-none pl-10 pr-3`}
+              className={`${inputClass(Boolean(errors.state))} appearance-none pl-9 pr-3 sm:pl-10 2xl:pl-12`}
             >
               <option value="">Select your state</option>
-              <option value="CA">California</option>
               <option value="TX">Texas</option>
               <option value="NY">New York</option>
+              <option value="CA">California</option>
               <option value="FL">Florida</option>
             </select>
           </div>
 
           {errors.state && (
-            <p className="mt-1 text-xs text-[var(--color-danger)]">
+            <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
               {errors.state.message}
             </p>
           )}
         </div>
 
         <div>
-          <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-[var(--color-text-main)]">
+          <label className="mb-3 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
             Select your role
-            <span className="flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-[var(--color-border-light)] text-xs text-[var(--color-text-muted)]">
-              i
-            </span>
           </label>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <RoleCard
               selected={selectedRole === "seller"}
               onClick={() => setValue("role", "seller", { shouldValidate: true })}
@@ -296,15 +355,11 @@ export default function EntryPage() {
 
             <RoleCard
               selected={selectedRole === "partner"}
-              onClick={() => setValue("role", "partner", { shouldValidate: true })}
-              icon={<Users className="h-5 w-5" />}
-              title={
-                <>
-                  Private
-                  <br />
-                  Partner
-                </>
+              onClick={() =>
+                setValue("role", "partner", { shouldValidate: true })
               }
+              icon={<Users className="h-5 w-5" />}
+              title="Private Partner"
               description="Collaborate and manage deals."
             />
 
@@ -314,19 +369,13 @@ export default function EntryPage() {
                 setValue("role", "licensed", { shouldValidate: true })
               }
               icon={<Briefcase className="h-5 w-5" />}
-              title={
-                <>
-                  Licensed
-                  <br />
-                  Partner
-                </>
-              }
+              title="Licensed Partner"
               description="Represent clients and close deals."
             />
           </div>
 
           {errors.role && (
-            <p className="mt-1 text-xs text-[var(--color-danger)]">
+            <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
               {errors.role.message}
             </p>
           )}
@@ -338,39 +387,51 @@ export default function EntryPage() {
               {...register("terms")}
               type="checkbox"
               id="terms"
-              className={`mt-1 h-4 w-4 rounded border-[var(--color-border-light)] text-[var(--color-secondary)] focus:ring-[var(--color-secondary)] ${errors.terms
-                ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
-                : ""
-                }`}
+              className={`mt-1 h-4 w-4 rounded border-[var(--color-border-light)] text-[var(--color-secondary)] focus:ring-[var(--color-secondary)] ${
+                errors.terms
+                  ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
+                  : ""
+              }`}
             />
 
-            <label htmlFor="terms" className="text-xs text-[var(--color-text-muted)]">
+            <label
+              htmlFor="terms"
+              className="text-xs leading-5 text-[var(--color-text-muted)] 2xl:text-sm"
+            >
               I agree to the{" "}
-              <a href="#" className="font-medium text-[var(--color-text-main)] hover:underline">
+              <a
+                href="#"
+                className="font-medium text-[var(--color-text-main)] hover:underline"
+              >
                 Terms of Service
               </a>{" "}
               and{" "}
-              <a href="#" className="font-medium text-[var(--color-text-main)] hover:underline">
+              <a
+                href="#"
+                className="font-medium text-[var(--color-text-main)] hover:underline"
+              >
                 Privacy Policy
               </a>
             </label>
           </div>
 
           {errors.terms && (
-            <p className="mt-1 text-xs text-[var(--color-danger)]">
+            <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
               {errors.terms.message}
             </p>
           )}
         </div>
 
-        <AppButton
+        <Button
           type="submit"
           variant="primary"
-          className="mt-4 flex w-full items-center justify-center gap-2 py-3.5 uppercase"
+          isLoading={isLoading}
+          loadingText="Creating account..."
+          className="mt-3 flex w-full items-center justify-center gap-2 py-3 text-xs uppercase tracking-wide sm:py-3.5 sm:text-sm 2xl:py-4 2xl:text-base"
         >
           Create Account
-          <ArrowRight className="h-4 w-4" />
-        </AppButton>
+          <ArrowRight className="h-4 w-4 2xl:h-5 2xl:w-5" />
+        </Button>
 
         <div className="relative my-6 flex items-center">
           <div className="flex-grow border-t border-[var(--color-border-light)]" />
@@ -380,27 +441,27 @@ export default function EntryPage() {
           <div className="flex-grow border-t border-[var(--color-border-light)]" />
         </div>
 
-        <div className="text-center text-sm text-[var(--color-text-muted)]">
+        <div className="text-center text-xs text-[var(--color-text-muted)] sm:text-sm 2xl:text-base">
           Already have an account?{" "}
           <Link
             to="/auth/signin"
-            className="font-semibold text-[var(--color-secondary)] hover:underline"
+            className="font-semibold text-[var(--color-secondary)] transition-colors hover:text-[var(--color-primary)] hover:underline"
           >
             Sign in →
           </Link>
         </div>
 
-        <div className="mt-6 flex gap-3 rounded-[var(--radius-input)] border border-[var(--color-secondary)]/25 bg-[var(--color-secondary)]/10 p-4">
-          <ShieldCheck className="h-5 w-5 flex-shrink-0 text-[var(--color-secondary)]" />
+        <div className="mt-6 flex gap-3 rounded-[var(--radius-input)] border border-[var(--color-secondary)]/25 bg-[var(--color-secondary)]/10 p-4 sm:gap-4 2xl:p-6">
+          <ShieldCheck className="h-5 w-5 flex-shrink-0 text-[var(--color-secondary)] 2xl:h-6 2xl:w-6" />
 
-          <div className="flex-grow text-xs leading-relaxed text-[var(--color-text-main)]">
+          <div className="flex-grow text-[11px] leading-relaxed text-[var(--color-text-main)] sm:text-xs 2xl:text-sm 2xl:leading-6">
             Your identity will be securely verified to protect your account and
             ensure a trusted community.
           </div>
 
           <a
             href="#"
-            className="self-center whitespace-nowrap text-xs font-semibold text-[var(--color-text-main)]"
+            className="self-center whitespace-nowrap text-[11px] font-semibold text-[var(--color-text-main)] sm:text-xs 2xl:text-sm"
           >
             Learn more
           </a>
@@ -420,11 +481,13 @@ interface RoleCardProps {
 
 function RoleCard({ selected, onClick, icon, title, description }: RoleCardProps) {
   return (
-    <div
-      className={`relative cursor-pointer rounded-[var(--radius-input)] border p-4 text-center transition-all ${selected
-        ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]/10"
-        : "border-[var(--color-border-light)] hover:border-[var(--color-secondary)]/50"
-        }`}
+    <button
+      type="button"
+      className={`relative rounded-[var(--radius-input)] border p-4 text-center transition-all ${
+        selected
+          ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]/10"
+          : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]/50"
+      }`}
       onClick={onClick}
     >
       {selected && (
@@ -434,10 +497,11 @@ function RoleCard({ selected, onClick, icon, title, description }: RoleCardProps
       )}
 
       <div
-        className={`mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg ${selected
-          ? "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)]"
-          : "bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
-          }`}
+        className={`mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg ${
+          selected
+            ? "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)]"
+            : "bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
+        }`}
       >
         {icon}
       </div>
@@ -446,9 +510,9 @@ function RoleCard({ selected, onClick, icon, title, description }: RoleCardProps
         {title}
       </div>
 
-      <div className="mt-1 text-[10px] leading-tight text-[var(--color-text-muted)]">
+      <div className="mt-1 text-[10px] leading-tight text-[var(--color-text-muted)] 2xl:text-xs">
         {description}
       </div>
-    </div>
+    </button>
   );
 }

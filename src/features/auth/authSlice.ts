@@ -1,30 +1,45 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { tokenStorage } from "./tokenStorage";
 
-export type UserRole = "SELLER" | "PRIVATE_PARTNER" | "LICENSED_PARTNER" | "ADMIN";
+export type UserRole =
+  | "SELLER"
+  | "PRIVATE_PARTNER"
+  | "LICENSED_PARTNER"
+  | "ADMIN"
+  | "seller"
+  | "partner"
+  | "licensed"
+  | "admin";
 
 export interface AuthUser {
-  id: string;
-  fullName: string;
+  id?: string;
+  _id?: string;
+  fullName?: string;
+  full_name?: string;
   email: string;
-  role: UserRole;
+  phone?: string;
+  role?: UserRole | string;
   isVerified?: boolean;
 }
 
 interface AuthState {
   user: AuthUser | null;
   accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
 }
 
 const initialState: AuthState = {
   user: null,
-  accessToken: null,
-  isAuthenticated: false,
+  accessToken: tokenStorage.getAccessToken(),
+  refreshToken: tokenStorage.getRefreshToken(),
+  isAuthenticated: Boolean(tokenStorage.getAccessToken()),
 };
 
 interface SetCredentialsPayload {
   user?: AuthUser | null;
   accessToken?: string | null;
+  refreshToken?: string | null;
 }
 
 const authSlice = createSlice({
@@ -40,13 +55,22 @@ const authSlice = createSlice({
         state.accessToken = action.payload.accessToken;
       }
 
-      state.isAuthenticated = Boolean(state.user || state.accessToken);
+      if (action.payload.refreshToken !== undefined) {
+        state.refreshToken = action.payload.refreshToken;
+      }
+
+      tokenStorage.setTokens(state.accessToken, state.refreshToken);
+
+      state.isAuthenticated = Boolean(state.accessToken);
     },
 
     logout: (state) => {
       state.user = null;
       state.accessToken = null;
+      state.refreshToken = null;
       state.isAuthenticated = false;
+
+      tokenStorage.clearTokens();
     },
   },
 });

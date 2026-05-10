@@ -1,12 +1,18 @@
 import { Navigate, Route, Routes } from "react-router";
-import EntryPage from "../pages/auth/SignUp";
+
+import ProtectedRoute from "../features/auth/ProtectedRoute";
+
+import SignUp from "../pages/auth/SignUp";
 import SignInPage from "../pages/auth/SignIn";
 import VerifyPage from "../pages/auth/Verify";
 import ForgotPasswordPage from "../pages/auth/ForgotPassword";
+import ResetPasswordPage from "../pages/auth/ResetPassword";
+
 import SellerDashboard from "../pages/seller/SellerDashboard";
 import PartnerDashboard from "../pages/partner/PartnerDashboard";
 import RealtorDashboard from "../pages/realtor/RealtorDashboard";
 import AdminDashboard from "../pages/admin/AdminDashboard";
+
 import DashboardLayout from "../layouts/DashboardLayout";
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 
@@ -44,60 +50,79 @@ const adminNav = [
 function AppRoutes() {
   return (
     <Routes>
+      {/* Default */}
       <Route path="/" element={<Navigate to="/auth/signup" replace />} />
-      <Route path="/auth/signup" element={<EntryPage />} />
+
+      {/* Public Auth Routes */}
+      <Route path="/auth/signup" element={<SignUp />} />
       <Route path="/auth/signin" element={<SignInPage />} />
       <Route path="/auth/verify" element={<VerifyPage />} />
       <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      <Route
-        element={
-          <DashboardLayout
-            title="Seller Portal"
-            navItems={sellerNav}
-            mode="light"
-          />
-        }
-      >
-        <Route path="/seller/dashboard" element={<SellerDashboard />} />
+      {/* Protected Seller Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route
+          element={
+            <DashboardLayout
+              title="Seller Portal"
+              navItems={sellerNav}
+              mode="light"
+            />
+          }
+        >
+          <Route path="/seller/dashboard" element={<SellerDashboard />} />
+        </Route>
       </Route>
 
-      <Route
-        element={
-          <DashboardLayout
-            title="Partner Pro Mode"
-            navItems={partnerNav}
-            mode="dark"
-          />
-        }
-      >
-        <Route path="/partner/dashboard" element={<PartnerDashboard />} />
+      {/* Protected Partner Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route
+          element={
+            <DashboardLayout
+              title="Partner Pro Mode"
+              navItems={partnerNav}
+              mode="dark"
+            />
+          }
+        >
+          <Route path="/partner/dashboard" element={<PartnerDashboard />} />
+        </Route>
       </Route>
 
-      <Route
-        element={
-          <DashboardLayout
-            title="Licensed Partner Portal"
-            navItems={realtorNav}
-            mode="light"
-          />
-        }
-      >
-        <Route path="/realtor/dashboard" element={<RealtorDashboard />} />
+      {/* Protected Realtor Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route
+          element={
+            <DashboardLayout
+              title="Licensed Partner Portal"
+              navItems={realtorNav}
+              mode="light"
+            />
+          }
+        >
+          <Route path="/realtor/dashboard" element={<RealtorDashboard />} />
+        </Route>
       </Route>
 
-      <Route
-        element={
-          <DashboardLayout
-            title="Admin Portal"
-            navItems={adminNav}
-            mode="light"
-          />
-        }
-      >
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      {/* Protected Admin Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route
+          element={
+            <DashboardLayout
+              title="Admin Portal"
+              navItems={adminNav}
+              mode="light"
+            />
+          }
+        >
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        </Route>
       </Route>
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/auth/signup" replace />} />
     </Routes>
   );
 }

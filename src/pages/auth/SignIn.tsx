@@ -14,12 +14,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 import AuthLayout from "../../layouts/AuthLayout";
-import AppButton from "../../components/common/Button";
+import Button from "../../components/common/Button";
+import { useLoginMutation } from "../../services/authService";
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
-  remember: z.boolean().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -27,6 +27,7 @@ type FormData = z.infer<typeof schema>;
 export default function SignInPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [login, { isLoading }] = useLoginMutation();
 
   const {
     register,
@@ -34,14 +35,24 @@ export default function SignInPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      remember: false,
-    },
   });
 
-  const onSubmit = (data: FormData) => {
-    console.log("Sign In submitted:", data);
-    navigate("/seller/dashboard");
+  const onSubmit = async (data: FormData) => {
+    try {
+      await login({
+        email: data.email,
+        password: data.password,
+      }).unwrap();
+
+      navigate("/auth/verify", {
+        state: {
+          email: data.email,
+          purpose: "login",
+        },
+      });
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
   };
 
   return (
@@ -62,16 +73,17 @@ export default function SignInPage() {
         </div>
       </div>
 
-      <form className="space-y-4 sm:space-y-5 2xl:space-y-6" onSubmit={handleSubmit(onSubmit)}>
+      <form
+        className="space-y-4 sm:space-y-5 2xl:space-y-6"
+        onSubmit={handleSubmit(onSubmit)}
+      >
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
             Email address
           </label>
 
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)] 2xl:pl-4">
-              <Mail className="h-4 w-4 sm:h-5 sm:w-5 2xl:h-6 2xl:w-6" />
-            </div>
+            <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
             <input
               {...register("email")}
@@ -98,9 +110,7 @@ export default function SignInPage() {
           </label>
 
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)] 2xl:pl-4">
-              <Lock className="h-4 w-4 sm:h-5 sm:w-5 2xl:h-6 2xl:w-6" />
-            </div>
+            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
             <input
               {...register("password")}
@@ -143,14 +153,16 @@ export default function SignInPage() {
           )}
         </div>
 
-        <AppButton
+        <Button
           type="submit"
           variant="primary"
+          isLoading={isLoading}
+          loadingText="Sending OTP..."
           className="mt-3 flex w-full items-center justify-center gap-2 py-3 text-xs uppercase tracking-wide sm:py-3.5 sm:text-sm 2xl:py-4 2xl:text-base"
         >
           Sign In
           <ArrowRight className="h-4 w-4 2xl:h-5 2xl:w-5" />
-        </AppButton>
+        </Button>
 
         <div className="relative my-6 flex items-center sm:my-8">
           <div className="flex-grow border-t border-[var(--color-border-light)]" />

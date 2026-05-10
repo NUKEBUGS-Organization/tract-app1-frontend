@@ -1,39 +1,58 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import Loader from "./Loader";
 
-type AppButtonVariant = "primary" | "secondary" | "danger" | "outline" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "danger" | "outline" | "ghost";
 
-interface AppButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
-  variant?: AppButtonVariant;
+  variant?: ButtonVariant;
+  isLoading?: boolean;
+  loadingText?: string;
 }
 
-const variantClasses: Record<AppButtonVariant, string> = {
+const variantClasses: Record<ButtonVariant, string> = {
   primary:
     "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]",
   secondary:
     "bg-[var(--color-secondary)] text-[var(--color-text-main)] hover:opacity-90 shadow-[var(--shadow-premium)]",
-  danger:
-    "bg-[var(--color-danger)] text-white hover:opacity-90",
+  danger: "bg-[var(--color-danger)] text-white hover:opacity-90",
   outline:
-    "border border-[var(--color-secondary)] bg-transparent text-[var(--color-primary)] hover:bg-[var(--color-bg-soft)]",
+    "border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] text-[var(--color-text-main)] hover:bg-white",
   ghost:
     "bg-transparent text-[var(--color-primary)] hover:bg-[var(--color-bg-soft)]",
 };
 
-function AppButton({
+function getLoaderVariant(variant: ButtonVariant) {
+  if (variant === "primary" || variant === "danger") return "white";
+  if (variant === "secondary") return "primary";
+  return "primary";
+}
+
+function Button({
   children,
   variant = "primary",
   className = "",
+  isLoading = false,
+  loadingText = "Loading...",
+  disabled,
   ...props
-}: AppButtonProps) {
+}: ButtonProps) {
   return (
     <button
-      className={`rounded-[var(--radius-button)] px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-[var(--radius-button)] px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${variantClasses[variant]} ${className}`}
+      disabled={disabled || isLoading}
       {...props}
     >
-      {children}
+      {isLoading ? (
+        <>
+          <Loader size="sm" variant={getLoaderVariant(variant)} />
+          {loadingText}
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }
 
-export default AppButton;
+export default Button;

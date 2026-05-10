@@ -1,12 +1,26 @@
+// src/pages/auth/VerifyPage.tsx
+
 import { ShieldCheck, Mail, ArrowRight, ArrowLeft } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useState, useRef, type KeyboardEvent } from "react";
 
 import AuthLayout from "../../layouts/AuthLayout";
-import AppButton from "../../components/common/Button";
+import Button from "../../components/common/Button";
+import { useVerifyOtpMutation } from "../../services/authService";
+import { normalizeAuthResponse } from "../../features/auth/authResponse";
+
+type VerifyPurpose = "login" | "forgot_password";
 
 export default function VerifyPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const email = location.state?.email ?? "";
+  const purpose = (location.state?.purpose ?? "login") as VerifyPurpose;
+
+  const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const inputRefs = [
     useRef<HTMLInputElement>(null),
@@ -40,6 +54,69 @@ export default function VerifyPage() {
     }
   };
 
+  const handleVerify = async () => {
+    const otp = code.join("");
+
+    console.log("Verify button clicked");
+    console.log("Verify payload:", {
+      email,
+      otp,
+      purpose,
+    });
+
+    if (!email) {
+      setApiError("Email is missing. Please go back and try again.");
+      return;
+    }
+
+    if (otp.length !== 6) {
+      setApiError("Please enter complete 6-digit OTP.");
+      return;
+    }
+
+    try {
+      setApiError(null);
+
+      const response = await verifyOtp({
+        email,
+        otp,
+        purpose,
+      }).unwrap();
+
+      console.log("Verify OTP response:", response);
+
+      const authData = normalizeAuthResponse(response);
+
+      console.log("Normalized auth data:", authData);
+
+      if (purpose === "forgot_password") {
+        if (!authData.resetToken) {
+          setApiError("Reset token was not returned by backend.");
+          return;
+        }
+
+        navigate("/auth/reset-password", {
+          state: {
+            resetToken: authData.resetToken,
+          },
+        });
+        return;
+      }
+
+      navigate("/seller/dashboard");
+    } catch (error: any) {
+      console.error("OTP verification failed:", error);
+
+      const message =
+        error?.data?.message ||
+        error?.data?.error ||
+        error?.error ||
+        "OTP verification failed. Please try again.";
+
+      setApiError(message);
+    }
+  };
+
   return (
     <AuthLayout>
       <div className="mb-6 text-center sm:mb-8 2xl:mb-10">
@@ -53,7 +130,7 @@ export default function VerifyPage() {
 
         <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-[var(--color-bg-soft)] px-3 py-2 text-xs font-medium text-[var(--color-text-main)] sm:px-4 sm:text-sm 2xl:px-5 2xl:py-3 2xl:text-base">
           <Mail className="h-4 w-4 flex-shrink-0 text-[var(--color-text-muted)] 2xl:h-5 2xl:w-5" />
-          <span className="truncate">you@company.com</span>
+          <span className="truncate">{email || "Email missing"}</span>
         </div>
 
         <div className="my-5 flex items-center justify-center sm:my-6 2xl:my-8">
@@ -63,9 +140,18 @@ export default function VerifyPage() {
         </div>
       </div>
 
+      {apiError && (
+        <div className="mb-5 rounded-[var(--radius-input)] border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-xs font-medium text-[var(--color-danger)] sm:text-sm">
+          {apiError}
+        </div>
+      )}
+
       <form
         className="space-y-5 sm:space-y-6 2xl:space-y-7"
-        onSubmit={(event) => event.preventDefault()}
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleVerify();
+        }}
       >
         <div>
           <label className="mb-3 block text-center text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-main)] sm:mb-4 sm:text-xs 2xl:text-sm">
@@ -92,17 +178,6 @@ export default function VerifyPage() {
 
         <div className="flex flex-col gap-2 px-1 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-2 sm:text-sm 2xl:text-base">
           <div className="flex items-center justify-center gap-1.5 text-[var(--color-text-muted)] sm:justify-start">
-            <svg
-              className="h-4 w-4 flex-shrink-0 2xl:h-5 2xl:w-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" />
-            </svg>
-
             <span>
               Code expires in{" "}
               <span className="font-semibold text-[var(--color-primary)]">
@@ -119,14 +194,16 @@ export default function VerifyPage() {
           </button>
         </div>
 
-        <AppButton
+        <Button
           type="submit"
           variant="primary"
+          isLoading={isLoading}
+          loadingText="Verifying..."
           className="mt-4 flex w-full items-center justify-center gap-2 py-3 text-xs uppercase tracking-wide sm:mt-6 sm:py-3.5 sm:text-sm 2xl:py-4 2xl:text-base"
         >
           Verify & Continue
           <ArrowRight className="h-4 w-4 2xl:h-5 2xl:w-5" />
-        </AppButton>
+        </Button>
 
         <div className="relative my-5 flex items-center sm:my-6 2xl:my-8">
           <div className="flex-grow border-t border-[var(--color-border-light)]" />

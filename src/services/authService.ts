@@ -1,8 +1,76 @@
 import { baseApi } from "./baseApi";
 import { logout, setCredentials } from "../features/auth/authSlice";
+import { normalizeAuthResponse } from "../features/auth/authResponse";
 
 export const authService = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    register: builder.mutation<
+      any,
+      {
+        full_name: string;
+        email: string;
+        phone: string;
+        password: string;
+        role: string;
+        state_code: string;
+        dob: string;
+      }
+    >({
+      query: (body) => ({
+        url: "/api/v1/auth/register",
+        method: "POST",
+        body,
+      }),
+    }),
+
+    sendOtp: builder.mutation<
+      any,
+      {
+        email: string;
+        purpose: "login" | "forgot_password";
+      }
+    >({
+      query: (body) => ({
+        url: "/api/v1/auth/send-otp",
+        method: "POST",
+        body,
+      }),
+    }),
+
+    verifyOtp: builder.mutation<
+      any,
+      {
+        email: string;
+        otp: string;
+        purpose: "login" | "forgot_password";
+      }
+    >({
+      query: (body) => ({
+        url: "/api/v1/auth/verify-otp",
+        method: "POST",
+        body,
+      }),
+
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const authData = normalizeAuthResponse(data);
+
+          if (authData.accessToken || authData.refreshToken) {
+            dispatch(
+              setCredentials({
+                user: authData.user,
+                accessToken: authData.accessToken,
+                refreshToken: authData.refreshToken,
+              })
+            );
+          }
+        } catch (error) {
+          console.error("OTP verification failed:", error);
+        }
+      },
+    }),
+
     login: builder.mutation<
       any,
       {
@@ -11,59 +79,28 @@ export const authService = baseApi.injectEndpoints({
       }
     >({
       query: (body) => ({
-        url: "/auth/login",
+        url: "/api/v1/auth/login",
         method: "POST",
         body,
       }),
-
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
-        try {
-          const { data } = await queryFulfilled;
-
-          const responseData = data?.data ?? data;
-
-          dispatch(
-            setCredentials({
-              user: responseData?.user ?? null,
-              accessToken: responseData?.accessToken ?? null,
-            })
-          );
-        } catch (error) {
-          console.error("Login failed:", error);
-        }
-      },
     }),
 
-    register: builder.mutation<
+    refreshToken: builder.mutation<
       any,
       {
-        fullName: string;
-        email: string;
-        phone: string;
-        password: string;
-        role: string;
-        state: string;
+        refresh_token: string;
       }
     >({
       query: (body) => ({
-        url: "/auth/register",
+        url: "/api/v1/auth/refresh",
         method: "POST",
         body,
       }),
-    }),
-
-    getMe: builder.query<any, void>({
-      query: () => ({
-        url: "/auth/me",
-        method: "GET",
-      }),
-
-      providesTags: ["Auth"],
     }),
 
     logoutUser: builder.mutation<any, void>({
       query: () => ({
-        url: "/auth/logout",
+        url: "/api/v1/auth/logout",
         method: "POST",
       }),
 
@@ -76,9 +113,23 @@ export const authService = baseApi.injectEndpoints({
       },
     }),
 
-    refreshToken: builder.mutation<any, void>({
+    resetPassword: builder.mutation<
+      any,
+      {
+        reset_token: string;
+        new_password: string;
+      }
+    >({
+      query: (body) => ({
+        url: "/api/v1/auth/reset-password",
+        method: "POST",
+        body,
+      }),
+    }),
+
+    initiateKyc: builder.mutation<any, void>({
       query: () => ({
-        url: "/auth/refresh",
+        url: "/api/v1/auth/kyc/initiate",
         method: "POST",
       }),
     }),
@@ -86,9 +137,12 @@ export const authService = baseApi.injectEndpoints({
 });
 
 export const {
-  useLoginMutation,
   useRegisterMutation,
-  useGetMeQuery,
-  useLogoutUserMutation,
+  useSendOtpMutation,
+  useVerifyOtpMutation,
+  useLoginMutation,
   useRefreshTokenMutation,
+  useLogoutUserMutation,
+  useResetPasswordMutation,
+  useInitiateKycMutation,
 } = authService;
