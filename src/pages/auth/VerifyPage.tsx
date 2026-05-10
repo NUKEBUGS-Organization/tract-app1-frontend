@@ -1,10 +1,20 @@
-import { ShieldCheck, KeyRound, Building, Mail, ArrowRight, ArrowLeft } from "lucide-react";
-import AuthLayout from "../../layouts/AuthLayout";
+import {
+  ShieldCheck,
+  KeyRound,
+  Building,
+  Mail,
+  ArrowRight,
+  ArrowLeft,
+} from "lucide-react";
 import { Link } from "react-router";
 import { useState, useRef, type KeyboardEvent } from "react";
 
+import AuthLayout from "../../layouts/AuthLayout";
+import AppButton from "../../components/common/AppButton";
+
 export default function VerifyPage() {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
+
   const inputRefs = [
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
@@ -16,122 +26,169 @@ export default function VerifyPage() {
 
   const features = [
     {
-      icon: <ShieldCheck className="w-5 h-5" />,
+      icon: <ShieldCheck className="h-5 w-5" />,
       title: "Secure by design",
       description: "Enterprise-grade security and data protection",
     },
     {
-      icon: <KeyRound className="w-5 h-5" />,
+      icon: <KeyRound className="h-5 w-5" />,
       title: "Role-based access",
       description: "Granular permissions for every user",
     },
     {
-      icon: <Building className="w-5 h-5" />,
+      icon: <Building className="h-5 w-5" />,
       title: "Built for scale",
       description: "Reliable, performant, and future-ready",
     },
   ];
 
   const handleChange = (index: number, value: string) => {
-    if (value.length > 1) return; // Prevent multiple chars
-    
+    if (value.length > 1) return;
+
     const newCode = [...code];
     newCode[index] = value;
     setCode(newCode);
 
-    // Auto-advance
     if (value && index < 5) {
       inputRefs[index + 1].current?.focus();
     }
   };
 
-  const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !code[index] && index > 0) {
+  const handleKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Backspace" && !code[index] && index > 0) {
       inputRefs[index - 1].current?.focus();
     }
   };
 
   return (
     <AuthLayout
-      title={<>Intelligent.<br/>Secure.<br/><span className="text-[#a88a45]">Built for Real Estate.</span></>}
+      title={
+        <>
+          Intelligent.
+          <br />
+          Secure.
+          <br />
+          <span className="text-[var(--color-secondary)]">
+            Built for Real Estate.
+          </span>
+        </>
+      }
       subtitle="TRACT streamlines property operations with secure access, smart automation, and real-time insights."
       features={features}
-      featuresInCard={true}
+      featuresInCard
       bgImage="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
     >
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-serif font-bold text-black">Verify your account</h2>
-        <p className="text-gray-500 mt-2 text-sm flex items-center justify-center gap-2">
-          We've sent a 6-digit code to 
+      <div className="mb-8 text-center">
+        <h2 className="text-3xl font-bold text-[var(--color-text-main)]">
+          Verify your account
+        </h2>
+
+        <p className="mt-2 flex items-center justify-center gap-2 text-sm text-[var(--color-text-muted)]">
+          We&apos;ve sent a 6-digit code to
         </p>
-        <div className="inline-flex items-center gap-2 mt-3 bg-[#f5f4ef] px-4 py-2 rounded-full text-sm font-medium text-gray-800">
-          <Mail className="w-4 h-4 text-gray-400" />
+
+        <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--color-bg-soft)] px-4 py-2 text-sm font-medium text-[var(--color-text-main)]">
+          <Mail className="h-4 w-4 text-[var(--color-text-muted)]" />
           you@company.com
         </div>
-        
-        <div className="flex items-center justify-center my-8">
-          <div className="w-16 h-px bg-gray-200"></div>
-          <div className="w-2 h-2 rounded-sm bg-[#a88a45] mx-4 rotate-45"></div>
-          <div className="w-16 h-px bg-gray-200"></div>
+
+        <div className="my-8 flex items-center justify-center">
+          <div className="h-px w-16 bg-[var(--color-border-light)]" />
+          <div className="mx-4 h-2 w-2 rotate-45 rounded-sm bg-[var(--color-secondary)]" />
+          <div className="h-px w-16 bg-[var(--color-border-light)]" />
         </div>
       </div>
 
-      <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+      <form className="space-y-6" onSubmit={(event) => event.preventDefault()}>
         <div>
-          <label className="block text-xs font-bold tracking-wider text-center text-black mb-4 uppercase">Enter the 6-digit code</label>
-          <div className="flex gap-2 justify-center">
-            {code.map((digit, i) => (
+          <label className="mb-4 block text-center text-xs font-bold uppercase tracking-wider text-[var(--color-text-main)]">
+            Enter the 6-digit code
+          </label>
+
+          <div className="flex justify-center gap-2">
+            {code.map((digit, index) => (
               <input
-                key={i}
-                ref={inputRefs[i]}
+                key={index}
+                ref={inputRefs[index]}
                 type="text"
                 maxLength={1}
                 value={digit}
-                onChange={(e) => handleChange(i, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(i, e)}
-                className="w-12 h-14 text-center text-xl font-semibold border border-gray-300 rounded-lg focus:border-[#a88a45] focus:ring-1 focus:ring-[#a88a45] focus:outline-none transition-colors"
+                onChange={(event) => handleChange(index, event.target.value)}
+                onKeyDown={(event) => handleKeyDown(index, event)}
+                className="h-14 w-12 rounded-[var(--radius-input)] border border-[var(--color-border-light)] text-center text-xl font-semibold text-[var(--color-primary)] outline-none transition-colors placeholder:text-[var(--color-primary)] focus:border-[var(--color-secondary)] focus:ring-1 focus:ring-[var(--color-secondary)]"
                 placeholder="-"
               />
             ))}
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-sm px-2">
-          <div className="text-gray-500 flex items-center gap-1.5">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <div className="flex items-center justify-between px-2 text-sm">
+          <div className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <circle cx="12" cy="12" r="10" />
               <path d="M12 6v6l4 2" />
             </svg>
-            Code expires in 02:45
+            Code expires in{" "}
+            <span className="font-semibold text-[var(--color-primary)]">
+              02:45
+            </span>
           </div>
-          <button type="button" className="font-semibold text-[#a88a45] hover:underline">
+
+          <button
+            type="button"
+            className="font-semibold text-[var(--color-secondary)] hover:underline"
+          >
             Resend code
           </button>
         </div>
 
-        <button type="submit" className="w-full bg-black text-white rounded-lg py-3.5 text-sm font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center gap-2 mt-6">
-          VERIFY & CONTINUE <ArrowRight className="w-4 h-4" />
-        </button>
+        <AppButton
+          type="submit"
+          variant="primary"
+          className="mt-6 flex w-full items-center justify-center gap-2 py-3.5 uppercase"
+        >
+          Verify & Continue
+          <ArrowRight className="h-4 w-4" />
+        </AppButton>
 
         <div className="relative my-8 flex items-center">
-          <div className="flex-grow border-t border-gray-200"></div>
-          <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">OR</span>
-          <div className="flex-grow border-t border-gray-200"></div>
+          <div className="flex-grow border-t border-[var(--color-border-light)]" />
+          <span className="mx-4 flex-shrink-0 text-xs text-[var(--color-text-muted)]">
+            OR
+          </span>
+          <div className="flex-grow border-t border-[var(--color-border-light)]" />
         </div>
 
         <div className="text-center">
-          <Link to="/auth/entry" className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-black transition-colors">
-            <ArrowLeft className="w-4 h-4" />
+          <Link
+            to="/auth/entry"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-primary)]"
+          >
+            <ArrowLeft className="h-4 w-4" />
             Change email or go back
           </Link>
         </div>
 
-        <div className="mt-8 bg-[#faf9f5] border border-gray-100 rounded-lg p-5 flex gap-4">
-          <ShieldCheck className="w-5 h-5 text-[#a88a45] flex-shrink-0" />
+        <div className="mt-8 flex gap-4 rounded-[var(--radius-input)] border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-5">
+          <ShieldCheck className="h-5 w-5 flex-shrink-0 text-[var(--color-secondary)]" />
+
           <div>
-            <h4 className="text-xs font-bold text-gray-900 mb-1">Institutional Security</h4>
-            <p className="text-xs text-gray-600 leading-relaxed">
-              Your data is protected with industry-leading security and compliance standards. <a href="#" className="font-semibold text-[#a88a45]">Learn more</a>
+            <h4 className="mb-1 text-xs font-bold text-[var(--color-text-main)]">
+              Institutional Security
+            </h4>
+
+            <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+              Your data is protected with industry-leading security and
+              compliance standards.{" "}
+              <a href="#" className="font-semibold text-[var(--color-secondary)]">
+                Learn more
+              </a>
             </p>
           </div>
         </div>
