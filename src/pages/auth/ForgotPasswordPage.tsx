@@ -1,9 +1,10 @@
 import {
   Mail,
   ArrowRight,
-  ArrowLeft,
   RotateCcw,
   ShieldCheck,
+  KeyRound,
+  Building,
 } from "lucide-react";
 import { Link } from "react-router";
 import { useForm } from "react-hook-form";
@@ -36,21 +37,41 @@ export default function ForgotPasswordPage() {
     setIsSubmitted(true);
   };
 
+  const features = [
+    {
+      icon: <ShieldCheck className="h-5 w-5" />,
+      title: "Secure by design",
+      description: "Enterprise-grade security and data protection",
+    },
+    {
+      icon: <KeyRound className="h-5 w-5" />,
+      title: "Role-based access",
+      description: "Granular permissions for every user",
+    },
+    {
+      icon: <Building className="h-5 w-5" />,
+      title: "Built for scale",
+      description: "Reliable, performant, and future-ready",
+    },
+  ];
+
   return (
     <AuthLayout
       title={
         <>
-          Architectural
+          Intelligent.
           <br />
-          precision for
-          <br />
-          investment
-          <br />
-          mastery.
+          Secure.{" "}
+          <span className="text-[var(--color-secondary)]">
+            Built for
+            <br />
+            Real Estate.
+          </span>
         </>
       }
-      subtitle="Secure, reliable, and built for the next generation of real estate operations."
-      bgImage="https://images.unsplash.com/photo-1541884053360-6bd67fb72a8c?q=80&w=2070&auto=format&fit=crop"
+      subtitle="Join TRACT App 1 to streamline property operations with secure access, smart automation, and real-time insights."
+      features={features}
+      bgImage="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
     >
       <div className="mb-8 text-center">
         <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-secondary)]/15">
@@ -67,9 +88,9 @@ export default function ForgotPasswordPage() {
             : "Enter your email and we'll send you instructions to reset your password."}
         </p>
 
-        <div className="my-8 flex items-center justify-center">
+        <div className="my-6 flex items-center justify-center">
           <div className="h-px w-16 bg-[var(--color-border-light)]" />
-          <div className="mx-4 h-2 w-2 rotate-45 bg-[var(--color-secondary)]" />
+          <div className="mx-4 h-2 w-2 rounded-full bg-[var(--color-secondary)]" />
           <div className="h-px w-16 bg-[var(--color-border-light)]" />
         </div>
       </div>
@@ -90,11 +111,10 @@ export default function ForgotPasswordPage() {
                 {...register("email")}
                 type="email"
                 placeholder="you@company.com"
-                className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-3 pl-10 pr-3 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] ${
-                  errors.email
-                    ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
-                    : "border-[var(--color-border-light)]"
-                }`}
+                className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-10 pr-3 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] ${errors.email
+                  ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
+                  : "border-transparent"
+                  }`}
               />
             </div>
 
@@ -127,24 +147,30 @@ export default function ForgotPasswordPage() {
         </div>
       )}
 
-      <div className="mt-6 text-center">
+      <div className="relative my-6 flex items-center">
+        <div className="flex-grow border-t border-[var(--color-border-light)]" />
+        <span className="mx-4 flex-shrink-0 text-xs text-[var(--color-text-muted)]">
+          OR
+        </span>
+        <div className="flex-grow border-t border-[var(--color-border-light)]" />
+      </div>
+
+      <div className="text-center text-sm text-[var(--color-text-muted)]">
+        Remember your password?{" "}
         <Link
           to="/auth/signin"
-          className="inline-flex items-center gap-2 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-primary)]"
+          className="font-semibold text-[var(--color-secondary)] hover:underline"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to login
+          Sign in →
         </Link>
       </div>
 
-      <div className="mt-10 flex gap-4 rounded-[var(--radius-input)] border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-5">
+      <div className="mt-6 flex gap-3 rounded-[var(--radius-input)] border border-[var(--color-secondary)]/25 bg-[var(--color-secondary)]/10 p-4">
         <ShieldCheck className="h-5 w-5 flex-shrink-0 text-[var(--color-secondary)]" />
-
         <div>
           <h4 className="mb-1 text-xs font-bold text-[var(--color-text-main)]">
             Your security is our priority
           </h4>
-
           <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
             Resetting your password triggers an encrypted authentication flow. If
             you do not receive an email within 5 minutes, please check your spam

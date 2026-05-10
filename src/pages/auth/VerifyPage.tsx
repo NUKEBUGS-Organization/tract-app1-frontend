@@ -66,16 +66,16 @@ export default function VerifyPage() {
         <>
           Intelligent.
           <br />
-          Secure.
-          <br />
+          Secure.{" "}
           <span className="text-[var(--color-secondary)]">
-            Built for Real Estate.
+            Built for
+            <br />
+            Real Estate.
           </span>
         </>
       }
-      subtitle="TRACT streamlines property operations with secure access, smart automation, and real-time insights."
+      subtitle="Join TRACT App 1 to streamline property operations with secure access, smart automation, and real-time insights."
       features={features}
-      featuresInCard
       bgImage="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
     >
       <div className="mb-8 text-center">
@@ -92,9 +92,9 @@ export default function VerifyPage() {
           you@company.com
         </div>
 
-        <div className="my-8 flex items-center justify-center">
+        <div className="my-6 flex items-center justify-center">
           <div className="h-px w-16 bg-[var(--color-border-light)]" />
-          <div className="mx-4 h-2 w-2 rotate-45 rounded-sm bg-[var(--color-secondary)]" />
+          <div className="mx-4 h-2 w-2 rounded-full bg-[var(--color-secondary)]" />
           <div className="h-px w-16 bg-[var(--color-border-light)]" />
         </div>
       </div>
@@ -115,7 +115,7 @@ export default function VerifyPage() {
                 value={digit}
                 onChange={(event) => handleChange(index, event.target.value)}
                 onKeyDown={(event) => handleKeyDown(index, event)}
-                className="h-14 w-12 rounded-[var(--radius-input)] border border-[var(--color-border-light)] text-center text-xl font-semibold text-[var(--color-primary)] outline-none transition-colors placeholder:text-[var(--color-primary)] focus:border-[var(--color-secondary)] focus:ring-1 focus:ring-[var(--color-secondary)]"
+                className="h-14 w-12 rounded-[var(--radius-input)] border border-transparent bg-[var(--color-bg-soft)] text-center text-xl font-semibold text-[var(--color-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)]"
                 placeholder="-"
               />
             ))}
@@ -157,7 +157,7 @@ export default function VerifyPage() {
           <ArrowRight className="h-4 w-4" />
         </AppButton>
 
-        <div className="relative my-8 flex items-center">
+        <div className="relative my-6 flex items-center">
           <div className="flex-grow border-t border-[var(--color-border-light)]" />
           <span className="mx-4 flex-shrink-0 text-xs text-[var(--color-text-muted)]">
             OR
@@ -168,21 +168,19 @@ export default function VerifyPage() {
         <div className="text-center">
           <Link
             to="/auth/entry"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-primary)]"
+            className="font-semibold text-[var(--color-secondary)] hover:underline inline-flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
             Change email or go back
           </Link>
         </div>
 
-        <div className="mt-8 flex gap-4 rounded-[var(--radius-input)] border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-5">
+        <div className="mt-6 flex gap-3 rounded-[var(--radius-input)] border border-[var(--color-secondary)]/25 bg-[var(--color-secondary)]/10 p-4">
           <ShieldCheck className="h-5 w-5 flex-shrink-0 text-[var(--color-secondary)]" />
-
           <div>
             <h4 className="mb-1 text-xs font-bold text-[var(--color-text-main)]">
               Institutional Security
             </h4>
-
             <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
               Your data is protected with industry-leading security and
               compliance standards.{" "}
