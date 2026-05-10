@@ -79,7 +79,7 @@ export default function EntryPage() {
   return (
     <AuthLayout>
       <div className="mb-8 text-center">
-        <h2 className="text-3xl font-bold text-[var(--color-text-main)]">
+        <h2 className="text-2xl sm:text-3xl 2xl:text-4xl font-bold text-[var(--color-text-main)]">
           Create your account
         </h2>
 

@@ -1,9 +1,4 @@
-import {
-  ShieldCheck,
-  Mail,
-  ArrowRight,
-  ArrowLeft,
-} from "lucide-react";
+import { ShieldCheck, Mail, ArrowRight, ArrowLeft } from "lucide-react";
 import { Link } from "react-router";
 import { useState, useRef, type KeyboardEvent } from "react";
 
@@ -23,18 +18,23 @@ export default function VerifyPage() {
   ];
 
   const handleChange = (index: number, value: string) => {
-    if (value.length > 1) return;
+    const onlyNumber = value.replace(/\D/g, "");
+
+    if (onlyNumber.length > 1) return;
 
     const newCode = [...code];
-    newCode[index] = value;
+    newCode[index] = onlyNumber;
     setCode(newCode);
 
-    if (value && index < 5) {
+    if (onlyNumber && index < 5) {
       inputRefs[index + 1].current?.focus();
     }
   };
 
-  const handleKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (
+    index: number,
+    event: KeyboardEvent<HTMLInputElement>
+  ) => {
     if (event.key === "Backspace" && !code[index] && index > 0) {
       inputRefs[index - 1].current?.focus();
     }
@@ -42,54 +42,58 @@ export default function VerifyPage() {
 
   return (
     <AuthLayout>
-      <div className="mb-8 text-center">
-        <h2 className="text-3xl font-bold text-[var(--color-text-main)]">
+      <div className="mb-6 text-center sm:mb-8 2xl:mb-10">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)] sm:text-3xl xl:text-[32px] 2xl:text-4xl">
           Verify your account
         </h2>
 
-        <p className="mt-2 flex items-center justify-center gap-2 text-sm text-[var(--color-text-muted)]">
+        <p className="mt-2 flex items-center justify-center gap-2 text-xs leading-6 text-[var(--color-text-muted)] sm:text-sm 2xl:text-base">
           We&apos;ve sent a 6-digit code to
         </p>
 
-        <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--color-bg-soft)] px-4 py-2 text-sm font-medium text-[var(--color-text-main)]">
-          <Mail className="h-4 w-4 text-[var(--color-text-muted)]" />
-          you@company.com
+        <div className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-[var(--color-bg-soft)] px-3 py-2 text-xs font-medium text-[var(--color-text-main)] sm:px-4 sm:text-sm 2xl:px-5 2xl:py-3 2xl:text-base">
+          <Mail className="h-4 w-4 flex-shrink-0 text-[var(--color-text-muted)] 2xl:h-5 2xl:w-5" />
+          <span className="truncate">you@company.com</span>
         </div>
 
-        <div className="my-6 flex items-center justify-center">
-          <div className="h-px w-16 bg-[var(--color-border-light)]" />
-          <div className="mx-4 h-2 w-2 rounded-full bg-[var(--color-secondary)]" />
-          <div className="h-px w-16 bg-[var(--color-border-light)]" />
+        <div className="my-5 flex items-center justify-center sm:my-6 2xl:my-8">
+          <div className="h-px w-12 bg-[var(--color-border-light)] sm:w-16 2xl:w-20" />
+          <div className="mx-3 h-2 w-2 rounded-full bg-[var(--color-secondary)] sm:mx-4" />
+          <div className="h-px w-12 bg-[var(--color-border-light)] sm:w-16 2xl:w-20" />
         </div>
       </div>
 
-      <form className="space-y-6" onSubmit={(event) => event.preventDefault()}>
+      <form
+        className="space-y-5 sm:space-y-6 2xl:space-y-7"
+        onSubmit={(event) => event.preventDefault()}
+      >
         <div>
-          <label className="mb-4 block text-center text-xs font-bold uppercase tracking-wider text-[var(--color-text-main)]">
+          <label className="mb-3 block text-center text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-main)] sm:mb-4 sm:text-xs 2xl:text-sm">
             Enter the 6-digit code
           </label>
 
-          <div className="flex justify-center gap-2">
+          <div className="flex justify-center gap-1.5 sm:gap-2 2xl:gap-3">
             {code.map((digit, index) => (
               <input
                 key={index}
                 ref={inputRefs[index]}
                 type="text"
+                inputMode="numeric"
                 maxLength={1}
                 value={digit}
                 onChange={(event) => handleChange(index, event.target.value)}
                 onKeyDown={(event) => handleKeyDown(index, event)}
-                className="h-14 w-12 rounded-[var(--radius-input)] border border-transparent bg-[var(--color-bg-soft)] text-center text-xl font-semibold text-[var(--color-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)]"
+                className="h-11 w-9 rounded-[var(--radius-input)] border border-transparent bg-[var(--color-bg-soft)] text-center text-base font-semibold text-[var(--color-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:h-14 sm:w-12 sm:text-xl 2xl:h-16 2xl:w-14 2xl:text-2xl"
                 placeholder="-"
               />
             ))}
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-2 text-sm">
-          <div className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
+        <div className="flex flex-col gap-2 px-1 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-2 sm:text-sm 2xl:text-base">
+          <div className="flex items-center justify-center gap-1.5 text-[var(--color-text-muted)] sm:justify-start">
             <svg
-              className="h-4 w-4"
+              className="h-4 w-4 flex-shrink-0 2xl:h-5 2xl:w-5"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -98,15 +102,18 @@ export default function VerifyPage() {
               <circle cx="12" cy="12" r="10" />
               <path d="M12 6v6l4 2" />
             </svg>
-            Code expires in{" "}
-            <span className="font-semibold text-[var(--color-primary)]">
-              02:45
+
+            <span>
+              Code expires in{" "}
+              <span className="font-semibold text-[var(--color-primary)]">
+                02:45
+              </span>
             </span>
           </div>
 
           <button
             type="button"
-            className="font-semibold text-[var(--color-secondary)] hover:underline"
+            className="text-center font-semibold text-[var(--color-secondary)] transition-colors hover:text-[var(--color-primary)] hover:underline"
           >
             Resend code
           </button>
@@ -115,15 +122,15 @@ export default function VerifyPage() {
         <AppButton
           type="submit"
           variant="primary"
-          className="mt-6 flex w-full items-center justify-center gap-2 py-3.5 uppercase"
+          className="mt-4 flex w-full items-center justify-center gap-2 py-3 text-xs uppercase tracking-wide sm:mt-6 sm:py-3.5 sm:text-sm 2xl:py-4 2xl:text-base"
         >
           Verify & Continue
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4 2xl:h-5 2xl:w-5" />
         </AppButton>
 
-        <div className="relative my-6 flex items-center">
+        <div className="relative my-5 flex items-center sm:my-6 2xl:my-8">
           <div className="flex-grow border-t border-[var(--color-border-light)]" />
-          <span className="mx-4 flex-shrink-0 text-xs text-[var(--color-text-muted)]">
+          <span className="mx-4 flex-shrink-0 text-xs text-[var(--color-text-muted)] 2xl:text-sm">
             OR
           </span>
           <div className="flex-grow border-t border-[var(--color-border-light)]" />
@@ -132,20 +139,22 @@ export default function VerifyPage() {
         <div className="text-center">
           <Link
             to="/auth/entry"
-            className="font-semibold text-[var(--color-secondary)] hover:underline inline-flex items-center gap-2"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--color-secondary)] transition-colors hover:text-[var(--color-primary)] hover:underline sm:text-sm 2xl:text-base"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 2xl:h-5 2xl:w-5" />
             Change email or go back
           </Link>
         </div>
 
-        <div className="mt-6 flex gap-3 rounded-[var(--radius-input)] border border-[var(--color-secondary)]/25 bg-[var(--color-secondary)]/10 p-4">
-          <ShieldCheck className="h-5 w-5 flex-shrink-0 text-[var(--color-secondary)]" />
+        <div className="mt-6 flex gap-3 rounded-[var(--radius-input)] border border-[var(--color-secondary)]/25 bg-[var(--color-secondary)]/10 p-4 sm:gap-4 2xl:p-6">
+          <ShieldCheck className="h-5 w-5 flex-shrink-0 text-[var(--color-secondary)] 2xl:h-6 2xl:w-6" />
+
           <div>
-            <h4 className="mb-1 text-xs font-bold text-[var(--color-text-main)]">
+            <h4 className="mb-1 text-[11px] font-bold text-[var(--color-text-main)] sm:text-xs 2xl:text-sm">
               Institutional Security
             </h4>
-            <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+
+            <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-xs 2xl:text-sm 2xl:leading-6">
               Your data is protected with industry-leading security and
               compliance standards.{" "}
               <a href="#" className="font-semibold text-[var(--color-secondary)]">

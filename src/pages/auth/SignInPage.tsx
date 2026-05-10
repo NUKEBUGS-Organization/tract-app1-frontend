@@ -46,38 +46,38 @@ export default function SignInPage() {
 
   return (
     <AuthLayout>
-      <div className="mb-8 text-center">
-        <h2 className="text-3xl font-bold text-[var(--color-text-main)]">
+      <div className="mb-6 text-center sm:mb-8 2xl:mb-10">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)] sm:text-3xl xl:text-[32px] 2xl:text-4xl">
           Welcome back
         </h2>
 
-        <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+        <p className="mt-2 text-xs leading-6 text-[var(--color-text-muted)] sm:text-sm 2xl:text-base">
           Sign in to continue to TRACT
         </p>
 
-        <div className="my-6 flex items-center justify-center">
-          <div className="h-px w-16 bg-[var(--color-border-light)]" />
-          <div className="mx-4 h-2 w-2 rotate-45 bg-[var(--color-secondary)]" />
-          <div className="h-px w-16 bg-[var(--color-border-light)]" />
+        <div className="my-5 flex items-center justify-center sm:my-6 2xl:my-8">
+          <div className="h-px w-12 bg-[var(--color-border-light)] sm:w-16 2xl:w-20" />
+          <div className="mx-3 h-2 w-2 rotate-45 bg-[var(--color-secondary)] sm:mx-4" />
+          <div className="h-px w-12 bg-[var(--color-border-light)] sm:w-16 2xl:w-20" />
         </div>
       </div>
 
-      <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+      <form className="space-y-4 sm:space-y-5 2xl:space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-main)]">
+          <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
             Email address
           </label>
 
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)]">
-              <Mail className="h-5 w-5" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)] 2xl:pl-4">
+              <Mail className="h-4 w-4 sm:h-5 sm:w-5 2xl:h-6 2xl:w-6" />
             </div>
 
             <input
               {...register("email")}
               type="email"
               placeholder="you@company.com"
-              className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-10 pr-3 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] ${
+              className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-9 pr-3 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 sm:pl-10 2xl:py-4 2xl:pl-12 2xl:text-base ${
                 errors.email
                   ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
                   : "border-transparent"
@@ -86,36 +86,27 @@ export default function SignInPage() {
           </div>
 
           {errors.email && (
-            <p className="mt-1 text-xs text-[var(--color-danger)]">
+            <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
               {errors.email.message}
             </p>
           )}
         </div>
 
         <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <label className="block text-sm font-medium text-[var(--color-text-main)]">
-              Password
-            </label>
-
-            <Link
-              to="/auth/forgot-password"
-              className="text-xs font-semibold text-[var(--color-secondary)] hover:underline"
-            >
-              Forgot password?
-            </Link>
-          </div>
+          <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
+            Password
+          </label>
 
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)]">
-              <Lock className="h-5 w-5" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[var(--color-text-muted)] 2xl:pl-4">
+              <Lock className="h-4 w-4 sm:h-5 sm:w-5 2xl:h-6 2xl:w-6" />
             </div>
 
             <input
               {...register("password")}
               type={showPassword ? "text" : "password"}
               placeholder="••••••••••••"
-              className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-10 pr-10 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] ${
+              className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-9 pr-10 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 sm:pl-10 2xl:py-4 2xl:pl-12 2xl:pr-12 2xl:text-base ${
                 errors.password
                   ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
                   : "border-transparent"
@@ -125,68 +116,65 @@ export default function SignInPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-main)] 2xl:pr-4"
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (
-                <EyeOff className="h-5 w-5" />
+                <EyeOff className="h-4 w-4 sm:h-5 sm:w-5 2xl:h-6 2xl:w-6" />
               ) : (
-                <Eye className="h-5 w-5" />
+                <Eye className="h-4 w-4 sm:h-5 sm:w-5 2xl:h-6 2xl:w-6" />
               )}
             </button>
           </div>
 
+          <div className="mt-2 flex justify-end">
+            <Link
+              to="/auth/forgot-password"
+              className="text-xs font-semibold text-[var(--color-secondary)] transition-colors hover:text-[var(--color-primary)] hover:underline 2xl:text-sm"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
           {errors.password && (
-            <p className="mt-1 text-xs text-[var(--color-danger)]">
+            <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
               {errors.password.message}
             </p>
           )}
         </div>
 
-        <div className="flex items-center gap-2 pb-2 pt-1">
-          <input
-            {...register("remember")}
-            type="checkbox"
-            id="remember"
-            className="h-4 w-4 rounded border-[var(--color-border-light)] text-[var(--color-secondary)] focus:ring-[var(--color-secondary)]"
-          />
-
-          <label htmlFor="remember" className="text-sm text-[var(--color-text-muted)]">
-            Remember me
-          </label>
-        </div>
-
         <AppButton
           type="submit"
           variant="primary"
-          className="mt-4 flex w-full items-center justify-center gap-2 py-3.5 uppercase"
+          className="mt-3 flex w-full items-center justify-center gap-2 py-3 text-xs uppercase tracking-wide sm:py-3.5 sm:text-sm 2xl:py-4 2xl:text-base"
         >
           Sign In
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4 2xl:h-5 2xl:w-5" />
         </AppButton>
 
-        <div className="relative my-8 flex items-center">
+        <div className="relative my-6 flex items-center sm:my-8">
           <div className="flex-grow border-t border-[var(--color-border-light)]" />
         </div>
 
-        <div className="text-center text-sm text-[var(--color-text-muted)]">
+        <div className="text-center text-xs text-[var(--color-text-muted)] sm:text-sm 2xl:text-base">
           Don&apos;t have an account?{" "}
           <Link
             to="/auth/entry"
             className="inline-flex items-center gap-1 font-semibold text-[var(--color-text-main)] transition-colors hover:text-[var(--color-secondary)]"
           >
-            Create account <ArrowUpRight className="h-3 w-3" />
+            Create account <ArrowUpRight className="h-3 w-3 2xl:h-4 2xl:w-4" />
           </Link>
         </div>
 
-        <div className="mt-8 flex gap-4 rounded-[var(--radius-input)] border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-5">
-          <ShieldCheck className="h-5 w-5 flex-shrink-0 text-[var(--color-secondary)]" />
+        <div className="mt-6 flex gap-3 rounded-[var(--radius-input)] border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-4 sm:mt-8 sm:gap-4 sm:p-5 2xl:p-6">
+          <ShieldCheck className="h-5 w-5 flex-shrink-0 text-[var(--color-secondary)] 2xl:h-6 2xl:w-6" />
 
           <div>
-            <h4 className="mb-1 text-xs font-bold text-[var(--color-text-main)]">
+            <h4 className="mb-1 text-[11px] font-bold text-[var(--color-text-main)] sm:text-xs 2xl:text-sm">
               Institutional Security
             </h4>
 
-            <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+            <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-xs 2xl:text-sm 2xl:leading-6">
               Your data is protected with industry-leading security and
               compliance standards.{" "}
               <a href="#" className="font-semibold text-[var(--color-secondary)]">

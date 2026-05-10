@@ -1,4 +1,3 @@
-
 import { Building2, ShieldCheck, KeyRound, Building } from "lucide-react";
 
 export default function AuthLeftSide() {
@@ -7,39 +6,49 @@ export default function AuthLeftSide() {
 
   const features = [
     {
-      icon: <ShieldCheck className="h-5 w-5" />,
+      icon: <ShieldCheck className="h-5 w-5 2xl:h-6 2xl:w-6" />,
       title: "Secure by design",
       description: "Enterprise-grade security and data protection.",
     },
     {
-      icon: <KeyRound className="h-5 w-5" />,
+      icon: <KeyRound className="h-5 w-5 2xl:h-6 2xl:w-6" />,
       title: "Role-based access",
       description: "Granular permissions for every single user.",
     },
     {
-      icon: <Building className="h-5 w-5" />,
+      icon: <Building className="h-5 w-5 2xl:h-6 2xl:w-6" />,
       title: "Built for scale",
       description: "Reliable, performant, and institutional-ready.",
     },
   ];
 
   return (
-    <div className="relative hidden flex-col justify-between overflow-hidden lg:flex lg:w-1/2">
+    <div className="relative hidden flex-col justify-between overflow-hidden lg:flex lg:w-[48%] xl:w-1/2">
+      {/* Background Image */}
       <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${bgImage})` }}
       />
 
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-white/90 via-white/70 to-white/90" />
+      {/* Overlay */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-white/90 via-white/75 to-white/95" />
 
-      <div className="relative z-10 flex h-full flex-col p-12">
-        <div className="flex items-center gap-2 text-2xl font-bold tracking-tight text-[var(--color-primary)]">
-          <Building2 className="h-8 w-8 text-[var(--color-secondary)]" />
+      {/* Decorative Brand Circles */}
+      <div className="pointer-events-none absolute -right-28 top-24 z-0 h-96 w-96 rounded-full border border-[var(--color-secondary)]/20 2xl:h-[520px] 2xl:w-[520px]" />
+      <div className="pointer-events-none absolute -right-10 top-52 z-0 h-64 w-64 rounded-full border border-[var(--color-secondary)]/20 2xl:h-[360px] 2xl:w-[360px]" />
+      <div className="pointer-events-none absolute right-24 top-48 z-0 h-2.5 w-2.5 rounded-full bg-[var(--color-secondary)]/80 2xl:h-3 2xl:w-3" />
+      <div className="pointer-events-none absolute right-40 top-80 z-0 h-2.5 w-2.5 rounded-full bg-[var(--color-secondary)]/80 2xl:h-3 2xl:w-3" />
+
+      <div className="relative z-10 flex h-full flex-col px-8 py-8 xl:px-12 xl:py-10 2xl:px-20 2xl:py-20">
+        {/* Logo */}
+        <div className="flex items-center gap-2 text-xl font-bold tracking-tight text-[var(--color-primary)] xl:text-2xl 2xl:text-3xl">
+          <Building2 className="h-7 w-7 text-[var(--color-secondary)] xl:h-8 xl:w-8 2xl:h-10 2xl:w-10" />
           TRACT
         </div>
 
-        <div className="mt-24 max-w-lg">
-          <h1 className="text-5xl font-bold leading-tight text-[var(--color-primary)]">
+        {/* Main Text */}
+        <div className="mt-14 max-w-lg xl:mt-20 2xl:mt-32 2xl:max-w-3xl">
+          <h1 className="text-4xl font-bold leading-tight tracking-tight text-[var(--color-primary)] xl:text-5xl 2xl:text-7xl">
             Intelligent.
             <br />
             Secure.{" "}
@@ -50,32 +59,35 @@ export default function AuthLeftSide() {
             </span>
           </h1>
 
-          <p className="mt-6 text-lg leading-relaxed text-[var(--color-text-muted)]">
-            TRACT streamlines property operations with secure access, smart automation, and real-time insights for the modern investor.
+          <p className="mt-5 max-w-md text-sm leading-7 text-[var(--color-text-muted)] xl:text-base xl:leading-8 2xl:mt-8 2xl:max-w-2xl 2xl:text-xl 2xl:leading-10">
+            TRACT streamlines property operations with secure access, smart
+            automation, and real-time insights for the modern investor.
           </p>
         </div>
 
         <div className="flex-grow" />
 
-        <div className="mt-12 grid grid-cols-3 gap-6">
+        {/* Features */}
+        <div className="mt-10 grid grid-cols-3 gap-4 xl:gap-6 2xl:gap-10">
           {features.map((feature, index) => (
-            <div key={index} className="flex flex-col gap-2">
+            <div key={index} className="flex flex-col gap-2 2xl:gap-3">
               <div className="text-[var(--color-secondary)]">
                 {feature.icon}
               </div>
 
-              <h3 className="text-sm font-semibold text-[var(--color-text-main)]">
+              <h3 className="text-xs font-semibold text-[var(--color-text-main)] xl:text-sm 2xl:text-base">
                 {feature.title}
               </h3>
 
-              <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+              <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)] xl:text-xs 2xl:text-sm 2xl:leading-6">
                 {feature.description}
               </p>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 text-xs text-[var(--color-text-muted)]">
+        {/* Copyright */}
+        <div className="mt-8 text-[11px] text-[var(--color-text-muted)] xl:text-xs 2xl:text-sm">
           © 2024 TRACT Real Estate. All rights reserved.
         </div>
       </div>
