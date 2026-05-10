@@ -1,6 +1,6 @@
 import React from "react";
 import { Building2 } from "lucide-react";
-import AuthLeftSide from "../components/common/AuthLeftSide";
+import AuthLeftSide from "../components/common/Banner";
 
 interface AuthLayoutProps {
   children: React.ReactNode;

@@ -5,7 +5,7 @@ import * as z from "zod";
 import { useState } from "react";
 
 import AuthLayout from "../../layouts/AuthLayout";
-import AppButton from "../../components/common/AppButton";
+import AppButton from "../../components/common/Button";
 
 const schema = z.object({
   email: z.string().email("Invalid email address"),

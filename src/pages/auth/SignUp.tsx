@@ -19,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 import AuthLayout from "../../layouts/AuthLayout";
-import AppButton from "../../components/common/AppButton";
+import AppButton from "../../components/common/Button";
 
 const schema = z
   .object({

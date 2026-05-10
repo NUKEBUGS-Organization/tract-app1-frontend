@@ -1,8 +1,8 @@
 import { Navigate, Route, Routes } from "react-router";
-import EntryPage from "../pages/auth/EntryPage";
-import SignInPage from "../pages/auth/SignInPage";
-import VerifyPage from "../pages/auth/VerifyPage";
-import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
+import EntryPage from "../pages/auth/SignUp";
+import SignInPage from "../pages/auth/SignIn";
+import VerifyPage from "../pages/auth/Verify";
+import ForgotPasswordPage from "../pages/auth/ForgotPassword";
 import SellerDashboard from "../pages/seller/SellerDashboard";
 import PartnerDashboard from "../pages/partner/PartnerDashboard";
 import RealtorDashboard from "../pages/realtor/RealtorDashboard";
@@ -44,8 +44,8 @@ const adminNav = [
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/auth/entry" replace />} />
-      <Route path="/auth/entry" element={<EntryPage />} />
+      <Route path="/" element={<Navigate to="/auth/signup" replace />} />
+      <Route path="/auth/signup" element={<EntryPage />} />
       <Route path="/auth/signin" element={<SignInPage />} />
       <Route path="/auth/verify" element={<VerifyPage />} />
       <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />

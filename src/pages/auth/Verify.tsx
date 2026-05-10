@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { useState, useRef, type KeyboardEvent } from "react";
 
 import AuthLayout from "../../layouts/AuthLayout";
-import AppButton from "../../components/common/AppButton";
+import AppButton from "../../components/common/Button";
 
 export default function VerifyPage() {
   const [code, setCode] = useState(["", "", "", "", "", ""]);
