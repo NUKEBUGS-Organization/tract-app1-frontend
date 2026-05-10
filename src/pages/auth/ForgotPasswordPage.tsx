@@ -3,8 +3,6 @@ import {
   ArrowRight,
   RotateCcw,
   ShieldCheck,
-  KeyRound,
-  Building,
 } from "lucide-react";
 import { Link } from "react-router";
 import { useForm } from "react-hook-form";
@@ -37,42 +35,8 @@ export default function ForgotPasswordPage() {
     setIsSubmitted(true);
   };
 
-  const features = [
-    {
-      icon: <ShieldCheck className="h-5 w-5" />,
-      title: "Secure by design",
-      description: "Enterprise-grade security and data protection",
-    },
-    {
-      icon: <KeyRound className="h-5 w-5" />,
-      title: "Role-based access",
-      description: "Granular permissions for every user",
-    },
-    {
-      icon: <Building className="h-5 w-5" />,
-      title: "Built for scale",
-      description: "Reliable, performant, and future-ready",
-    },
-  ];
-
   return (
-    <AuthLayout
-      title={
-        <>
-          Intelligent.
-          <br />
-          Secure.{" "}
-          <span className="text-[var(--color-secondary)]">
-            Built for
-            <br />
-            Real Estate.
-          </span>
-        </>
-      }
-      subtitle="Join TRACT App 1 to streamline property operations with secure access, smart automation, and real-time insights."
-      features={features}
-      bgImage="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
-    >
+    <AuthLayout>
       <div className="mb-8 text-center">
         <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-secondary)]/15">
           <RotateCcw className="h-6 w-6 text-[var(--color-secondary)]" />

@@ -1,7 +1,5 @@
 import {
   ShieldCheck,
-  KeyRound,
-  Building,
   User,
   Mail,
   Phone,
@@ -72,24 +70,6 @@ export default function EntryPage() {
     else if (data.role === "licensed") navigate("/realtor/dashboard");
   };
 
-  const features = [
-    {
-      icon: <ShieldCheck className="h-5 w-5" />,
-      title: "Secure by design",
-      description: "Enterprise-grade security and data protection",
-    },
-    {
-      icon: <KeyRound className="h-5 w-5" />,
-      title: "Role-based access",
-      description: "Granular permissions for every user",
-    },
-    {
-      icon: <Building className="h-5 w-5" />,
-      title: "Built for scale",
-      description: "Reliable, performant, and future-ready",
-    },
-  ];
-
   const inputClass = (hasError?: boolean) =>
     `block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] ${hasError
       ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
@@ -97,30 +77,14 @@ export default function EntryPage() {
     }`;
 
   return (
-    <AuthLayout
-      title={
-        <>
-          Intelligent.
-          <br />
-          Secure.{" "}
-          <span className="text-[var(--color-secondary)]">
-            Built for
-            <br />
-            Real Estate.
-          </span>
-        </>
-      }
-      subtitle="Join TRACT App 1 to streamline property operations with secure access, smart automation, and real-time insights."
-      features={features}
-      bgImage="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
-    >
+    <AuthLayout>
       <div className="mb-8 text-center">
         <h2 className="text-3xl font-bold text-[var(--color-text-main)]">
           Create your account
         </h2>
 
         <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-          Join TRACT App 1 and unlock the future of real estate.
+          Join TRACT and unlock the future of real estate.
         </p>
 
         <div className="my-6 flex items-center justify-center">
@@ -375,8 +339,8 @@ export default function EntryPage() {
               type="checkbox"
               id="terms"
               className={`mt-1 h-4 w-4 rounded border-[var(--color-border-light)] text-[var(--color-secondary)] focus:ring-[var(--color-secondary)] ${errors.terms
-                  ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
-                  : ""
+                ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
+                : ""
                 }`}
             />
 
@@ -458,8 +422,8 @@ function RoleCard({ selected, onClick, icon, title, description }: RoleCardProps
   return (
     <div
       className={`relative cursor-pointer rounded-[var(--radius-input)] border p-4 text-center transition-all ${selected
-          ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]/10"
-          : "border-[var(--color-border-light)] hover:border-[var(--color-secondary)]/50"
+        ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]/10"
+        : "border-[var(--color-border-light)] hover:border-[var(--color-secondary)]/50"
         }`}
       onClick={onClick}
     >
@@ -471,8 +435,8 @@ function RoleCard({ selected, onClick, icon, title, description }: RoleCardProps
 
       <div
         className={`mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg ${selected
-            ? "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)]"
-            : "bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
+          ? "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)]"
+          : "bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
           }`}
       >
         {icon}

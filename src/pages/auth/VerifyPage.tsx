@@ -1,7 +1,5 @@
 import {
   ShieldCheck,
-  KeyRound,
-  Building,
   Mail,
   ArrowRight,
   ArrowLeft,
@@ -24,24 +22,6 @@ export default function VerifyPage() {
     useRef<HTMLInputElement>(null),
   ];
 
-  const features = [
-    {
-      icon: <ShieldCheck className="h-5 w-5" />,
-      title: "Secure by design",
-      description: "Enterprise-grade security and data protection",
-    },
-    {
-      icon: <KeyRound className="h-5 w-5" />,
-      title: "Role-based access",
-      description: "Granular permissions for every user",
-    },
-    {
-      icon: <Building className="h-5 w-5" />,
-      title: "Built for scale",
-      description: "Reliable, performant, and future-ready",
-    },
-  ];
-
   const handleChange = (index: number, value: string) => {
     if (value.length > 1) return;
 
@@ -61,23 +41,7 @@ export default function VerifyPage() {
   };
 
   return (
-    <AuthLayout
-      title={
-        <>
-          Intelligent.
-          <br />
-          Secure.{" "}
-          <span className="text-[var(--color-secondary)]">
-            Built for
-            <br />
-            Real Estate.
-          </span>
-        </>
-      }
-      subtitle="Join TRACT App 1 to streamline property operations with secure access, smart automation, and real-time insights."
-      features={features}
-      bgImage="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
-    >
+    <AuthLayout>
       <div className="mb-8 text-center">
         <h2 className="text-3xl font-bold text-[var(--color-text-main)]">
           Verify your account
