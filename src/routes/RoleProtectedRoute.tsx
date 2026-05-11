@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from "react-router";
-import { useAuthContext } from "../../contexts/AuthContext";
-import { tokenStorage } from "./tokenStorage";
-import { getRoleFromToken, isTokenExpired } from "./jwtUtils";
+import { useAuthContext } from "../contexts/AuthContext";
+import { tokenStorage } from "../redux/auth/tokenStorage";
+import { getRoleFromToken, isTokenExpired } from "../redux/auth/jwtUtils";
 
 interface RoleProtectedRouteProps {
   allowedRoles: string[];

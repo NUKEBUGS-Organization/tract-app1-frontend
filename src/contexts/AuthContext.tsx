@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Logout failed:", error);
     } finally {
       dispatch(logout());
-      navigate("/auth/signin");
+      navigate("/auth/signin", { replace: true });
     }
   };
 

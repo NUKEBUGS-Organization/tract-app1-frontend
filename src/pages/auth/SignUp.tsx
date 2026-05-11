@@ -19,6 +19,7 @@ import { Link, useNavigate } from "react-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 import AuthLayout from "../../layouts/AuthLayout";
 import Button from "../../components/common/Button";
@@ -42,9 +43,12 @@ export default function SignUp() {
     handleSubmit,
     setValue,
     watch,
+    trigger,
     formState: { errors },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       role: "seller",
       terms: false,
@@ -53,34 +57,32 @@ export default function SignUp() {
 
   const selectedRole = watch("role");
 
+  const clearApiError = () => {
+    if (apiError) {
+      setApiError(null);
+    }
+  };
+
   const normalizePhone = (phone: string) => {
-    const trimmedPhone = phone.trim();
+    const phoneNumber = parsePhoneNumberFromString(phone.trim());
 
-    if (trimmedPhone.startsWith("+")) {
-      return trimmedPhone;
+    if (phoneNumber?.isValid()) {
+      return phoneNumber.number;
     }
 
-    if (trimmedPhone.startsWith("0")) {
-      return `+92${trimmedPhone.slice(1)}`;
-    }
-
-    return trimmedPhone;
+    return phone.trim();
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
-    console.log("Signup submit fired:", data);
-
     const payload = {
-      full_name: data.fullName,
-      email: data.email,
+      full_name: data.fullName.trim(),
+      email: data.email.trim().toLowerCase(),
       phone: normalizePhone(data.phone),
       password: data.password,
       role: data.role,
       state_code: data.state,
       dob: data.dob,
     };
-
-    console.log("Signup API payload:", payload);
 
     try {
       setApiError(null);
@@ -89,7 +91,7 @@ export default function SignUp() {
 
       navigate("/auth/verify", {
         state: {
-          email: data.email,
+          email: data.email.trim().toLowerCase(),
           purpose: "login",
         },
       });
@@ -152,7 +154,9 @@ export default function SignUp() {
             <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
             <input
-              {...register("fullName")}
+              {...register("fullName", {
+                onChange: clearApiError,
+              })}
               type="text"
               placeholder="Enter your full name"
               className={`${inputClass(Boolean(errors.fullName))} pl-9 pr-3 sm:pl-10 2xl:pl-12`}
@@ -176,7 +180,9 @@ export default function SignUp() {
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
               <input
-                {...register("email")}
+                {...register("email", {
+                  onChange: clearApiError,
+                })}
                 type="email"
                 placeholder="you@company.com"
                 className={`${inputClass(Boolean(errors.email))} pl-9 pr-3 sm:pl-10 2xl:pl-12`}
@@ -199,9 +205,13 @@ export default function SignUp() {
               <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
               <input
-                {...register("phone")}
+                {...register("phone", {
+                  onChange: clearApiError,
+                })}
                 type="tel"
-                placeholder="+12345678900"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="+923001234567"
                 className={`${inputClass(Boolean(errors.phone))} pl-9 pr-3 sm:pl-10 2xl:pl-12`}
               />
             </div>
@@ -209,6 +219,12 @@ export default function SignUp() {
             {errors.phone && (
               <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
                 {errors.phone.message}
+              </p>
+            )}
+
+            {!errors.phone && (
+              <p className="mt-1 text-[10px] text-[var(--color-text-muted)] 2xl:text-xs">
+                Include country code, for example +1 or +92.
               </p>
             )}
           </div>
@@ -223,7 +239,9 @@ export default function SignUp() {
             <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
             <input
-              {...register("dob")}
+              {...register("dob", {
+                onChange: clearApiError,
+              })}
               type="date"
               className={`${inputClass(Boolean(errors.dob))} pl-9 pr-3 sm:pl-10 2xl:pl-12`}
             />
@@ -246,7 +264,12 @@ export default function SignUp() {
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
               <input
-                {...register("password")}
+                {...register("password", {
+                  onChange: () => {
+                    clearApiError();
+                    trigger("confirmPassword");
+                  },
+                })}
                 type={showPassword ? "text" : "password"}
                 placeholder="StrongPass123!"
                 className={`${inputClass(Boolean(errors.password))} pl-9 pr-10 sm:pl-10 2xl:pl-12 2xl:pr-12`}
@@ -282,7 +305,9 @@ export default function SignUp() {
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
               <input
-                {...register("confirmPassword")}
+                {...register("confirmPassword", {
+                  onChange: clearApiError,
+                })}
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="StrongPass123!"
                 className={`${inputClass(Boolean(errors.confirmPassword))} pl-9 pr-10 sm:pl-10 2xl:pl-12 2xl:pr-12`}
@@ -321,7 +346,9 @@ export default function SignUp() {
             <Map className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
             <select
-              {...register("state")}
+              {...register("state", {
+                onChange: clearApiError,
+              })}
               className={`${inputClass(Boolean(errors.state))} appearance-none pl-9 pr-3 sm:pl-10 2xl:pl-12`}
             >
               <option value="">Select your state</option>
@@ -339,66 +366,71 @@ export default function SignUp() {
           )}
         </div>
 
-   <div>
-  <label className="mb-3 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
-    Select your role
-  </label>
+        <div>
+          <label className="mb-3 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
+            Select your role
+          </label>
 
-  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-    <RoleCard
-      selected={selectedRole === "seller"}
-      onClick={() =>
-        setValue("role", "seller", {
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true,
-        })
-      }
-      icon={<Medal className="h-5 w-5" />}
-      title="Seller"
-      description="List and manage your properties."
-    />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <RoleCard
+              selected={selectedRole === "seller"}
+              onClick={() => {
+                clearApiError();
+                setValue("role", "seller", {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true,
+                });
+              }}
+              icon={<Medal className="h-5 w-5" />}
+              title="Seller"
+              description="List and manage your properties."
+            />
 
-    <RoleCard
-      selected={selectedRole === "wholesaler"}
-      onClick={() =>
-        setValue("role", "wholesaler", {
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true,
-        })
-      }
-      icon={<Users className="h-5 w-5" />}
-      title="Private Partner"
-      description="Collaborate and manage deals."
-    />
+            <RoleCard
+              selected={selectedRole === "wholesaler"}
+              onClick={() => {
+                clearApiError();
+                setValue("role", "wholesaler", {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true,
+                });
+              }}
+              icon={<Users className="h-5 w-5" />}
+              title="Private Partner"
+              description="Collaborate and manage deals."
+            />
 
-    <RoleCard
-      selected={selectedRole === "realtor"}
-      onClick={() =>
-        setValue("role", "realtor", {
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true,
-        })
-      }
-      icon={<Briefcase className="h-5 w-5" />}
-      title="Licensed Partner"
-      description="Represent clients and close deals."
-    />
-  </div>
+            <RoleCard
+              selected={selectedRole === "realtor"}
+              onClick={() => {
+                clearApiError();
+                setValue("role", "realtor", {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true,
+                });
+              }}
+              icon={<Briefcase className="h-5 w-5" />}
+              title="Licensed Partner"
+              description="Represent clients and close deals."
+            />
+          </div>
 
-  {errors.role && (
-    <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
-      {errors.role.message}
-    </p>
-  )}
-</div>
+          {errors.role && (
+            <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
+              {errors.role.message}
+            </p>
+          )}
+        </div>
 
         <div>
           <div className="flex items-start gap-2 pt-2">
             <input
-              {...register("terms")}
+              {...register("terms", {
+                onChange: clearApiError,
+              })}
               type="checkbox"
               id="terms"
               className={`mt-1 h-4 w-4 rounded border-[var(--color-border-light)] text-[var(--color-secondary)] focus:ring-[var(--color-secondary)] ${
@@ -493,7 +525,13 @@ interface RoleCardProps {
   description: string;
 }
 
-function RoleCard({ selected, onClick, icon, title, description }: RoleCardProps) {
+function RoleCard({
+  selected,
+  onClick,
+  icon,
+  title,
+  description,
+}: RoleCardProps) {
   return (
     <button
       type="button"

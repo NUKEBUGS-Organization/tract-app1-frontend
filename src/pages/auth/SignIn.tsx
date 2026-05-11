@@ -15,6 +15,7 @@ import * as z from "zod";
 
 import AuthLayout from "../../layouts/AuthLayout";
 import Button from "../../components/common/Button";
+import StatusBadge from "../../components/common/StatusBadge";
 import { useLoginMutation } from "../../services/authService";
 
 const schema = z.object({
@@ -26,7 +27,10 @@ type FormData = z.infer<typeof schema>;
 
 export default function SignInPage() {
   const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
+  const [loginStatus, setLoginStatus] = useState<string | null>(null);
+
   const [login, { isLoading }] = useLoginMutation();
 
   const {
@@ -35,10 +39,14 @@ export default function SignInPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
+    mode: "onChange",
+    reValidateMode: "onChange",
   });
 
   const onSubmit = async (data: FormData) => {
     try {
+      setLoginStatus(null);
+
       await login({
         email: data.email,
         password: data.password,
@@ -50,8 +58,10 @@ export default function SignInPage() {
           purpose: "login",
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
+
+      setLoginStatus("Invalid credentials");
     }
   };
 
@@ -77,6 +87,12 @@ export default function SignInPage() {
         className="space-y-4 sm:space-y-5 2xl:space-y-6"
         onSubmit={handleSubmit(onSubmit)}
       >
+        {loginStatus && (
+          <div className="flex justify-center">
+            <StatusBadge label={loginStatus} variant="danger" />
+          </div>
+        )}
+
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
             Email address
@@ -86,7 +102,9 @@ export default function SignInPage() {
             <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
             <input
-              {...register("email")}
+              {...register("email", {
+                onChange: () => setLoginStatus(null),
+              })}
               type="email"
               placeholder="you@company.com"
               className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-9 pr-3 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 sm:pl-10 2xl:py-4 2xl:pl-12 2xl:text-base ${
@@ -113,7 +131,9 @@ export default function SignInPage() {
             <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
             <input
-              {...register("password")}
+              {...register("password", {
+                onChange: () => setLoginStatus(null),
+              })}
               type={showPassword ? "text" : "password"}
               placeholder="••••••••••••"
               className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-9 pr-10 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 sm:pl-10 2xl:py-4 2xl:pl-12 2xl:pr-12 2xl:text-base ${
@@ -137,7 +157,13 @@ export default function SignInPage() {
             </button>
           </div>
 
-          <div className="mt-2 flex justify-end">
+          {errors.password && (
+            <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
+              {errors.password.message}
+            </p>
+          )}
+
+          <div className="mt-1 flex justify-end">
             <Link
               to="/auth/forgot-password"
               className="text-xs font-semibold text-[var(--color-secondary)] transition-colors hover:text-[var(--color-primary)] hover:underline 2xl:text-sm"
@@ -145,12 +171,6 @@ export default function SignInPage() {
               Forgot password?
             </Link>
           </div>
-
-          {errors.password && (
-            <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
-              {errors.password.message}
-            </p>
-          )}
         </div>
 
         <Button
@@ -189,7 +209,10 @@ export default function SignInPage() {
             <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-xs 2xl:text-sm 2xl:leading-6">
               Your data is protected with industry-leading security and
               compliance standards.{" "}
-              <a href="#" className="font-semibold text-[var(--color-secondary)]">
+              <a
+                href="#"
+                className="font-semibold text-[var(--color-secondary)]"
+              >
                 Learn more
               </a>
             </p>

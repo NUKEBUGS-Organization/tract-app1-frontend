@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from "react-router";
-import { useAuthContext } from "../../contexts/AuthContext";
-import { tokenStorage } from "./tokenStorage";
-import { isTokenExpired } from "./jwtUtils";
+import { useAuthContext } from "../contexts/AuthContext";
+import { tokenStorage } from "../redux/auth/tokenStorage";
+import { isTokenExpired } from "../redux/auth/jwtUtils";
 
 function ProtectedRoute() {
   const { isAuthenticated, accessToken } = useAuthContext();

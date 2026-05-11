@@ -1,4 +1,5 @@
-import { Building2, ShieldCheck, KeyRound, Building } from "lucide-react";
+import { ShieldCheck, KeyRound, Building } from "lucide-react";
+import tractLogo from "../../assets/tract-logo.png";
 
 export default function AuthLeftSide() {
   const bgImage =
@@ -41,9 +42,24 @@ export default function AuthLeftSide() {
 
       <div className="relative z-10 flex h-full flex-col px-8 py-8 xl:px-12 xl:py-10 2xl:px-20 2xl:py-20">
         {/* Logo */}
-        <div className="flex items-center gap-2 text-xl font-bold tracking-tight text-[var(--color-primary)] xl:text-2xl 2xl:text-3xl">
-          <Building2 className="h-7 w-7 text-[var(--color-secondary)] xl:h-8 xl:w-8 2xl:h-10 2xl:w-10" />
-          TRACT
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--color-secondary)]/30 bg-white/80 shadow-[var(--shadow-card)] xl:h-14 xl:w-14 2xl:h-16 2xl:w-16">
+            <img
+              src={tractLogo}
+              alt="TRACT logo"
+              className="h-9 w-9 object-contain xl:h-10 xl:w-10 2xl:h-12 2xl:w-12"
+            />
+          </div>
+
+          <div>
+            <div className="text-2xl font-extrabold tracking-tight text-[var(--color-primary)] xl:text-3xl 2xl:text-4xl">
+              TRACT
+            </div>
+
+            <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)] xl:text-[10px] 2xl:text-xs">
+              Luxury Real Estate
+            </p>
+          </div>
         </div>
 
         {/* Main Text */}

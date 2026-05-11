@@ -37,11 +37,11 @@ function getUrl(args: string | FetchArgs) {
 
 function isAuthPublicApi(url: string) {
   return (
-    url.includes("/api/v1/auth/login") ||
-    url.includes("/api/v1/auth/register") ||
-    url.includes("/api/v1/auth/send-otp") ||
-    url.includes("/api/v1/auth/verify-otp") ||
-    url.includes("/api/v1/auth/reset-password")
+    url.includes("auth/login") ||
+    url.includes("auth/register") ||
+    url.includes("auth/send-otp") ||
+    url.includes("auth/verify-otp") ||
+    url.includes("auth/reset-password")
   );
 }
 
@@ -69,26 +69,11 @@ const baseQueryWithReAuth: BaseQueryFn<
       tokenStorage.getAccessToken()
   );
 
-  /**
-   * If a protected API returns 400 while user has a token,
-   * backend may be telling us token/session is invalid/blacklisted.
-   *
-   * Do NOT apply this to public auth APIs like login/register/verify,
-   * because those can return normal 400 validation errors.
-   */
-  if (
-    status === 400 &&
-    hasAccessToken &&
-    !isAuthPublicApi(requestUrl)
-  ) {
+  if (status === 400 && hasAccessToken && !isAuthPublicApi(requestUrl)) {
     forceLogout(api);
     return result;
   }
 
-  /**
-   * If access token is expired/invalid, backend returns 401.
-   * Then we call refresh API using refresh token from cookie.
-   */
   if (status === 401) {
     const refreshToken =
       (api.getState() as RootState).auth.refreshToken ??
@@ -101,7 +86,7 @@ const baseQueryWithReAuth: BaseQueryFn<
 
     const refreshResult = await rawBaseQuery(
       {
-        url: "/api/v1/auth/refresh",
+        url: "auth/refresh",
         method: "POST",
         body: {
           refresh_token: refreshToken,
@@ -111,11 +96,6 @@ const baseQueryWithReAuth: BaseQueryFn<
       extraOptions
     );
 
-    /**
-     * If refresh token is expired/blacklisted/invalid,
-     * backend can return 400 or 401.
-     * In both cases, logout.
-     */
     if (
       refreshResult.error?.status === 400 ||
       refreshResult.error?.status === 401
@@ -140,7 +120,6 @@ const baseQueryWithReAuth: BaseQueryFn<
         })
       );
 
-    
       result = await rawBaseQuery(args, api, extraOptions);
     } else {
       forceLogout(api);

@@ -4,7 +4,7 @@ export const userService = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getMe: builder.query<any, void>({
       query: () => ({
-        url: "/api/v1/users/me",
+        url: "/users/me",
         method: "GET",
       }),
       providesTags: ["User"],

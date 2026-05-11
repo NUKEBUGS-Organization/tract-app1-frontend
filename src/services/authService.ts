@@ -17,7 +17,7 @@ export const authService = baseApi.injectEndpoints({
       }
     >({
       query: (body) => ({
-        url: "/api/v1/auth/register",
+        url: "auth/register",
         method: "POST",
         body,
       }),
@@ -31,7 +31,7 @@ export const authService = baseApi.injectEndpoints({
       }
     >({
       query: (body) => ({
-        url: "/api/v1/auth/send-otp",
+        url: "auth/send-otp",
         method: "POST",
         body,
       }),
@@ -46,7 +46,7 @@ export const authService = baseApi.injectEndpoints({
       }
     >({
       query: (body) => ({
-        url: "/api/v1/auth/verify-otp",
+        url: "auth/verify-otp",
         method: "POST",
         body,
       }),
@@ -79,7 +79,7 @@ export const authService = baseApi.injectEndpoints({
       }
     >({
       query: (body) => ({
-        url: "/api/v1/auth/login",
+        url: "auth/login",
         method: "POST",
         body,
       }),
@@ -92,7 +92,7 @@ export const authService = baseApi.injectEndpoints({
       }
     >({
       query: (body) => ({
-        url: "/api/v1/auth/refresh",
+        url: "auth/refresh",
         method: "POST",
         body,
       }),
@@ -100,7 +100,7 @@ export const authService = baseApi.injectEndpoints({
 
     logoutUser: builder.mutation<any, void>({
       query: () => ({
-        url: "/api/v1/auth/logout",
+        url: "auth/logout",
         method: "POST",
       }),
 
@@ -121,7 +121,7 @@ export const authService = baseApi.injectEndpoints({
       }
     >({
       query: (body) => ({
-        url: "/api/v1/auth/reset-password",
+        url: "auth/reset-password",
         method: "POST",
         body,
       }),
@@ -129,7 +129,7 @@ export const authService = baseApi.injectEndpoints({
 
     initiateKyc: builder.mutation<any, void>({
       query: () => ({
-        url: "/api/v1/auth/kyc/initiate",
+        url: "auth/kyc/initiate",
         method: "POST",
       }),
     }),

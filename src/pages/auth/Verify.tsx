@@ -1,5 +1,3 @@
-// src/pages/auth/Verify.tsx
-
 import { ShieldCheck, Mail, ArrowRight, ArrowLeft } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
@@ -10,12 +8,11 @@ import {
   useSendOtpMutation,
   useVerifyOtpMutation,
 } from "../../services/authService";
-import { normalizeAuthResponse } from "../../redux/auth/authResponse";
-import { getRoleFromToken } from "../../redux/auth/jwtUtils";
+import { useAuthContext } from "../../contexts/AuthContext";
 
 type VerifyPurpose = "login" | "forgot_password";
 
-const OTP_EXPIRY_SECONDS = 10 * 60;
+const OTP_EXPIRY_SECONDS = 2 * 60;
 
 function formatTime(seconds: number) {
   const minutes = Math.floor(seconds / 60);
@@ -26,35 +23,10 @@ function formatTime(seconds: number) {
   ).padStart(2, "0")}`;
 }
 
-function getDashboardPath(role?: string | null) {
-  const normalizedRole = role?.toLowerCase().trim();
-
-  if (!normalizedRole) {
-    return "/auth/signin";
-  }
-
-  if (normalizedRole === "seller") {
-    return "/seller/dashboard";
-  }
-
-  if (["wholesaler", "partner", "private_partner"].includes(normalizedRole)) {
-    return "/partner/dashboard";
-  }
-
-  if (["realtor", "licensed", "licensed_partner"].includes(normalizedRole)) {
-    return "/realtor/dashboard";
-  }
-
-  if (normalizedRole === "admin") {
-    return "/admin/dashboard";
-  }
-
-  return "/unauthorized";
-}
-
 export default function VerifyPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { setAuth } = useAuthContext();
 
   const email = location.state?.email ?? "";
   const purpose = (location.state?.purpose ?? "login") as VerifyPurpose;
@@ -76,6 +48,9 @@ export default function VerifyPage() {
   ];
 
   const isExpired = timeLeft <= 0;
+
+  // Resend button will only enable when timer is 00:00 and API is not already sending
+  const canResend = isExpired && !isResending;
 
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -125,6 +100,11 @@ export default function VerifyPage() {
   };
 
   const handleResendCode = async () => {
+    // Block API call until timer reaches 00:00
+    if (!canResend) {
+      return;
+    }
+
     if (!email) {
       setApiError("Email is missing. Please go back and try again.");
       return;
@@ -138,6 +118,7 @@ export default function VerifyPage() {
         purpose,
       }).unwrap();
 
+      // After resend success, reset OTP fields and restart timer
       setCode(["", "", "", "", "", ""]);
       setTimeLeft(OTP_EXPIRY_SECONDS);
       inputRefs[0].current?.focus();
@@ -156,13 +137,6 @@ export default function VerifyPage() {
 
   const handleVerify = async () => {
     const otp = code.join("");
-
-    console.log("Verify button clicked");
-    console.log("Verify payload:", {
-      email,
-      otp,
-      purpose,
-    });
 
     if (!email) {
       setApiError("Email is missing. Please go back and try again.");
@@ -190,29 +164,45 @@ export default function VerifyPage() {
 
       console.log("Verify OTP response:", response);
 
-      const authData = normalizeAuthResponse(response);
-
-      console.log("Normalized auth data:", authData);
+      const responseData = response?.data;
 
       if (purpose === "forgot_password") {
-        if (!authData.resetToken) {
+        const resetToken = responseData?.resetToken || responseData?.reset_token;
+
+        if (!resetToken) {
           setApiError("Reset token was not returned by backend.");
           return;
         }
 
         navigate("/auth/reset-password", {
           state: {
-            resetToken: authData.resetToken,
+            resetToken,
           },
         });
+
         return;
       }
 
-      const role = authData.user?.role ?? getRoleFromToken(authData.accessToken);
+      const accessToken =
+        responseData?.accessToken || responseData?.access_token || null;
 
-      const dashboardPath = getDashboardPath(role);
+      const refreshToken =
+        responseData?.refreshToken || responseData?.refresh_token || null;
 
-      navigate(dashboardPath, { replace: true });
+      const user = responseData?.user ?? null;
+
+      if (!accessToken || !refreshToken) {
+        setApiError("Login tokens were not returned by backend.");
+        return;
+      }
+
+      setAuth({
+        user,
+        accessToken,
+        refreshToken,
+      });
+
+      navigate("/dashboard", { replace: true });
     } catch (error: any) {
       console.error("OTP verification failed:", error);
 
@@ -307,8 +297,8 @@ export default function VerifyPage() {
           <button
             type="button"
             onClick={handleResendCode}
-            disabled={isResending}
-            className="text-center font-semibold text-[var(--color-secondary)] transition-colors hover:text-[var(--color-primary)] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={!canResend}
+            className="text-center font-semibold text-[var(--color-secondary)] transition-colors hover:text-[var(--color-primary)] hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-[var(--color-secondary)] disabled:hover:no-underline"
           >
             {isResending ? "Sending..." : "Resend code"}
           </button>
@@ -355,7 +345,10 @@ export default function VerifyPage() {
             <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-xs 2xl:text-sm 2xl:leading-6">
               Your data is protected with industry-leading security and
               compliance standards.{" "}
-              <a href="#" className="font-semibold text-[var(--color-secondary)]">
+              <a
+                href="#"
+                className="font-semibold text-[var(--color-secondary)]"
+              >
                 Learn more
               </a>
             </p>
