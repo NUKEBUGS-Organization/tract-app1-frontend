@@ -66,7 +66,6 @@ export const authService = baseApi.injectEndpoints({
             );
           }
         } catch (error) {
-          console.error("OTP verification failed:", error);
         }
       },
     }),

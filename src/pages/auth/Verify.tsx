@@ -123,7 +123,6 @@ export default function VerifyPage() {
       setTimeLeft(OTP_EXPIRY_SECONDS);
       inputRefs[0].current?.focus();
     } catch (error: any) {
-      console.error("Resend OTP failed:", error);
 
       const message =
         error?.data?.message ||
@@ -162,7 +161,6 @@ export default function VerifyPage() {
         purpose,
       }).unwrap();
 
-      console.log("Verify OTP response:", response);
 
       const responseData = response?.data;
 
@@ -204,7 +202,6 @@ export default function VerifyPage() {
 
       navigate("/dashboard", { replace: true });
     } catch (error: any) {
-      console.error("OTP verification failed:", error);
 
       const message =
         error?.data?.message ||

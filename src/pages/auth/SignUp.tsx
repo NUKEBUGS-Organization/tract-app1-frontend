@@ -96,7 +96,6 @@ export default function SignUp() {
         },
       });
     } catch (error: any) {
-      console.error("Register failed:", error);
 
       const message =
         error?.data?.message ||
@@ -142,7 +141,7 @@ export default function SignUp() {
       <form
         className="space-y-4 sm:space-y-5 2xl:space-y-6"
         onSubmit={handleSubmit(onSubmit, (validationErrors) => {
-          console.log("Signup validation errors:", validationErrors);
+          
         })}
       >
         <div>

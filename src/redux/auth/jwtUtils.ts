@@ -42,7 +42,6 @@ export function decodeAccessToken(token?: string | null) {
   try {
     return jwtDecode<DecodedAccessToken>(token);
   } catch (error) {
-    console.error("Invalid access token:", error);
     return null;
   }
 }

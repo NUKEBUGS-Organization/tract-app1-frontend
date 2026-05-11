@@ -54,7 +54,6 @@ export default function ResetPasswordPage() {
   const onSubmit = async (data: FormData) => {
     try {
       if (!resetToken) {
-        console.error("Reset token is missing");
         return;
       }
 
@@ -65,7 +64,6 @@ export default function ResetPasswordPage() {
 
       navigate("/auth/signin");
     } catch (error) {
-      console.error("Reset password failed:", error);
     }
   };
 

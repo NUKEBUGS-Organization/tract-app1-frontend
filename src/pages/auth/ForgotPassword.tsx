@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
         },
       });
     } catch (error) {
-      console.error("Forgot password failed:", error);
+     
     }
   };
 

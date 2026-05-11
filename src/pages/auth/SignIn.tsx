@@ -59,8 +59,6 @@ export default function SignInPage() {
         },
       });
     } catch (error: any) {
-      console.error("Login failed:", error);
-
       setLoginStatus("Invalid credentials");
     }
   };
