@@ -18,15 +18,13 @@ export const registerSchema = z
 
     dob: z.string().min(1, "Date of birth is required"),
 
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
 
     confirmPassword: z.string().min(1, "Confirm password is required"),
 
     state: z.string().min(1, "State is required"),
 
-    role: z.enum(["seller", "partner", "licensed"]),
+    role: z.enum(["seller", "wholesaler", "realtor", "admin"]),
 
     terms: z
       .boolean()

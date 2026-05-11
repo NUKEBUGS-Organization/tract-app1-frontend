@@ -171,7 +171,7 @@ export default function SignInPage() {
         <div className="text-center text-xs text-[var(--color-text-muted)] sm:text-sm 2xl:text-base">
           Don&apos;t have an account?{" "}
           <Link
-            to="/auth/entry"
+            to="/auth/signup"
             className="inline-flex items-center gap-1 font-semibold text-[var(--color-text-main)] transition-colors hover:text-[var(--color-secondary)]"
           >
             Create account <ArrowUpRight className="h-3 w-3 2xl:h-4 2xl:w-4" />

@@ -1,24 +1,27 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { tokenStorage } from "./tokenStorage";
+import { decodeAccessToken, getRoleFromToken } from "./jwtUtils";
 
 export type UserRole =
-  | "SELLER"
-  | "PRIVATE_PARTNER"
-  | "LICENSED_PARTNER"
-  | "ADMIN"
   | "seller"
   | "partner"
   | "licensed"
-  | "admin";
+  | "admin"
+  | "private_partner"
+  | "licensed_partner"
+  | "wholesaler"
+  | string;
 
 export interface AuthUser {
   id?: string;
   _id?: string;
+  user_id?: string;
+  sub?: string;
   fullName?: string;
   full_name?: string;
-  email: string;
+  email?: string;
   phone?: string;
-  role?: UserRole | string;
+  role?: UserRole;
   isVerified?: boolean;
 }
 
@@ -26,14 +29,29 @@ interface AuthState {
   user: AuthUser | null;
   accessToken: string | null;
   refreshToken: string | null;
+  role: string | null;
   isAuthenticated: boolean;
 }
 
+const storedAccessToken = tokenStorage.getAccessToken();
+const decodedStoredToken = decodeAccessToken(storedAccessToken);
+
 const initialState: AuthState = {
-  user: null,
-  accessToken: tokenStorage.getAccessToken(),
+  user: decodedStoredToken
+    ? {
+        id: decodedStoredToken.id,
+        user_id: decodedStoredToken.user_id,
+        sub: decodedStoredToken.sub,
+        email: decodedStoredToken.email,
+        fullName: decodedStoredToken.fullName,
+        full_name: decodedStoredToken.full_name,
+        role: decodedStoredToken.role,
+      }
+    : null,
+  accessToken: storedAccessToken,
   refreshToken: tokenStorage.getRefreshToken(),
-  isAuthenticated: Boolean(tokenStorage.getAccessToken()),
+  role: getRoleFromToken(storedAccessToken),
+  isAuthenticated: Boolean(storedAccessToken),
 };
 
 interface SetCredentialsPayload {
@@ -47,10 +65,6 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setCredentials: (state, action: PayloadAction<SetCredentialsPayload>) => {
-      if (action.payload.user !== undefined) {
-        state.user = action.payload.user;
-      }
-
       if (action.payload.accessToken !== undefined) {
         state.accessToken = action.payload.accessToken;
       }
@@ -59,15 +73,33 @@ const authSlice = createSlice({
         state.refreshToken = action.payload.refreshToken;
       }
 
-      tokenStorage.setTokens(state.accessToken, state.refreshToken);
+      const decodedToken = decodeAccessToken(state.accessToken);
 
+      if (action.payload.user !== undefined && action.payload.user !== null) {
+        state.user = action.payload.user;
+      } else if (decodedToken) {
+        state.user = {
+          id: decodedToken.id,
+          user_id: decodedToken.user_id,
+          sub: decodedToken.sub,
+          email: decodedToken.email,
+          fullName: decodedToken.fullName,
+          full_name: decodedToken.full_name,
+          role: decodedToken.role,
+        };
+      }
+
+      state.role = getRoleFromToken(state.accessToken);
       state.isAuthenticated = Boolean(state.accessToken);
+
+      tokenStorage.setTokens(state.accessToken, state.refreshToken);
     },
 
     logout: (state) => {
       state.user = null;
       state.accessToken = null;
       state.refreshToken = null;
+      state.role = null;
       state.isAuthenticated = false;
 
       tokenStorage.clearTokens();

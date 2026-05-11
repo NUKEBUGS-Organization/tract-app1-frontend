@@ -1,15 +1,56 @@
-// src/pages/auth/VerifyPage.tsx
+// src/pages/auth/Verify.tsx
 
 import { ShieldCheck, Mail, ArrowRight, ArrowLeft } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { useState, useRef, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import AuthLayout from "../../layouts/AuthLayout";
 import Button from "../../components/common/Button";
-import { useVerifyOtpMutation } from "../../services/authService";
+import {
+  useSendOtpMutation,
+  useVerifyOtpMutation,
+} from "../../services/authService";
 import { normalizeAuthResponse } from "../../features/auth/authResponse";
+import { getRoleFromToken } from "../../features/auth/jwtUtils";
 
 type VerifyPurpose = "login" | "forgot_password";
+
+const OTP_EXPIRY_SECONDS = 10 * 60;
+
+function formatTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(
+    remainingSeconds
+  ).padStart(2, "0")}`;
+}
+
+function getDashboardPath(role?: string | null) {
+  const normalizedRole = role?.toLowerCase().trim();
+
+  if (!normalizedRole) {
+    return "/auth/signin";
+  }
+
+  if (normalizedRole === "seller") {
+    return "/seller/dashboard";
+  }
+
+  if (["wholesaler", "partner", "private_partner"].includes(normalizedRole)) {
+    return "/partner/dashboard";
+  }
+
+  if (["realtor", "licensed", "licensed_partner"].includes(normalizedRole)) {
+    return "/realtor/dashboard";
+  }
+
+  if (normalizedRole === "admin") {
+    return "/admin/dashboard";
+  }
+
+  return "/unauthorized";
+}
 
 export default function VerifyPage() {
   const navigate = useNavigate();
@@ -19,8 +60,11 @@ export default function VerifyPage() {
   const purpose = (location.state?.purpose ?? "login") as VerifyPurpose;
 
   const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
+  const [sendOtp, { isLoading: isResending }] = useSendOtpMutation();
+
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState(OTP_EXPIRY_SECONDS);
 
   const inputRefs = [
     useRef<HTMLInputElement>(null),
@@ -31,7 +75,33 @@ export default function VerifyPage() {
     useRef<HTMLInputElement>(null),
   ];
 
+  const isExpired = timeLeft <= 0;
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+
+    const timerId = window.setInterval(() => {
+      setTimeLeft((previousTime) => {
+        if (previousTime <= 1) {
+          window.clearInterval(timerId);
+          return 0;
+        }
+
+        return previousTime - 1;
+      });
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [timeLeft]);
+
   const handleChange = (index: number, value: string) => {
+    if (isExpired) {
+      setApiError("OTP has expired. Please resend code.");
+      return;
+    }
+
     const onlyNumber = value.replace(/\D/g, "");
 
     if (onlyNumber.length > 1) return;
@@ -54,6 +124,36 @@ export default function VerifyPage() {
     }
   };
 
+  const handleResendCode = async () => {
+    if (!email) {
+      setApiError("Email is missing. Please go back and try again.");
+      return;
+    }
+
+    try {
+      setApiError(null);
+
+      await sendOtp({
+        email,
+        purpose,
+      }).unwrap();
+
+      setCode(["", "", "", "", "", ""]);
+      setTimeLeft(OTP_EXPIRY_SECONDS);
+      inputRefs[0].current?.focus();
+    } catch (error: any) {
+      console.error("Resend OTP failed:", error);
+
+      const message =
+        error?.data?.message ||
+        error?.data?.error ||
+        error?.error ||
+        "Unable to resend OTP. Please try again.";
+
+      setApiError(message);
+    }
+  };
+
   const handleVerify = async () => {
     const otp = code.join("");
 
@@ -66,6 +166,11 @@ export default function VerifyPage() {
 
     if (!email) {
       setApiError("Email is missing. Please go back and try again.");
+      return;
+    }
+
+    if (isExpired) {
+      setApiError("OTP has expired. Please resend code.");
       return;
     }
 
@@ -103,7 +208,11 @@ export default function VerifyPage() {
         return;
       }
 
-      navigate("/seller/dashboard");
+      const role = authData.user?.role ?? getRoleFromToken(authData.accessToken);
+
+      const dashboardPath = getDashboardPath(role);
+
+      navigate(dashboardPath, { replace: true });
     } catch (error: any) {
       console.error("OTP verification failed:", error);
 
@@ -167,9 +276,12 @@ export default function VerifyPage() {
                 inputMode="numeric"
                 maxLength={1}
                 value={digit}
+                disabled={isExpired}
                 onChange={(event) => handleChange(index, event.target.value)}
                 onKeyDown={(event) => handleKeyDown(index, event)}
-                className="h-11 w-9 rounded-[var(--radius-input)] border border-transparent bg-[var(--color-bg-soft)] text-center text-base font-semibold text-[var(--color-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:h-14 sm:w-12 sm:text-xl 2xl:h-16 2xl:w-14 2xl:text-2xl"
+                className={`h-11 w-9 rounded-[var(--radius-input)] border border-transparent bg-[var(--color-bg-soft)] text-center text-base font-semibold text-[var(--color-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:h-14 sm:w-12 sm:text-xl 2xl:h-16 2xl:w-14 2xl:text-2xl ${
+                  isExpired ? "cursor-not-allowed opacity-60" : ""
+                }`}
                 placeholder="-"
               />
             ))}
@@ -180,17 +292,25 @@ export default function VerifyPage() {
           <div className="flex items-center justify-center gap-1.5 text-[var(--color-text-muted)] sm:justify-start">
             <span>
               Code expires in{" "}
-              <span className="font-semibold text-[var(--color-primary)]">
-                02:45
+              <span
+                className={`font-semibold ${
+                  isExpired
+                    ? "text-[var(--color-danger)]"
+                    : "text-[var(--color-primary)]"
+                }`}
+              >
+                {formatTime(timeLeft)}
               </span>
             </span>
           </div>
 
           <button
             type="button"
-            className="text-center font-semibold text-[var(--color-secondary)] transition-colors hover:text-[var(--color-primary)] hover:underline"
+            onClick={handleResendCode}
+            disabled={isResending}
+            className="text-center font-semibold text-[var(--color-secondary)] transition-colors hover:text-[var(--color-primary)] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Resend code
+            {isResending ? "Sending..." : "Resend code"}
           </button>
         </div>
 
@@ -199,6 +319,7 @@ export default function VerifyPage() {
           variant="primary"
           isLoading={isLoading}
           loadingText="Verifying..."
+          disabled={isExpired}
           className="mt-4 flex w-full items-center justify-center gap-2 py-3 text-xs uppercase tracking-wide sm:mt-6 sm:py-3.5 sm:text-sm 2xl:py-4 2xl:text-base"
         >
           Verify & Continue
@@ -215,7 +336,7 @@ export default function VerifyPage() {
 
         <div className="text-center">
           <Link
-            to="/auth/entry"
+            to="/auth/signup"
             className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--color-secondary)] transition-colors hover:text-[var(--color-primary)] hover:underline sm:text-sm 2xl:text-base"
           >
             <ArrowLeft className="h-4 w-4 2xl:h-5 2xl:w-5" />

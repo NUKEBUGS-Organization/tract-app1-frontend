@@ -339,47 +339,61 @@ export default function SignUp() {
           )}
         </div>
 
-        <div>
-          <label className="mb-3 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
-            Select your role
-          </label>
+   <div>
+  <label className="mb-3 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
+    Select your role
+  </label>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <RoleCard
-              selected={selectedRole === "seller"}
-              onClick={() => setValue("role", "seller", { shouldValidate: true })}
-              icon={<Medal className="h-5 w-5" />}
-              title="Seller"
-              description="List and manage your properties."
-            />
+  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <RoleCard
+      selected={selectedRole === "seller"}
+      onClick={() =>
+        setValue("role", "seller", {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        })
+      }
+      icon={<Medal className="h-5 w-5" />}
+      title="Seller"
+      description="List and manage your properties."
+    />
 
-            <RoleCard
-              selected={selectedRole === "partner"}
-              onClick={() =>
-                setValue("role", "partner", { shouldValidate: true })
-              }
-              icon={<Users className="h-5 w-5" />}
-              title="Private Partner"
-              description="Collaborate and manage deals."
-            />
+    <RoleCard
+      selected={selectedRole === "wholesaler"}
+      onClick={() =>
+        setValue("role", "wholesaler", {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        })
+      }
+      icon={<Users className="h-5 w-5" />}
+      title="Private Partner"
+      description="Collaborate and manage deals."
+    />
 
-            <RoleCard
-              selected={selectedRole === "licensed"}
-              onClick={() =>
-                setValue("role", "licensed", { shouldValidate: true })
-              }
-              icon={<Briefcase className="h-5 w-5" />}
-              title="Licensed Partner"
-              description="Represent clients and close deals."
-            />
-          </div>
+    <RoleCard
+      selected={selectedRole === "realtor"}
+      onClick={() =>
+        setValue("role", "realtor", {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        })
+      }
+      icon={<Briefcase className="h-5 w-5" />}
+      title="Licensed Partner"
+      description="Represent clients and close deals."
+    />
+  </div>
 
-          {errors.role && (
-            <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
-              {errors.role.message}
-            </p>
-          )}
-        </div>
+  {errors.role && (
+    <p className="mt-1 text-xs text-[var(--color-danger)] 2xl:text-sm">
+      {errors.role.message}
+    </p>
+  )}
+</div>
 
         <div>
           <div className="flex items-start gap-2 pt-2">

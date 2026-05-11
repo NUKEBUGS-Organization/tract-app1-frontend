@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router";
 
 import ProtectedRoute from "../features/auth/ProtectedRoute";
+import RoleProtectedRoute from "../features/auth/RoleProtectedRoute";
 
 import SignUp from "../pages/auth/SignUp";
 import SignInPage from "../pages/auth/SignIn";
@@ -61,63 +62,73 @@ function AppRoutes() {
       <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      {/* Protected Seller Routes */}
       <Route element={<ProtectedRoute />}>
-        <Route
-          element={
-            <DashboardLayout
-              title="Seller Portal"
-              navItems={sellerNav}
-              mode="light"
-            />
-          }
-        >
-          <Route path="/seller/dashboard" element={<SellerDashboard />} />
+        <Route element={<RoleProtectedRoute allowedRoles={["seller"]} />}>
+          <Route
+            element={
+              <DashboardLayout
+                title="Seller Portal"
+                navItems={sellerNav}
+                mode="light"
+              />
+            }
+          >
+            <Route path="/seller/dashboard" element={<SellerDashboard />} />
+          </Route>
         </Route>
-      </Route>
 
-      {/* Protected Partner Routes */}
-      <Route element={<ProtectedRoute />}>
         <Route
           element={
-            <DashboardLayout
-              title="Partner Pro Mode"
-              navItems={partnerNav}
-              mode="dark"
+            <RoleProtectedRoute
+              allowedRoles={["partner", "private_partner", "wholesaler"]}
             />
           }
         >
-          <Route path="/partner/dashboard" element={<PartnerDashboard />} />
+          <Route
+            element={
+              <DashboardLayout
+                title="Partner Pro Mode"
+                navItems={partnerNav}
+                mode="dark"
+              />
+            }
+          >
+            <Route path="/partner/dashboard" element={<PartnerDashboard />} />
+          </Route>
         </Route>
-      </Route>
 
-      {/* Protected Realtor Routes */}
-      <Route element={<ProtectedRoute />}>
         <Route
           element={
-            <DashboardLayout
-              title="Licensed Partner Portal"
-              navItems={realtorNav}
-              mode="light"
+            <RoleProtectedRoute
+              allowedRoles={["licensed", "licensed_partner", "realtor"]}
             />
           }
         >
-          <Route path="/realtor/dashboard" element={<RealtorDashboard />} />
+          <Route
+            element={
+              <DashboardLayout
+                title="Licensed Partner Portal"
+                navItems={realtorNav}
+                mode="light"
+              />
+            }
+          >
+            <Route path="/realtor/dashboard" element={<RealtorDashboard />} />
+          </Route>
         </Route>
-      </Route>
 
-      {/* Protected Admin Routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route
-          element={
-            <DashboardLayout
-              title="Admin Portal"
-              navItems={adminNav}
-              mode="light"
-            />
-          }
-        >
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route element={<RoleProtectedRoute allowedRoles={["admin"]} />}>
+          <Route
+            element={
+              <DashboardLayout
+                title="Admin Portal"
+                navItems={adminNav}
+                mode="light"
+              />
+            }
+          >
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          </Route>
         </Route>
       </Route>
 

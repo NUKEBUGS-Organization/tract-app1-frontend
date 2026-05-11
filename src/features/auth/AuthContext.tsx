@@ -14,6 +14,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   accessToken: string | null;
   refreshToken: string | null;
+  role: string | null;
   isAuthenticated: boolean;
   setAuth: (payload: {
     user?: AuthUser | null;
@@ -29,9 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const { user, accessToken, refreshToken, isAuthenticated } = useAppSelector(
-    (state) => state.auth
-  );
+  const { user, accessToken, refreshToken, role, isAuthenticated } =
+    useAppSelector((state) => state.auth);
 
   const [logoutUser] = useLogoutUserMutation();
 
@@ -56,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         accessToken,
         refreshToken,
+        role,
         isAuthenticated,
         setAuth,
         logoutAuth,
