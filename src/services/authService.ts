@@ -1,6 +1,6 @@
 import { baseApi } from "./baseApi";
-import { logout, setCredentials } from "../features/auth/authSlice";
-import { normalizeAuthResponse } from "../features/auth/authResponse";
+import { logout, setCredentials } from "../redux/auth/authSlice";
+import { normalizeAuthResponse } from "../redux/auth/authResponse";
 
 export const authService = baseApi.injectEndpoints({
   endpoints: (builder) => ({

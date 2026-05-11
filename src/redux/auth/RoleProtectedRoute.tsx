@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router";
-import { useAuthContext } from "./AuthContext";
+import { useAuthContext } from "../../contexts/AuthContext";
 import { tokenStorage } from "./tokenStorage";
 import { getRoleFromToken, isTokenExpired } from "./jwtUtils";
 

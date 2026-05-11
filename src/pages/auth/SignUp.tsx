@@ -26,7 +26,7 @@ import { useRegisterMutation } from "../../services/authService";
 import {
   registerSchema,
   type RegisterFormValues,
-} from "../../features/auth/authSchemas";
+} from "../../redux/auth/authSchemas";
 
 export default function SignUp() {
   const navigate = useNavigate();

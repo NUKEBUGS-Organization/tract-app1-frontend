@@ -10,8 +10,8 @@ import {
   useSendOtpMutation,
   useVerifyOtpMutation,
 } from "../../services/authService";
-import { normalizeAuthResponse } from "../../features/auth/authResponse";
-import { getRoleFromToken } from "../../features/auth/jwtUtils";
+import { normalizeAuthResponse } from "../../redux/auth/authResponse";
+import { getRoleFromToken } from "../../redux/auth/jwtUtils";
 
 type VerifyPurpose = "login" | "forgot_password";
 

@@ -5,10 +5,10 @@ import {
 } from "react";
 import { useNavigate } from "react-router";
 
-import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { logout, setCredentials } from "./authSlice";
-import type { AuthUser } from "./authSlice";
-import { useLogoutUserMutation } from "../../services/authService";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { logout, setCredentials } from "../redux/auth/authSlice";
+import type { AuthUser } from "../redux/auth/authSlice";
+import { useLogoutUserMutation } from "../services/authService";
 
 interface AuthContextValue {
   user: AuthUser | null;

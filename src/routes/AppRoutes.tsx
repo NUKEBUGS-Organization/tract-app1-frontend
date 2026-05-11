@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router";
 
-import ProtectedRoute from "../features/auth/ProtectedRoute";
-import RoleProtectedRoute from "../features/auth/RoleProtectedRoute";
+import ProtectedRoute from "../redux/auth/ProtectedRoute";
+import RoleProtectedRoute from "../redux/auth/RoleProtectedRoute";
 
 import SignUp from "../pages/auth/SignUp";
 import SignInPage from "../pages/auth/SignIn";

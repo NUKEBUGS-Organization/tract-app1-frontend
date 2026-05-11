@@ -6,10 +6,10 @@ import {
   type FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 
-import type { RootState } from "../app/store";
-import { logout, setCredentials } from "../features/auth/authSlice";
-import { tokenStorage } from "../features/auth/tokenStorage";
-import { normalizeAuthResponse } from "../features/auth/authResponse";
+import type { RootState } from "../redux/store";
+import { logout, setCredentials } from "../redux/auth/authSlice";
+import { tokenStorage } from "../redux/auth/tokenStorage";
+import { normalizeAuthResponse } from "../redux/auth/authResponse";
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: import.meta.env.VITE_API_BASE_URL,
