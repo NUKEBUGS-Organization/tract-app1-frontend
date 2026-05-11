@@ -1,20 +1,20 @@
 import { Navigate, Outlet } from "react-router";
-import { useAppSelector } from "../app/hooks";
-import type { UserRole } from "../features/auth/authSlice";
+import { useAuthContext } from "../contexts/AuthContext";
+import { tokenStorage } from "../redux/auth/tokenStorage";
+import { isTokenExpired } from "../redux/auth/jwtUtils";
 
-interface ProtectedRouteProps {
-  allowedRoles?: UserRole[];
-}
+function ProtectedRoute() {
+  const { isAuthenticated, accessToken } = useAuthContext();
 
-function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const storedAccessToken = tokenStorage.getAccessToken();
+  const activeAccessToken = accessToken || storedAccessToken;
 
-  if (!isAuthenticated) {
-    return <Navigate to="/entry" replace />;
-  }
+  const isLoggedIn = Boolean(
+    isAuthenticated || activeAccessToken
+  );
 
-  if (allowedRoles && (!user || !allowedRoles.includes(user.role))) {
-    return <Navigate to="/unauthorized" replace />;
+  if (!isLoggedIn || !activeAccessToken || isTokenExpired(activeAccessToken)) {
+    return <Navigate to="/auth/signin" replace />;
   }
 
   return <Outlet />;

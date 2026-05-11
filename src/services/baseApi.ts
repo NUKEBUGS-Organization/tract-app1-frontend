@@ -5,56 +5,124 @@ import {
   type FetchArgs,
   type FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
-import type { RootState } from "../app/store";
-import { logout, setCredentials } from "../features/auth/authSlice";
+
+import type { RootState } from "../redux/store";
+import { logout, setCredentials } from "../redux/auth/authSlice";
+import { tokenStorage } from "../redux/auth/tokenStorage";
+import { normalizeAuthResponse } from "../redux/auth/authResponse";
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: import.meta.env.VITE_API_BASE_URL,
   credentials: "include",
 
   prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth.accessToken;
+    const accessToken =
+      (getState() as RootState).auth.accessToken ??
+      tokenStorage.getAccessToken();
 
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
+    if (accessToken) {
+      headers.set("authorization", `Bearer ${accessToken}`);
     }
+
+    headers.set("content-type", "application/json");
 
     return headers;
   },
 });
+
+function getUrl(args: string | FetchArgs) {
+  if (typeof args === "string") return args;
+  return args.url;
+}
+
+function isAuthPublicApi(url: string) {
+  return (
+    url.includes("auth/login") ||
+    url.includes("auth/register") ||
+    url.includes("auth/send-otp") ||
+    url.includes("auth/verify-otp") ||
+    url.includes("auth/reset-password")
+  );
+}
+
+function forceLogout(api: any) {
+  tokenStorage.clearTokens();
+  api.dispatch(logout());
+
+  if (window.location.pathname !== "/auth/signin") {
+    window.location.href = "/auth/signin";
+  }
+}
 
 const baseQueryWithReAuth: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
+  const requestUrl = getUrl(args);
+
   let result = await rawBaseQuery(args, api, extraOptions);
 
-  if (result.error?.status === 401) {
+  const status = result.error?.status;
+  const hasAccessToken = Boolean(
+    (api.getState() as RootState).auth.accessToken ||
+      tokenStorage.getAccessToken()
+  );
+
+  if (status === 400 && hasAccessToken && !isAuthPublicApi(requestUrl)) {
+    forceLogout(api);
+    return result;
+  }
+
+  if (status === 401) {
+    const refreshToken =
+      (api.getState() as RootState).auth.refreshToken ??
+      tokenStorage.getRefreshToken();
+
+    if (!refreshToken) {
+      forceLogout(api);
+      return result;
+    }
+
     const refreshResult = await rawBaseQuery(
       {
-        url: "/auth/refresh",
+        url: "auth/refresh",
         method: "POST",
+        body: {
+          refresh_token: refreshToken,
+        },
       },
       api,
       extraOptions
     );
 
+    if (
+      refreshResult.error?.status === 400 ||
+      refreshResult.error?.status === 401
+    ) {
+      forceLogout(api);
+      return result;
+    }
+
     if (refreshResult.data) {
-      const refreshData = refreshResult.data as any;
+      const authData = normalizeAuthResponse(refreshResult.data);
+
+      if (!authData.accessToken) {
+        forceLogout(api);
+        return result;
+      }
 
       api.dispatch(
         setCredentials({
-          accessToken: refreshData?.accessToken ?? null,
-          user:
-            refreshData?.user ??
-            (api.getState() as RootState).auth.user,
+          user: authData.user ?? (api.getState() as RootState).auth.user,
+          accessToken: authData.accessToken,
+          refreshToken: authData.refreshToken ?? refreshToken,
         })
       );
 
       result = await rawBaseQuery(args, api, extraOptions);
     } else {
-      api.dispatch(logout());
+      forceLogout(api);
     }
   }
 
