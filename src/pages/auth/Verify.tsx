@@ -71,6 +71,23 @@ export default function VerifyPage() {
     };
   }, [timeLeft]);
 
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text/plain').trim();
+    const digits = pastedData.replace(/\D/g, '').slice(0, 6); // take first 6 digits
+
+    const newCode = [...code];
+    for (let i = 0; i < digits.length; i++) {
+      newCode[i] = digits[i];
+    }
+    setCode(newCode);
+
+    const nextEmptyIndex = newCode.findIndex(d => d === '');
+    const focusIndex = nextEmptyIndex === -1 ? 5 : nextEmptyIndex;
+    inputRefs[focusIndex].current?.focus();
+  };
+
   const handleChange = (index: number, value: string) => {
     if (isExpired) {
       setApiError("OTP has expired. Please resend code.");
@@ -254,7 +271,10 @@ export default function VerifyPage() {
             Enter the 6-digit code
           </label>
 
-          <div className="flex justify-center gap-1.5 sm:gap-2 2xl:gap-3">
+          <div
+            className="flex justify-center gap-1.5 sm:gap-2 2xl:gap-3"
+            onPaste={handlePaste}
+          >
             {code.map((digit, index) => (
               <input
                 key={index}
@@ -266,9 +286,8 @@ export default function VerifyPage() {
                 disabled={isExpired}
                 onChange={(event) => handleChange(index, event.target.value)}
                 onKeyDown={(event) => handleKeyDown(index, event)}
-                className={`h-11 w-9 rounded-[var(--radius-input)] border border-transparent bg-[var(--color-bg-soft)] text-center text-base font-semibold text-[var(--color-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:h-14 sm:w-12 sm:text-xl 2xl:h-16 2xl:w-14 2xl:text-2xl ${
-                  isExpired ? "cursor-not-allowed opacity-60" : ""
-                }`}
+                className={`h-11 w-9 rounded-[var(--radius-input)] border border-transparent bg-[var(--color-bg-soft)] text-center text-base font-semibold text-[var(--color-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:h-14 sm:w-12 sm:text-xl 2xl:h-16 2xl:w-14 2xl:text-2xl ${isExpired ? "cursor-not-allowed opacity-60" : ""
+                  }`}
                 placeholder="-"
               />
             ))}
@@ -280,11 +299,10 @@ export default function VerifyPage() {
             <span>
               Code expires in{" "}
               <span
-                className={`font-semibold ${
-                  isExpired
+                className={`font-semibold ${isExpired
                     ? "text-[var(--color-danger)]"
                     : "text-[var(--color-primary)]"
-                }`}
+                  }`}
               >
                 {formatTime(timeLeft)}
               </span>
