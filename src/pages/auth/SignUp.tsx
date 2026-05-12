@@ -140,9 +140,7 @@ export default function SignUp() {
 
       <form
         className="space-y-4 sm:space-y-5 2xl:space-y-6"
-        onSubmit={handleSubmit(onSubmit, (validationErrors) => {
-          
-        })}
+        onSubmit={handleSubmit(onSubmit)}
       >
         <div>
           <label className="mb-1.5 block text-xs font-medium text-[var(--color-text-main)] sm:text-sm 2xl:text-base">
