@@ -6,7 +6,6 @@ import {
   Bell,
   Building2,
   ClipboardList,
-  FileText,
   FolderLock,
   Gavel,
   Handshake,
