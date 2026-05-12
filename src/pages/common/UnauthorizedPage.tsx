@@ -13,10 +13,10 @@ function UnauthorizedPage() {
         </p>
 
         <Link
-          to="/entry"
+          to="/dashboard"
           className="mt-6 inline-block rounded-xl bg-[var(--color-forest)] px-5 py-3 font-semibold text-white"
         >
-          Go Back
+          Go Back to Dashboard
         </Link>
       </div>
     </main>

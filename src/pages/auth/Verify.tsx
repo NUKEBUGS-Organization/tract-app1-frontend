@@ -9,6 +9,7 @@ import {
   useVerifyOtpMutation,
 } from "../../services/authService";
 import { useAuthContext } from "../../contexts/AuthContext";
+import tractLogo from "../../assets/tract-logo.png";
 
 type VerifyPurpose = "login" | "forgot_password";
 
@@ -233,6 +234,25 @@ export default function VerifyPage() {
   return (
     <AuthLayout>
       <div className="mb-6 text-center sm:mb-8 2xl:mb-10">
+          <div className="mx-auto mb-4 flex items-center justify-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--color-secondary)]/30 bg-white shadow-[var(--shadow-card)]">
+                    <img
+                      src={tractLogo}
+                      alt="TRACT logo"
+                      className="h-9 w-9 object-contain"
+                    />
+                  </div>
+        
+                  <div className="text-left">
+                    <div className="text-xl font-extrabold tracking-tight text-[var(--color-primary)]">
+                      TRACT
+                    </div>
+        
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[var(--color-secondary)]">
+                      Real Estate
+                    </p>
+                  </div>
+                </div>
         <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)] sm:text-3xl xl:text-[32px] 2xl:text-4xl">
           Verify your account
         </h2>

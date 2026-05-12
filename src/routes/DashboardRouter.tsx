@@ -6,6 +6,15 @@ import { useAuthContext } from "../contexts/AuthContext";
 import { tokenStorage } from "../redux/auth/tokenStorage";
 import { getRoleFromToken } from "../redux/auth/jwtUtils";
 
+import {
+  ADMIN_ROLES,
+  PARTNER_ROLES,
+  REALTOR_ROLES,
+  SELLER_ROLES,
+  isAllowedRole,
+  normalizeRole,
+} from "../constants/roles";
+
 const sellerNav = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "List Property", path: "/list-property" },
@@ -37,14 +46,10 @@ const adminNav = [
   { label: "Chat Flags", path: "/chat-flags" },
 ];
 
-function normalizeRole(role?: string | null) {
-  return role?.toLowerCase().trim() ?? null;
-}
-
 function getLayoutConfig(role?: string | null) {
-  const normalizedRole = normalizeRole(role);
+  const userRole = normalizeRole(role);
 
-  if (normalizedRole === "seller") {
+  if (isAllowedRole(userRole, SELLER_ROLES)) {
     return {
       title: "Seller Portal",
       navItems: sellerNav,
@@ -52,11 +57,7 @@ function getLayoutConfig(role?: string | null) {
     };
   }
 
-  if (
-    normalizedRole === "wholesaler" ||
-    normalizedRole === "partner" ||
-    normalizedRole === "private_partner"
-  ) {
+  if (isAllowedRole(userRole, PARTNER_ROLES)) {
     return {
       title: "Partner Pro Mode",
       navItems: partnerNav,
@@ -64,11 +65,7 @@ function getLayoutConfig(role?: string | null) {
     };
   }
 
-  if (
-    normalizedRole === "realtor" ||
-    normalizedRole === "licensed" ||
-    normalizedRole === "licensed_partner"
-  ) {
+  if (isAllowedRole(userRole, REALTOR_ROLES)) {
     return {
       title: "Licensed Partner Portal",
       navItems: realtorNav,
@@ -76,7 +73,7 @@ function getLayoutConfig(role?: string | null) {
     };
   }
 
-  if (normalizedRole === "admin") {
+  if (isAllowedRole(userRole, ADMIN_ROLES)) {
     return {
       title: "Admin Portal",
       navItems: adminNav,
@@ -91,7 +88,7 @@ export default function DashboardRouter() {
   const { role, accessToken } = useAuthContext();
 
   const token = accessToken || tokenStorage.getAccessToken();
-  const userRole = role || getRoleFromToken(token);
+  const userRole = normalizeRole(role || getRoleFromToken(token));
 
   const layoutConfig = getLayoutConfig(userRole);
 

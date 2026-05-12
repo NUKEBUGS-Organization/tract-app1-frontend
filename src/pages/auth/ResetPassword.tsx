@@ -17,6 +17,7 @@ import * as z from "zod";
 import AuthLayout from "../../layouts/AuthLayout";
 import AppButton from "../../components/common/Button";
 import { useResetPasswordMutation } from "../../services/authService";
+import tractLogo from "../../assets/tract-logo.png";
 
 const schema = z
   .object({
@@ -70,6 +71,25 @@ export default function ResetPasswordPage() {
   return (
     <AuthLayout>
       <div className="mb-6 text-center sm:mb-8 2xl:mb-10">
+        <div className="mx-auto mb-4 flex items-center justify-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--color-secondary)]/30 bg-white shadow-[var(--shadow-card)]">
+            <img
+              src={tractLogo}
+              alt="TRACT logo"
+              className="h-9 w-9 object-contain"
+            />
+          </div>
+
+          <div className="text-left">
+            <div className="text-xl font-extrabold tracking-tight text-[var(--color-primary)]">
+              TRACT
+            </div>
+
+            <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[var(--color-secondary)]">
+              Real Estate
+            </p>
+          </div>
+        </div>
         <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-secondary)]/15 sm:mb-6 2xl:h-14 2xl:w-14">
           <RotateCcw className="h-6 w-6 text-[var(--color-secondary)] 2xl:h-7 2xl:w-7" />
         </div>
@@ -111,11 +131,10 @@ export default function ResetPasswordPage() {
               {...register("newPassword")}
               type={showPassword ? "text" : "password"}
               placeholder="Enter new password"
-              className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-9 pr-10 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 sm:pl-10 2xl:py-4 2xl:pl-12 2xl:pr-12 2xl:text-base ${
-                errors.newPassword
+              className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-9 pr-10 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 sm:pl-10 2xl:py-4 2xl:pl-12 2xl:pr-12 2xl:text-base ${errors.newPassword
                   ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
                   : "border-transparent"
-              }`}
+                }`}
             />
 
             <button
@@ -151,11 +170,10 @@ export default function ResetPasswordPage() {
               {...register("confirmPassword")}
               type={showConfirmPassword ? "text" : "password"}
               placeholder="Confirm new password"
-              className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-9 pr-10 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 sm:pl-10 2xl:py-4 2xl:pl-12 2xl:pr-12 2xl:text-base ${
-                errors.confirmPassword
+              className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-9 pr-10 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 sm:pl-10 2xl:py-4 2xl:pl-12 2xl:pr-12 2xl:text-base ${errors.confirmPassword
                   ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
                   : "border-transparent"
-              }`}
+                }`}
             />
 
             <button

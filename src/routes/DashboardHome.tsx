@@ -9,9 +9,14 @@ import { useAuthContext } from "../contexts/AuthContext";
 import { tokenStorage } from "../redux/auth/tokenStorage";
 import { getRoleFromToken } from "../redux/auth/jwtUtils";
 
-function normalizeRole(role?: string | null) {
-  return role?.toLowerCase().trim() ?? null;
-}
+import {
+  ADMIN_ROLES,
+  PARTNER_ROLES,
+  REALTOR_ROLES,
+  SELLER_ROLES,
+  isAllowedRole,
+  normalizeRole,
+} from "../constants/roles";
 
 export default function DashboardHome() {
   const { role, accessToken } = useAuthContext();
@@ -19,27 +24,19 @@ export default function DashboardHome() {
   const token = accessToken || tokenStorage.getAccessToken();
   const userRole = normalizeRole(role || getRoleFromToken(token));
 
-  if (userRole === "seller") {
+  if (isAllowedRole(userRole, SELLER_ROLES)) {
     return <SellerDashboard />;
   }
 
-  if (
-    userRole === "wholesaler" ||
-    userRole === "partner" ||
-    userRole === "private_partner"
-  ) {
+  if (isAllowedRole(userRole, PARTNER_ROLES)) {
     return <PartnerDashboard />;
   }
 
-  if (
-    userRole === "realtor" ||
-    userRole === "licensed" ||
-    userRole === "licensed_partner"
-  ) {
+  if (isAllowedRole(userRole, REALTOR_ROLES)) {
     return <RealtorDashboard />;
   }
 
-  if (userRole === "admin") {
+  if (isAllowedRole(userRole, ADMIN_ROLES)) {
     return <AdminDashboard />;
   }
 
