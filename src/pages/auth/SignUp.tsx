@@ -394,6 +394,7 @@ export default function SignUp() {
               placeholder="Select your state"
               autoComplete="off"
               onFocus={() => setIsStateDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setIsStateDropdownOpen(false), 150)}
               onChange={(event) => {
                 const value = event.target.value;
 
