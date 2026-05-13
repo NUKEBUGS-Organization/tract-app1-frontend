@@ -1,6 +1,5 @@
 import { baseApi } from "./baseApi";
-import { logout, setCredentials } from "../redux/auth/authSlice";
-import { normalizeAuthResponse } from "../redux/auth/authResponse";
+import { logout } from "../redux/auth/authSlice";
 
 export const authService = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -50,24 +49,6 @@ export const authService = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
-        try {
-          const { data } = await queryFulfilled;
-          const authData = normalizeAuthResponse(data);
-
-          if (authData.accessToken || authData.refreshToken) {
-            dispatch(
-              setCredentials({
-                user: authData.user,
-                accessToken: authData.accessToken,
-                refreshToken: authData.refreshToken,
-              })
-            );
-          }
-        } catch (error) {
-        }
-      },
     }),
 
     login: builder.mutation<

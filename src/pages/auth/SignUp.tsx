@@ -128,10 +128,9 @@ export default function SignUp() {
   };
 
   const inputClass = (hasError?: boolean) =>
-    `block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 2xl:py-4 2xl:text-base ${
-      hasError
-        ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
-        : "border-transparent"
+    `block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 2xl:py-4 2xl:text-base ${hasError
+      ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
+      : "border-transparent"
     }`;
 
   return (
@@ -390,6 +389,7 @@ export default function SignUp() {
               placeholder="Select your state"
               autoComplete="off"
               onFocus={() => setIsStateDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setIsStateDropdownOpen(false), 150)}
               onChange={(event) => {
                 const value = event.target.value;
 
@@ -431,11 +431,10 @@ export default function SignUp() {
                           setStateSearch(state.name);
                           setIsStateDropdownOpen(false);
                         }}
-                        className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition hover:bg-[var(--color-bg-soft)] ${
-                          isSelected
+                        className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition hover:bg-[var(--color-bg-soft)] ${isSelected
                             ? "bg-[var(--color-secondary)]/10 font-semibold text-[var(--color-primary)]"
                             : "text-[var(--color-text-main)]"
-                        }`}
+                          }`}
                       >
                         <span>{state.name}</span>
                         <span className="text-xs font-semibold text-[var(--color-text-muted)]">
@@ -527,11 +526,10 @@ export default function SignUp() {
               })}
               type="checkbox"
               id="terms"
-              className={`mt-1 h-4 w-4 rounded border-[var(--color-border-light)] text-[var(--color-secondary)] focus:ring-[var(--color-secondary)] ${
-                errors.terms
+              className={`mt-1 h-4 w-4 rounded border-[var(--color-border-light)] text-[var(--color-secondary)] focus:ring-[var(--color-secondary)] ${errors.terms
                   ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
                   : ""
-              }`}
+                }`}
             />
 
             <label
@@ -629,11 +627,10 @@ function RoleCard({
   return (
     <button
       type="button"
-      className={`relative rounded-[var(--radius-input)] border p-4 text-center transition-all ${
-        selected
+      className={`relative rounded-[var(--radius-input)] border p-4 text-center transition-all ${selected
           ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]/10"
           : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]/50"
-      }`}
+        }`}
       onClick={onClick}
     >
       {selected && (
@@ -643,11 +640,10 @@ function RoleCard({
       )}
 
       <div
-        className={`mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg ${
-          selected
+        className={`mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg ${selected
             ? "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)]"
             : "bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
-        }`}
+          }`}
       >
         {icon}
       </div>
