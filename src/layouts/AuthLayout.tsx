@@ -1,6 +1,6 @@
 import React from "react";
-import { Building2 } from "lucide-react";
 import AuthLeftSide from "../components/common/Banner";
+import tractLogo from "../assets/tract-logo.png";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -15,7 +15,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         {/* Mobile Header */}
         <div className="flex items-center justify-between px-5 py-5 sm:px-6 lg:hidden">
           <div className="flex items-center gap-2 text-xl font-bold text-[var(--color-primary)]">
-            <Building2 className="h-6 w-6 text-[var(--color-secondary)]" />
+            <img
+              src={tractLogo}
+              alt="TRACT logo"
+              className="h-7 w-7 object-contain"
+            />
             TRACT
           </div>
         </div>
@@ -29,19 +33,31 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
         {/* Footer Links */}
         <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 px-4 pb-5 text-center text-[11px] text-[var(--color-text-muted)] sm:px-6 sm:text-xs 2xl:text-sm lg:bg-[var(--color-bg-main)]">
-          <a href="#" className="transition-colors hover:text-[var(--color-primary)]">
+          <a
+            href="#"
+            className="transition-colors hover:text-[var(--color-primary)]"
+          >
             Terms of Service
           </a>
 
-          <a href="#" className="transition-colors hover:text-[var(--color-primary)]">
+          <a
+            href="#"
+            className="transition-colors hover:text-[var(--color-primary)]"
+          >
             Privacy Policy
           </a>
 
-          <a href="#" className="transition-colors hover:text-[var(--color-primary)]">
+          <a
+            href="#"
+            className="transition-colors hover:text-[var(--color-primary)]"
+          >
             Security Compliance
           </a>
 
-          <a href="#" className="transition-colors hover:text-[var(--color-primary)]">
+          <a
+            href="#"
+            className="transition-colors hover:text-[var(--color-primary)]"
+          >
             Contact Support
           </a>
         </div>

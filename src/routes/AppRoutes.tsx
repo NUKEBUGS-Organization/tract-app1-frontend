@@ -15,6 +15,14 @@ import ResetPasswordPage from "../pages/auth/ResetPassword";
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
 
+import {
+  ADMIN_ROLES,
+  ALL_APP_ROLES,
+  PARTNER_ROLES,
+  REALTOR_ROLES,
+  SELLER_ROLES,
+} from "../constants/roles";
+
 function AppRoutes() {
   return (
     <Routes>
@@ -31,25 +39,14 @@ function AppRoutes() {
 
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      {/* Protected app layout */}
+      {/* Protected app routes */}
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardRouter />}>
-          {/* Common dashboard route. Same route for all roles. UI changes by role. */}
+          {/* Common dashboard route for all roles */}
           <Route
             path="/dashboard"
             element={
-              <RoleRoute
-                allowedRoles={[
-                  "seller",
-                  "wholesaler",
-                  "partner",
-                  "private_partner",
-                  "realtor",
-                  "licensed",
-                  "licensed_partner",
-                  "admin",
-                ]}
-              >
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
                 <DashboardHome />
               </RoleRoute>
             }
@@ -59,7 +56,7 @@ function AppRoutes() {
           <Route
             path="/list-property"
             element={
-              <RoleRoute allowedRoles={["seller"]}>
+              <RoleRoute allowedRoles={SELLER_ROLES}>
                 <PlaceholderPage
                   title="List Property"
                   description="Seller can list and manage property submissions here."
@@ -71,7 +68,7 @@ function AppRoutes() {
           <Route
             path="/document-vault"
             element={
-              <RoleRoute allowedRoles={["seller"]}>
+              <RoleRoute allowedRoles={SELLER_ROLES}>
                 <PlaceholderPage
                   title="Document Vault"
                   description="Seller document upload and verification area."
@@ -83,7 +80,7 @@ function AppRoutes() {
           <Route
             path="/bids"
             element={
-              <RoleRoute allowedRoles={["seller"]}>
+              <RoleRoute allowedRoles={SELLER_ROLES}>
                 <PlaceholderPage
                   title="View Bids"
                   description="Seller can view incoming bids here."
@@ -95,7 +92,7 @@ function AppRoutes() {
           <Route
             path="/deal-tracker"
             element={
-              <RoleRoute allowedRoles={["seller"]}>
+              <RoleRoute allowedRoles={SELLER_ROLES}>
                 <PlaceholderPage
                   title="Deal Tracker"
                   description="Seller deal progress and status tracking."
@@ -110,13 +107,9 @@ function AppRoutes() {
             element={
               <RoleRoute
                 allowedRoles={[
-                  "wholesaler",
-                  "partner",
-                  "private_partner",
-                  "realtor",
-                  "licensed",
-                  "licensed_partner",
-                  "admin",
+                  ...PARTNER_ROLES,
+                  ...REALTOR_ROLES,
+                  ...ADMIN_ROLES,
                 ]}
               >
                 <PlaceholderPage
@@ -132,13 +125,9 @@ function AppRoutes() {
             element={
               <RoleRoute
                 allowedRoles={[
-                  "wholesaler",
-                  "partner",
-                  "private_partner",
-                  "realtor",
-                  "licensed",
-                  "licensed_partner",
-                  "admin",
+                  ...PARTNER_ROLES,
+                  ...REALTOR_ROLES,
+                  ...ADMIN_ROLES,
                 ]}
               >
                 <PlaceholderPage
@@ -153,9 +142,7 @@ function AppRoutes() {
           <Route
             path="/score"
             element={
-              <RoleRoute
-                allowedRoles={["wholesaler", "partner", "private_partner"]}
-              >
+              <RoleRoute allowedRoles={PARTNER_ROLES}>
                 <PlaceholderPage
                   title="Score"
                   description="Wholesaler score and performance metrics."
@@ -168,9 +155,7 @@ function AppRoutes() {
           <Route
             path="/profile"
             element={
-              <RoleRoute
-                allowedRoles={["realtor", "licensed", "licensed_partner"]}
-              >
+              <RoleRoute allowedRoles={REALTOR_ROLES}>
                 <PlaceholderPage
                   title="Profile Setup"
                   description="Realtor profile setup and verification flow."
@@ -183,7 +168,7 @@ function AppRoutes() {
           <Route
             path="/states"
             element={
-              <RoleRoute allowedRoles={["admin"]}>
+              <RoleRoute allowedRoles={ADMIN_ROLES}>
                 <PlaceholderPage
                   title="State Firewall"
                   description="Admin can manage state-level access rules here."
@@ -195,7 +180,7 @@ function AppRoutes() {
           <Route
             path="/users"
             element={
-              <RoleRoute allowedRoles={["admin"]}>
+              <RoleRoute allowedRoles={ADMIN_ROLES}>
                 <PlaceholderPage
                   title="Users"
                   description="Admin user management screen."
@@ -207,7 +192,7 @@ function AppRoutes() {
           <Route
             path="/verifications"
             element={
-              <RoleRoute allowedRoles={["admin"]}>
+              <RoleRoute allowedRoles={ADMIN_ROLES}>
                 <PlaceholderPage
                   title="Verifications"
                   description="Admin verification review screen."
@@ -219,7 +204,7 @@ function AppRoutes() {
           <Route
             path="/chat-flags"
             element={
-              <RoleRoute allowedRoles={["admin"]}>
+              <RoleRoute allowedRoles={ADMIN_ROLES}>
                 <PlaceholderPage
                   title="Chat Flags"
                   description="Admin can review flagged chat activity here."

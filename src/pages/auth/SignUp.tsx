@@ -14,9 +14,10 @@ import {
   Briefcase,
   ArrowRight,
   Calendar,
+  ChevronDown,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
@@ -28,6 +29,17 @@ import {
   registerSchema,
   type RegisterFormValues,
 } from "../../redux/auth/authSchemas";
+import tractLogo from "../../assets/tract-logo.png";
+
+const allowedStates = [
+  { code: "NY", name: "New York" },
+  { code: "NJ", name: "New Jersey" },
+  { code: "MD", name: "Maryland" },
+  { code: "TX", name: "Texas" },
+  { code: "DE", name: "Delaware" },
+  { code: "FL", name: "Florida" },
+  { code: "PA", name: "Pennsylvania" },
+];
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -37,6 +49,8 @@ export default function SignUp() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [stateSearch, setStateSearch] = useState("");
+  const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
 
   const {
     register,
@@ -56,6 +70,16 @@ export default function SignUp() {
   });
 
   const selectedRole = watch("role");
+  const selectedState = watch("state");
+
+  const filteredStates = allowedStates.filter((state) => {
+    const searchText = stateSearch.toLowerCase().trim();
+
+    return (
+      state.name.toLowerCase().includes(searchText) ||
+      state.code.toLowerCase().includes(searchText)
+    );
+  });
 
   const clearApiError = () => {
     if (apiError) {
@@ -96,7 +120,6 @@ export default function SignUp() {
         },
       });
     } catch (error: any) {
-
       const message =
         error?.data?.message ||
         error?.data?.error ||
@@ -116,12 +139,32 @@ export default function SignUp() {
   return (
     <AuthLayout>
       <div className="mb-6 text-center sm:mb-8 2xl:mb-10">
+        <div className="mx-auto mb-4 flex items-center justify-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--color-secondary)]/30 bg-white shadow-[var(--shadow-card)]">
+            <img
+              src={tractLogo}
+              alt="TRACT logo"
+              className="h-9 w-9 object-contain"
+            />
+          </div>
+
+          <div className="text-left">
+            <div className="text-xl font-extrabold tracking-tight text-[var(--color-primary)]">
+              TRACT
+            </div>
+
+            <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[var(--color-secondary)]">
+              Real Estate
+            </p>
+          </div>
+        </div>
+
         <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)] sm:text-3xl xl:text-[32px] 2xl:text-4xl">
           Create your account
         </h2>
 
         <p className="mt-2 text-xs leading-6 text-[var(--color-text-muted)] sm:text-sm 2xl:text-base">
-          Join TRACT App 1 and unlock the future of real estate.
+          Join TRACT and unlock the future of real estate.
         </p>
 
         <div className="my-5 flex items-center justify-center sm:my-6 2xl:my-8">
@@ -207,7 +250,7 @@ export default function SignUp() {
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
-                placeholder="+923001234567"
+                placeholder="+12025550143"
                 className={`${inputClass(Boolean(errors.phone))} pl-9 pr-3 sm:pl-10 2xl:pl-12`}
               />
             </div>
@@ -220,7 +263,7 @@ export default function SignUp() {
 
             {!errors.phone && (
               <p className="mt-1 text-[10px] text-[var(--color-text-muted)] 2xl:text-xs">
-                Include country code, for example +1 or +92.
+                Include country code, for example +1 202 555 0143.
               </p>
             )}
           </div>
@@ -338,21 +381,78 @@ export default function SignUp() {
             State
           </label>
 
+          <input type="hidden" {...register("state")} />
+
           <div className="relative">
             <Map className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:left-4 2xl:h-6 2xl:w-6" />
 
-            <select
-              {...register("state", {
-                onChange: clearApiError,
-              })}
-              className={`${inputClass(Boolean(errors.state))} appearance-none pl-9 pr-3 sm:pl-10 2xl:pl-12`}
-            >
-              <option value="">Select your state</option>
-              <option value="TX">Texas</option>
-              <option value="NY">New York</option>
-              <option value="CA">California</option>
-              <option value="FL">Florida</option>
-            </select>
+            <input
+              type="text"
+              value={stateSearch}
+              placeholder="Select your state"
+              autoComplete="off"
+              onFocus={() => setIsStateDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setIsStateDropdownOpen(false), 150)}
+              onChange={(event) => {
+                const value = event.target.value;
+
+                clearApiError();
+                setStateSearch(value);
+                setIsStateDropdownOpen(true);
+
+                setValue("state", "", {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true,
+                });
+              }}
+              className={`${inputClass(Boolean(errors.state))} pl-9 pr-10 sm:pl-10 2xl:pl-12`}
+            />
+
+            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)] sm:h-5 sm:w-5 2xl:right-4" />
+
+            {isStateDropdownOpen && (
+              <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-[var(--radius-input)] border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
+                {filteredStates.length > 0 ? (
+                  filteredStates.map((state) => {
+                    const isSelected = selectedState === state.code;
+
+                    return (
+                      <button
+                        key={state.code}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          clearApiError();
+
+                          setValue("state", state.code, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                            shouldTouch: true,
+                          });
+
+                          setStateSearch(state.name);
+                          setIsStateDropdownOpen(false);
+                        }}
+                        className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition hover:bg-[var(--color-bg-soft)] ${isSelected
+                            ? "bg-[var(--color-secondary)]/10 font-semibold text-[var(--color-primary)]"
+                            : "text-[var(--color-text-main)]"
+                          }`}
+                      >
+                        <span>{state.name}</span>
+                        <span className="text-xs font-semibold text-[var(--color-text-muted)]">
+                          {state.code}
+                        </span>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="px-4 py-3 text-sm text-[var(--color-text-muted)]">
+                    state not found.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {errors.state && (
@@ -515,8 +615,8 @@ export default function SignUp() {
 interface RoleCardProps {
   selected: boolean;
   onClick: () => void;
-  icon: React.ReactNode;
-  title: React.ReactNode;
+  icon: ReactNode;
+  title: ReactNode;
   description: string;
 }
 
