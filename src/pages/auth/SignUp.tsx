@@ -120,8 +120,6 @@ export default function SignUp() {
         },
       });
     } catch (error: any) {
-      console.error("Register failed:", error);
-
       const message =
         error?.data?.message ||
         error?.data?.error ||
