@@ -34,7 +34,7 @@ import tractLogo from "../../assets/tract-logo.png";
 const allowedStates = [
   { code: "NY", name: "New York" },
   { code: "NJ", name: "New Jersey" },
-  { code: "MD", name: "MaryLand" },
+  { code: "MD", name: "Maryland" },
   { code: "TX", name: "Texas" },
   { code: "DE", name: "Delaware" },
   { code: "FL", name: "Florida" },
@@ -450,7 +450,7 @@ export default function SignUp() {
                   })
                 ) : (
                   <div className="px-4 py-3 text-sm text-[var(--color-text-muted)]">
-                    No state found. Only New York and New Jersey are available.
+                    state not found.
                   </div>
                 )}
               </div>
