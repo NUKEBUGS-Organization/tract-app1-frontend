@@ -12,6 +12,8 @@ import VerifyPage from "../pages/auth/Verify";
 import ForgotPasswordPage from "../pages/auth/ForgotPassword";
 import ResetPasswordPage from "../pages/auth/ResetPassword";
 
+import KycPage from "../pages/kyc/KycPage";
+
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
 
@@ -48,6 +50,22 @@ function AppRoutes() {
             element={
               <RoleRoute allowedRoles={ALL_APP_ROLES}>
                 <DashboardHome />
+              </RoleRoute>
+            }
+          />
+
+          {/* KYC route for app users */}
+          <Route
+            path="/kyc"
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  ...SELLER_ROLES,
+                  ...PARTNER_ROLES,
+                  ...REALTOR_ROLES,
+                ]}
+              >
+                <KycPage />
               </RoleRoute>
             }
           />
