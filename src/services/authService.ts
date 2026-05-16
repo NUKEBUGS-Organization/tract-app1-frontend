@@ -1,6 +1,7 @@
 import { baseApi } from "./baseApi";
 import { logout } from "../redux/auth/authSlice";
 
+
 export const authService = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     register: builder.mutation<
