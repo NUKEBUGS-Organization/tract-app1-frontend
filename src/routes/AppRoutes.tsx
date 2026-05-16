@@ -12,7 +12,7 @@ import VerifyPage from "../pages/auth/Verify";
 import ForgotPasswordPage from "../pages/auth/ForgotPassword";
 import ResetPasswordPage from "../pages/auth/ResetPassword";
 
-import KycPage from "../pages/kyc/KycPage";
+import KycPage from "../pages/kyc";
 
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
@@ -60,6 +60,7 @@ function AppRoutes() {
             element={
               <RoleRoute
                 allowedRoles={[
+                  ...ADMIN_ROLES,
                   ...SELLER_ROLES,
                   ...PARTNER_ROLES,
                   ...REALTOR_ROLES,

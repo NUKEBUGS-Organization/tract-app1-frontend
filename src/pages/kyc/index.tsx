@@ -21,34 +21,11 @@ function getKycToken(response: any) {
 
   return (
     response?.data?.kyc_access_token ||
-    response?.data?.sdkToken ||
-    response?.data?.token ||
-    response?.data?.accessToken ||
-    response?.data?.sdk?.token ||
-    response?.sdkToken ||
-    response?.token ||
-    response?.accessToken ||
-    response?.sdk?.token ||
     null
   );
 }
 
-function getKycDataCenter(response: any): JumioDataCenter {
-  const dataCenter =
-    response?.data?.dc ||
-    response?.data?.dataCenter ||
-    response?.data?.datacenter ||
-    response?.dc ||
-    response?.dataCenter ||
-    response?.datacenter ||
-    import.meta.env.VITE_JUMIO_DATA_CENTER ||
-    "us";
-
-  const normalizedDataCenter = String(dataCenter).toLowerCase();
-
-  if (normalizedDataCenter === "eu") return "eu";
-  if (normalizedDataCenter === "sgp") return "sgp";
-
+function getKycDataCenter(): JumioDataCenter {
   return "us";
 }
 
@@ -66,7 +43,7 @@ export default function KycPage() {
       const response = await initiateKyc().unwrap();
 
       const token = getKycToken(response);
-      const dc = getKycDataCenter(response);
+      const dc = getKycDataCenter();
 
       if (!token) {
         setApiError("KYC token was not returned by backend.");

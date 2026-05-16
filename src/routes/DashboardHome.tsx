@@ -1,9 +1,9 @@
 import { Navigate } from "react-router";
 
-import SellerDashboard from "../pages/seller/SellerDashboard";
-import PartnerDashboard from "../pages/partner/PartnerDashboard";
-import RealtorDashboard from "../pages/realtor/RealtorDashboard";
-import AdminDashboard from "../pages/admin/AdminDashboard";
+import SellerDashboard from "../pages/seller";
+import PartnerDashboard from "../pages/partner";
+import RealtorDashboard from "../pages/realtor";
+import AdminDashboard from "../pages/admin";
 
 import { useAuthContext } from "../contexts/AuthContext";
 import { tokenStorage } from "../redux/auth/tokenStorage";
