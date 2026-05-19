@@ -1,23 +1,10 @@
 export function normalizeAuthResponse(response: any) {
-  const data = response?.data ?? response;
+  const data = response?.data;
 
   return {
     user: data?.user ?? null,
-
-    accessToken:
-      data?.access_token ??
-      data?.accessToken ??
-      data?.token ??
-      null,
-
-    refreshToken:
-      data?.refresh_token ??
-      data?.refreshToken ??
-      null,
-
-    resetToken:
-      data?.reset_token ??
-      data?.resetToken ??
-      null,
+    accessToken: data?.access_token ?? null,
+    refreshToken: data?.refresh_token ?? null,
+    resetToken: data?.reset_token ?? null,
   };
 }

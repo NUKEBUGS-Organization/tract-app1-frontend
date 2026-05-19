@@ -17,6 +17,7 @@ import {
 
 const sellerNav = [
   { label: "Dashboard", path: "/dashboard" },
+  { label: "KYC Verification", path: "/kyc" },
   { label: "List Property", path: "/list-property" },
   { label: "Document Vault", path: "/document-vault" },
   { label: "View Bids", path: "/bids" },
@@ -25,6 +26,7 @@ const sellerNav = [
 
 const partnerNav = [
   { label: "Dashboard", path: "/dashboard" },
+  { label: "KYC Verification", path: "/kyc" },
   { label: "Property Stream", path: "/properties" },
   { label: "Active Deals", path: "/deals" },
   { label: "Score", path: "/score" },
@@ -32,6 +34,7 @@ const partnerNav = [
 
 const realtorNav = [
   { label: "Dashboard", path: "/dashboard" },
+  { label: "KYC Verification", path: "/kyc" },
   { label: "Profile Setup", path: "/profile" },
   { label: "Properties", path: "/properties" },
   { label: "Deals", path: "/deals" },
