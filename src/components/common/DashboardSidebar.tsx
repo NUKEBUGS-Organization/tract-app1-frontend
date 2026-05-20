@@ -57,14 +57,24 @@ export default function DashboardSidebar({
 
   return (
     <>
-      <div className="border-b border-white/10 px-8 py-8">
-        <h1 className="font-serif text-4xl font-black tracking-wide text-[var(--color-secondary)]">
-          TRACT
-        </h1>
+      <div className="border-b border-white/10 px-6 py-6 flex items-center gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--color-secondary)]/30 bg-white/90 shadow-[var(--shadow-card)]">
+          <img
+            src="/tract-logo.png"
+            alt="TRACT logo"
+            className="h-9 w-9 object-contain"
+          />
+        </div>
 
-        <p className="mt-1 text-[10px] uppercase tracking-[0.35em] text-white/35">
-          Luxury Real Estate
-        </p>
+        <div>
+          <div className="text-2xl font-extrabold tracking-tight text-white">
+            TRACT
+          </div>
+
+          <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
+            Luxury Real Estate
+          </p>
+        </div>
       </div>
 
       <nav className="flex-1 space-y-1 px-5 py-6">
@@ -81,18 +91,16 @@ export default function DashboardSidebar({
               key={item.path}
               to={item.path}
               onClick={onNavigate}
-              className={`group flex items-center gap-4 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${
-                active
-                  ? "bg-[var(--color-primary)] text-[var(--color-secondary)] shadow-lg"
-                  : "text-white/40 hover:bg-white/10 hover:text-white"
-              }`}
+              className={`group flex items-center gap-4 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${active
+                ? "bg-[var(--color-primary)] text-[var(--color-secondary)] shadow-lg"
+                : "text-white/40 hover:bg-white/10 hover:text-white"
+                }`}
             >
               <Icon
-                className={`h-5 w-5 ${
-                  active
-                    ? "text-[var(--color-secondary)]"
-                    : "text-white/30 group-hover:text-white"
-                }`}
+                className={`h-5 w-5 ${active
+                  ? "text-[var(--color-secondary)]"
+                  : "text-white/30 group-hover:text-white"
+                  }`}
               />
 
               <span>{item.label}</span>

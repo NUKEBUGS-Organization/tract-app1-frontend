@@ -5,6 +5,7 @@ import { Bell, Menu, Plus, Search, X } from "lucide-react";
 
 import { useAuthContext } from "../contexts/AuthContext";
 import DashboardSidebar from "../components/common/DashboardSidebar";
+import { useGetMeQuery } from "../services/userService";
 
 interface NavItem {
   label: string;
@@ -84,11 +85,12 @@ function DashboardLayout({
   children,
 }: DashboardLayoutProps) {
   const { user } = useAuthContext();
+  const { data: profile } = useGetMeQuery(undefined, { skip: !user });
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isDark = mode === "dark";
-  const displayName = getUserName(user);
+  const displayName = getUserName(profile?.data || profile || user);
   const initials = getInitials(displayName) || "A";
   const primaryAction = getPrimaryAction(title);
 
@@ -134,7 +136,7 @@ function DashboardLayout({
                 : "border-[var(--color-border-light)] bg-[var(--color-bg-main)]/90"
             }`}
           >
-            <div className="flex min-w-0 flex-1 items-center gap-4 lg:gap-6">
+            <div className="flex min-w-0 items-center gap-4 lg:gap-6">
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
@@ -152,23 +154,23 @@ function DashboardLayout({
                 )}
               </button>
 
-              <div
-                className={`hidden h-11 w-full max-w-[280px] items-center gap-3 rounded-none px-4 xl:flex ${
-                  isDark ? "bg-white/10" : "bg-white/70"
-                }`}
-              >
-                <Search className="h-4 w-4 text-[var(--color-text-muted)]" />
+              {/* Show the TRACT logo on small screens (when sidebar is closed) */}
+              {!isMobileMenuOpen && (
+                <div className="flex items-center gap-2 lg:hidden shrink-0">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--color-secondary)]/30 bg-white/90 shadow-sm">
+                    <img
+                      src="/tract-logo.png"
+                      alt="TRACT logo"
+                      className="h-6 w-6 object-contain"
+                    />
+                  </div>
+                  <span className={`text-base font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[var(--color-primary)]'}`}>
+                    TRACT
+                  </span>
+                </div>
+              )}
 
-                <input
-                  type="text"
-                  placeholder="Search properties..."
-                  className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${
-                    isDark ? "text-white" : "text-[var(--color-text-main)]"
-                  }`}
-                />
-              </div>
-
-              <div className="min-w-0">
+              <div className="hidden min-w-0 lg:block">
                 <p
                   className={`text-[10px] font-semibold uppercase tracking-[0.25em] sm:text-xs ${
                     isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
@@ -187,7 +189,27 @@ function DashboardLayout({
               </div>
             </div>
 
-            <div className="flex items-center gap-3 lg:gap-4">
+            {/* Spacer to push search and profile to the far right */}
+            <div className="flex-grow" />
+
+            <div className="flex items-center gap-4 lg:gap-6 shrink-0">
+              {/* Search Bar - Desktop/Laptop */}
+              <div
+                className={`hidden h-11 w-full max-w-[240px] items-center gap-3 rounded-none px-4 xl:flex ${
+                  isDark ? "bg-white/10" : "bg-white/70"
+                }`}
+              >
+                <Search className="h-4 w-4 text-[var(--color-text-muted)]" />
+
+                <input
+                  type="text"
+                  placeholder="Search properties..."
+                  className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${
+                    isDark ? "text-white" : "text-[var(--color-text-main)]"
+                  }`}
+                />
+              </div>
+
               <Link
                 to={primaryAction.path}
                 className="hidden items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-[var(--shadow-premium)] transition hover:scale-[1.02] md:flex"

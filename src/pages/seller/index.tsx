@@ -5,14 +5,17 @@ import {
   Bell,
   Building2,
   CheckCircle2,
+  Circle,
   Clock,
   FileText,
   Gavel,
   Handshake,
   Home,
+  Lock,
   Plus,
   ShieldCheck,
   TrendingUp,
+  UserCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -99,11 +102,53 @@ const activities = [
   },
 ];
 
-const pipeline = [
-  { label: "Listed", count: 2, active: true },
-  { label: "Bids In", count: 7, active: true },
-  { label: "Under Contract", count: 1, active: true },
-  { label: "Closing", count: 0, active: false },
+// Seller journey checklist — maps to project scope steps
+const JOURNEY_STEPS = [
+  {
+    id: "kyc",
+    icon: UserCheck,
+    label: "Identity Verified",
+    desc: "2FA, KYC & Plaid/Jumio biometric check complete",
+    done: true,
+    link: "/kyc",
+    linkLabel: "View",
+  },
+  {
+    id: "listing",
+    icon: Home,
+    label: "Property Listed",
+    desc: "Full Disclosure Suite submitted — listing is Live in Network",
+    done: true,
+    link: "/list-property",
+    linkLabel: "Edit",
+  },
+  {
+    id: "docs",
+    icon: FileText,
+    label: "Document Vault Complete",
+    desc: "Survey, Tax Bill & Mortgage Statement uploaded",
+    done: false,
+    link: "/document-vault",
+    linkLabel: "Upload",
+  },
+  {
+    id: "bids",
+    icon: Gavel,
+    label: "Partner Selected",
+    desc: "Choose your primary partner + up to 2 backup buyers",
+    done: false,
+    link: "/bids",
+    linkLabel: "View Bids",
+  },
+  {
+    id: "contract",
+    icon: Lock,
+    label: "Contract Signed",
+    desc: "In-app contract signed — chat unlocks & deal tracker activates",
+    done: false,
+    link: "/deal-tracker",
+    linkLabel: "Track",
+  },
 ];
 
 interface StatCardProps {
@@ -196,39 +241,96 @@ export default function SellerDashboard() {
         ))}
       </section>
 
-      {/* Pipeline Funnel */}
+      {/* Seller Journey Checklist */}
       <section className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
-        <h2 className="mb-6 font-serif text-xl font-black text-[var(--color-primary)]">
-          Deal Pipeline
-        </h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {pipeline.map((stage, i) => (
-            <div key={stage.label} className="relative">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">Your Seller Journey</h2>
+            <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+              {JOURNEY_STEPS.filter(s => s.done).length} of {JOURNEY_STEPS.length} steps complete
+            </p>
+          </div>
+          {/* Mini progress bar */}
+          <div className="hidden w-36 sm:block">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-border-light)]">
               <div
-                className={`rounded-xl p-5 text-center transition ${
-                  stage.active
-                    ? "bg-[var(--color-primary)] text-white"
-                    : "bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
-                }`}
-              >
-                <div
-                  className={`font-serif text-3xl font-black ${stage.active ? "text-[var(--color-secondary)]" : "text-[var(--color-text-muted)]/40"}`}
-                >
-                  {stage.count}
-                </div>
-                <p
-                  className={`mt-1 text-[10px] font-black uppercase tracking-wider ${stage.active ? "text-white/70" : "text-[var(--color-text-muted)]/60"}`}
-                >
-                  {stage.label}
-                </p>
-              </div>
-              {i < pipeline.length - 1 && (
-                <div className="absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 translate-x-1/2 sm:block">
-                  <ArrowUpRight className="h-4 w-4 rotate-45 text-[var(--color-text-muted)]/40" />
-                </div>
-              )}
+                className="h-full rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] transition-all duration-700"
+                style={{ width: `${(JOURNEY_STEPS.filter(s => s.done).length / JOURNEY_STEPS.length) * 100}%` }}
+              />
             </div>
-          ))}
+            <p className="mt-1 text-right text-[10px] font-bold text-[var(--color-text-muted)]">
+              {Math.round((JOURNEY_STEPS.filter(s => s.done).length / JOURNEY_STEPS.length) * 100)}% done
+            </p>
+          </div>
+        </div>
+
+        <div className="relative space-y-0">
+          {/* Vertical connector line */}
+          <div className="absolute left-[19px] top-5 h-[calc(100%-40px)] w-0.5 bg-[var(--color-border-light)]" />
+
+          {JOURNEY_STEPS.map((step, i) => {
+            const Icon = step.icon;
+            const isNext = !step.done && JOURNEY_STEPS.slice(0, i).every(s => s.done);
+            return (
+              <div key={step.id} className={`group relative flex items-start gap-4 py-4 ${
+                i < JOURNEY_STEPS.length - 1 ? "border-b border-[var(--color-border-light)]" : ""
+              }`}>
+                {/* Step icon circle */}
+                <div className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+                  step.done
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
+                    : isNext
+                      ? "border-[var(--color-secondary)] bg-white shadow-[0_0_0_4px_rgba(212,175,55,0.12)]"
+                      : "border-[var(--color-border-light)] bg-white"
+                }`}>
+                  {step.done ? (
+                    <CheckCircle2 className="h-5 w-5 text-white" />
+                  ) : isNext ? (
+                    <Icon className="h-4 w-4 text-[var(--color-secondary)]" />
+                  ) : (
+                    <Circle className="h-4 w-4 text-[var(--color-border-light)]" />
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className={`text-sm font-black ${
+                      step.done ? "text-[var(--color-primary)]" :
+                      isNext ? "text-[var(--color-text-main)]" : "text-[var(--color-text-muted)]"
+                    }`}>
+                      {step.label}
+                      {step.done && (
+                        <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-primary)]/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[var(--color-primary)]">
+                          ✓ Done
+                        </span>
+                      )}
+                      {isNext && (
+                        <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-secondary)]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#7a5d00]">
+                          ← Next
+                        </span>
+                      )}
+                    </p>
+                    <p className={`mt-0.5 text-xs ${
+                      step.done || isNext ? "text-[var(--color-text-muted)]" : "text-[var(--color-text-muted)]/50"
+                    }`}>{step.desc}</p>
+                  </div>
+                  {(step.done || isNext) && (
+                    <Link
+                      to={step.link}
+                      className={`shrink-0 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                        step.done
+                          ? "text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                          : "text-[var(--color-secondary)] hover:underline"
+                      }`}
+                    >
+                      {step.linkLabel} →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
