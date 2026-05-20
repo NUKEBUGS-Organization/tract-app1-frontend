@@ -17,6 +17,12 @@ import KycPage from "../pages/kyc";
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
 
+// Seller pages
+import ListPropertyPage from "../pages/seller/ListPropertyPage";
+import DocumentVaultPage from "../pages/seller/DocumentVaultPage";
+import ViewBidsPage from "../pages/seller/ViewBidsPage";
+import DealTrackerPage from "../pages/seller/DealTrackerPage";
+
 import {
   ADMIN_ROLES,
   ALL_APP_ROLES,
@@ -76,10 +82,7 @@ function AppRoutes() {
             path="/list-property"
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
-                <PlaceholderPage
-                  title="List Property"
-                  description="Seller can list and manage property submissions here."
-                />
+                <ListPropertyPage />
               </RoleRoute>
             }
           />
@@ -88,10 +91,7 @@ function AppRoutes() {
             path="/document-vault"
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
-                <PlaceholderPage
-                  title="Document Vault"
-                  description="Seller document upload and verification area."
-                />
+                <DocumentVaultPage />
               </RoleRoute>
             }
           />
@@ -100,10 +100,7 @@ function AppRoutes() {
             path="/bids"
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
-                <PlaceholderPage
-                  title="View Bids"
-                  description="Seller can view incoming bids here."
-                />
+                <ViewBidsPage />
               </RoleRoute>
             }
           />
@@ -112,10 +109,7 @@ function AppRoutes() {
             path="/deal-tracker"
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
-                <PlaceholderPage
-                  title="Deal Tracker"
-                  description="Seller deal progress and status tracking."
-                />
+                <DealTrackerPage />
               </RoleRoute>
             }
           />
