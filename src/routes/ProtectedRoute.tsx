@@ -1,19 +1,20 @@
 import { Navigate, Outlet } from "react-router";
+
 import { useAuthContext } from "../contexts/AuthContext";
 import { tokenStorage } from "../redux/auth/tokenStorage";
-import { isTokenExpired } from "../redux/auth/jwtUtils";
 
 function ProtectedRoute() {
-  const { isAuthenticated, accessToken } = useAuthContext();
+  const { accessToken, refreshToken } = useAuthContext();
 
   const storedAccessToken = tokenStorage.getAccessToken();
+  const storedRefreshToken = tokenStorage.getRefreshToken();
+
   const activeAccessToken = accessToken || storedAccessToken;
+  const activeRefreshToken = refreshToken || storedRefreshToken;
 
-  const isLoggedIn = Boolean(
-    isAuthenticated || activeAccessToken
-  );
+  const hasSession = Boolean(activeAccessToken || activeRefreshToken);
 
-  if (!isLoggedIn || !activeAccessToken || isTokenExpired(activeAccessToken)) {
+  if (!hasSession) {
     return <Navigate to="/auth/signin" replace />;
   }
 

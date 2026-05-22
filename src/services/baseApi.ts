@@ -41,7 +41,8 @@ function isAuthPublicApi(url: string) {
     url.includes("auth/register") ||
     url.includes("auth/send-otp") ||
     url.includes("auth/verify-otp") ||
-    url.includes("auth/reset-password")
+    url.includes("auth/reset-password") ||
+    url.includes("auth/refresh")
   );
 }
 
@@ -54,62 +55,50 @@ function forceLogout(api: any) {
   }
 }
 
-const baseQueryWithReAuth: BaseQueryFn<
-  string | FetchArgs,
-  unknown,
-  FetchBaseQueryError
-> = async (args, api, extraOptions) => {
-  const requestUrl = getUrl(args);
+let refreshPromise: Promise<boolean> | null = null;
 
-  let result = await rawBaseQuery(args, api, extraOptions);
+function refreshAuthSession(api: any, extraOptions: any) {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const refreshToken =
+        (api.getState() as RootState).auth.refreshToken ??
+        tokenStorage.getRefreshToken();
 
-  const status = result.error?.status;
-  const hasAccessToken = Boolean(
-    (api.getState() as RootState).auth.accessToken ||
-      tokenStorage.getAccessToken()
-  );
+      if (!refreshToken) {
+        forceLogout(api);
+        return false;
+      }
 
-  if (status === 400 && hasAccessToken && !isAuthPublicApi(requestUrl)) {
-    forceLogout(api);
-    return result;
-  }
-
-  if (status === 401) {
-    const refreshToken =
-      (api.getState() as RootState).auth.refreshToken ??
-      tokenStorage.getRefreshToken();
-
-    if (!refreshToken) {
-      forceLogout(api);
-      return result;
-    }
-
-    const refreshResult = await rawBaseQuery(
-      {
-        url: "auth/refresh",
-        method: "POST",
-        body: {
-          refresh_token: refreshToken,
+      const refreshResult = await rawBaseQuery(
+        {
+          url: "auth/refresh",
+          method: "POST",
+          body: {
+            refresh_token: refreshToken,
+          },
         },
-      },
-      api,
-      extraOptions
-    );
+        api,
+        extraOptions
+      );
 
-    if (
-      refreshResult.error?.status === 400 ||
-      refreshResult.error?.status === 401
-    ) {
-      forceLogout(api);
-      return result;
-    }
+      if (
+        refreshResult.error?.status === 400 ||
+        refreshResult.error?.status === 401
+      ) {
+        forceLogout(api);
+        return false;
+      }
 
-    if (refreshResult.data) {
+      if (!refreshResult.data) {
+        forceLogout(api);
+        return false;
+      }
+
       const authData = normalizeAuthResponse(refreshResult.data);
 
       if (!authData.accessToken) {
         forceLogout(api);
-        return result;
+        return false;
       }
 
       api.dispatch(
@@ -120,9 +109,41 @@ const baseQueryWithReAuth: BaseQueryFn<
         })
       );
 
+      return true;
+    })().finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
+}
+
+const baseQueryWithReAuth: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
+  const requestUrl = getUrl(args);
+
+  let result = await rawBaseQuery(args, api, extraOptions);
+
+  const status = result.error?.status;
+
+  const hasAccessToken = Boolean(
+    (api.getState() as RootState).auth.accessToken ||
+      tokenStorage.getAccessToken()
+  );
+
+  if (status === 400 && hasAccessToken && !isAuthPublicApi(requestUrl)) {
+    forceLogout(api);
+    return result;
+  }
+
+  if (status === 401 && !isAuthPublicApi(requestUrl)) {
+    const refreshed = await refreshAuthSession(api, extraOptions);
+
+    if (refreshed) {
       result = await rawBaseQuery(args, api, extraOptions);
-    } else {
-      forceLogout(api);
     }
   }
 
