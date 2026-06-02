@@ -24,15 +24,6 @@ const rawBaseQuery = fetchBaseQuery({
       headers.set("authorization", `Bearer ${accessToken}`);
     }
 
-    /*
-      Do not manually set content-type here.
-
-      Reason:
-      - JSON APIs will still work because fetchBaseQuery handles JSON bodies.
-      - Multipart/form-data uploads need the browser to set boundary automatically.
-      - If we force application/json globally, file upload breaks.
-    */
-
     return headers;
   },
 });
