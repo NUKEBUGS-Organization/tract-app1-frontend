@@ -1,6 +1,11 @@
+import { Link } from "react-router";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 
-export default function SuccessState() {
+interface SuccessStateProps {
+  listingId: string;
+}
+
+export default function SuccessState({ listingId }: SuccessStateProps) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center">
       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--color-primary)]">
@@ -14,8 +19,8 @@ export default function SuccessState() {
 
         <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--color-text-muted)]">
           Your property listing draft was created and property pictures were
-          uploaded successfully. Upload survey and tax bill later to submit it
-          for auto-live review.
+          uploaded successfully. Upload survey and tax bill to submit it for
+          review.
         </p>
       </div>
 
@@ -27,12 +32,12 @@ export default function SuccessState() {
         </span>
       </div>
 
-      <a
-        href="/document-vault"
+      <Link
+        to={`/document-vault?listingId=${listingId}`}
         className="bg-[var(--color-primary)] px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white transition hover:scale-[1.02]"
       >
         Upload Required Documents →
-      </a>
+      </Link>
     </div>
   );
 }

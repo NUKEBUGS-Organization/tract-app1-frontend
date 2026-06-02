@@ -126,8 +126,8 @@ export default function ListPropertyPage() {
     }
   };
 
-  if (submitted) {
-    return <SuccessState />;
+  if (submitted && createdListingId) {
+    return <SuccessState listingId={createdListingId} />;
   }
 
   if (createdListingId) {
@@ -199,13 +199,12 @@ export default function ListPropertyPage() {
           {STEPS.map((currentStep) => (
             <div
               key={currentStep.id}
-              className={`h-1.5 rounded-full transition-all ${
-                currentStep.id === step
+              className={`h-1.5 rounded-full transition-all ${currentStep.id === step
                   ? "w-8 bg-[var(--color-primary)]"
                   : currentStep.id < step
                     ? "w-4 bg-[var(--color-primary)]/40"
                     : "w-4 bg-[var(--color-border-light)]"
-              }`}
+                }`}
             />
           ))}
         </div>
