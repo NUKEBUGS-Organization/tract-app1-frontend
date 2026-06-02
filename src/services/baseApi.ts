@@ -24,7 +24,14 @@ const rawBaseQuery = fetchBaseQuery({
       headers.set("authorization", `Bearer ${accessToken}`);
     }
 
-    headers.set("content-type", "application/json");
+    /*
+      Do not manually set content-type here.
+
+      Reason:
+      - JSON APIs will still work because fetchBaseQuery handles JSON bodies.
+      - Multipart/form-data uploads need the browser to set boundary automatically.
+      - If we force application/json globally, file upload breaks.
+    */
 
     return headers;
   },
@@ -129,16 +136,12 @@ const baseQueryWithReAuth: BaseQueryFn<
 
   const status = result.error?.status;
 
-  const hasAccessToken = Boolean(
-    (api.getState() as RootState).auth.accessToken ||
-      tokenStorage.getAccessToken()
-  );
+  /*
+    Only refresh on 401 for protected APIs.
 
-  if (status === 400 && hasAccessToken && !isAuthPublicApi(requestUrl)) {
-    forceLogout(api);
-    return result;
-  }
-
+    Do not force logout on normal protected 400 errors because listing validation
+    can return 400 and user should see validation message instead of logout.
+  */
   if (status === 401 && !isAuthPublicApi(requestUrl)) {
     const refreshed = await refreshAuthSession(api, extraOptions);
 
