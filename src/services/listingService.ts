@@ -8,6 +8,7 @@ export const listingService = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
+      invalidatesTags: ["Property"],
     }),
 
     getListings: builder.query<any, any>({
@@ -16,6 +17,7 @@ export const listingService = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
+      providesTags: ["Property"],
     }),
 
     getListingsDashboard: builder.query<any, void>({
@@ -23,6 +25,7 @@ export const listingService = baseApi.injectEndpoints({
         url: "listings/dashboard",
         method: "GET",
       }),
+      providesTags: ["Property"],
     }),
 
     getListingById: builder.query<any, string>({
@@ -30,6 +33,7 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${id}`,
         method: "GET",
       }),
+      providesTags: ["Property"],
     }),
 
     updateListing: builder.mutation<any, { id: string; body: any }>({
@@ -38,6 +42,7 @@ export const listingService = baseApi.injectEndpoints({
         method: "PATCH",
         body,
       }),
+      invalidatesTags: ["Property"],
     }),
 
     deleteListing: builder.mutation<any, string>({
@@ -45,6 +50,7 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${id}`,
         method: "DELETE",
       }),
+      invalidatesTags: ["Property"],
     }),
 
     submitListing: builder.mutation<any, string>({
@@ -52,6 +58,7 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${id}/submit`,
         method: "POST",
       }),
+      invalidatesTags: ["Property"],
     }),
 
     uploadListingDocuments: builder.mutation<
@@ -79,6 +86,7 @@ export const listingService = baseApi.injectEndpoints({
           body: formData,
         };
       },
+      invalidatesTags: ["Property"],
     }),
 
     getListingDocuments: builder.query<any, string>({
@@ -86,6 +94,7 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${listingId}/documents`,
         method: "GET",
       }),
+      providesTags: ["Property"],
     }),
   }),
 });

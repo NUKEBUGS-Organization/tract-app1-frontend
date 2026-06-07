@@ -22,6 +22,8 @@ import ListPropertyPage from "../pages/seller/ListPropertyPage";
 import DocumentVaultPage from "../pages/seller/DocumentVaultPage";
 import ViewBidsPage from "../pages/seller/ViewBidsPage";
 import DealTrackerPage from "../pages/seller/DealTrackerPage";
+import ListingDetailsPage from "../pages/seller/ListingDetailsPage";
+import EditListingPage from "../pages/seller/EditListingPage";
 
 import {
   ADMIN_ROLES,
@@ -86,6 +88,23 @@ function AppRoutes() {
               </RoleRoute>
             }
           />
+          <Route
+            path="/listings/:id"
+            element={
+              <RoleRoute allowedRoles={SELLER_ROLES}>
+                <ListingDetailsPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/listings/:id/edit"
+            element={
+              <RoleRoute allowedRoles={SELLER_ROLES}>
+                <EditListingPage />
+              </RoleRoute>
+            }
+          />
 
           <Route
             path="/document-vault"
@@ -113,6 +132,7 @@ function AppRoutes() {
               </RoleRoute>
             }
           />
+
 
           {/* Partner/Realtor/Admin shared routes */}
           <Route

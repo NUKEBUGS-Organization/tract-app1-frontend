@@ -1,3 +1,5 @@
+//src\components\common\StatusBadge.tsx
+
 type StatusBadgeVariant =
   | "success"
   | "warning"

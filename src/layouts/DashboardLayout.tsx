@@ -1,11 +1,17 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Link, Outlet } from "react-router";
+import {
+  Link,
+  Outlet,
+  useLocation,
+  useSearchParams,
+} from "react-router";
 import { Bell, Menu, Plus, Search, X } from "lucide-react";
 
 import { useAuthContext } from "../contexts/AuthContext";
 import DashboardSidebar from "../components/common/DashboardSidebar";
 import { useGetMeQuery } from "../services/userService";
+import { useGetListingsDashboardQuery } from "../services/listingService";
 
 interface NavItem {
   label: string;
@@ -78,6 +84,85 @@ function getPrimaryAction(title: string) {
   };
 }
 
+function getApiPayload(response: any) {
+  return response?.data?.data ?? response?.data ?? response;
+}
+
+function getListingsFromResponse(response: any) {
+  const payload = getApiPayload(response);
+
+  if (Array.isArray(payload?.listings)) {
+    return payload.listings;
+  }
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return [];
+}
+
+function getListingLabel(listing: any) {
+  const address = listing?.address || "Untitled Listing";
+  const state = listing?.state_code ? `, ${listing.state_code}` : "";
+  const zip = listing?.zip_code ? ` ${listing.zip_code}` : "";
+
+  return `${address}${state}${zip}`;
+}
+
+function formatMoney(value: any) {
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return "-";
+  }
+
+  return numberValue.toLocaleString(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatStatus(status?: string) {
+  if (!status) return "Draft";
+
+  return status
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getListingSearchText(listing: any) {
+  return [
+    listing?.address,
+    listing?.state_code,
+    listing?.zip_code,
+    listing?.property_type,
+    listing?.status,
+    listing?.zoning,
+    listing?.market_price,
+    listing?.condition_report?.overall,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function filterListings(listings: any[], searchValue: string) {
+  const normalizedSearch = searchValue.trim().toLowerCase();
+
+  if (!normalizedSearch) {
+    return [];
+  }
+
+  return listings
+    .filter((listing) =>
+      getListingSearchText(listing).includes(normalizedSearch)
+    )
+    .slice(0, 6);
+}
+
 function DashboardLayout({
   title,
   navItems,
@@ -87,12 +172,56 @@ function DashboardLayout({
   const { user } = useAuthContext();
   const { data: profile } = useGetMeQuery(undefined, { skip: !user });
 
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const isDark = mode === "dark";
   const displayName = getUserName(profile?.data || profile || user);
   const initials = getInitials(displayName) || "A";
   const primaryAction = getPrimaryAction(title);
+
+  const searchValue = searchParams.get("search") || "";
+
+  const isSellerPortal = title.toLowerCase().includes("seller");
+  const isDashboardPage = location.pathname === "/dashboard";
+
+  const showPropertySearch = isSellerPortal && isDashboardPage;
+
+  const { data: dashboardData, isFetching: isFetchingListings } =
+    useGetListingsDashboardQuery(undefined, {
+      skip: !showPropertySearch,
+    });
+
+  const listings = getListingsFromResponse(dashboardData);
+  const searchResults = filterListings(listings, searchValue);
+
+  const shouldShowDropdown =
+    showPropertySearch && isSearchFocused && searchValue.trim().length > 0;
+
+  const handleSearchChange = (value: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+
+    if (value.trim()) {
+      nextParams.set("search", value);
+    } else {
+      nextParams.delete("search");
+    }
+
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const handleClearSearch = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("search");
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const closeSearchDropdown = () => {
+    setIsSearchFocused(false);
+  };
 
   return (
     <div
@@ -103,12 +232,10 @@ function DashboardLayout({
       }
     >
       <div className="flex min-h-screen">
-        {/* Left Sidebar Navbar - Desktop */}
         <aside className="sticky top-0 hidden h-screen w-[270px] shrink-0 flex-col bg-[var(--color-primary-dark)] text-white shadow-2xl lg:flex">
           <DashboardSidebar navItems={navItems} />
         </aside>
 
-        {/* Mobile Sidebar Navbar */}
         {isMobileMenuOpen && (
           <div className="fixed inset-0 z-40 lg:hidden">
             <button
@@ -128,7 +255,6 @@ function DashboardLayout({
         )}
 
         <div className="min-w-0 flex-1">
-          {/* Top Navbar */}
           <nav
             className={`sticky top-0 z-30 flex h-[86px] items-center justify-between border-b px-5 backdrop-blur-xl lg:px-10 ${
               isDark
@@ -154,9 +280,8 @@ function DashboardLayout({
                 )}
               </button>
 
-              {/* Show the TRACT logo on small screens (when sidebar is closed) */}
               {!isMobileMenuOpen && (
-                <div className="flex items-center gap-2 lg:hidden shrink-0">
+                <div className="flex shrink-0 items-center gap-2 lg:hidden">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--color-secondary)]/30 bg-white/90 shadow-sm">
                     <img
                       src="/tract-logo.png"
@@ -164,7 +289,12 @@ function DashboardLayout({
                       className="h-6 w-6 object-contain"
                     />
                   </div>
-                  <span className={`text-base font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-[var(--color-primary)]'}`}>
+
+                  <span
+                    className={`text-base font-extrabold tracking-tight ${
+                      isDark ? "text-white" : "text-[var(--color-primary)]"
+                    }`}
+                  >
                     TRACT
                   </span>
                 </div>
@@ -189,26 +319,121 @@ function DashboardLayout({
               </div>
             </div>
 
-            {/* Spacer to push search and profile to the far right */}
             <div className="flex-grow" />
 
-            <div className="flex items-center gap-4 lg:gap-6 shrink-0">
-              {/* Search Bar - Desktop/Laptop */}
-              <div
-                className={`hidden h-11 w-full max-w-[240px] items-center gap-3 rounded-none px-4 xl:flex ${
-                  isDark ? "bg-white/10" : "bg-white/70"
-                }`}
-              >
-                <Search className="h-4 w-4 text-[var(--color-text-muted)]" />
+            <div className="flex shrink-0 items-center gap-4 lg:gap-6">
+              {showPropertySearch && (
+                <div className="relative hidden w-[280px] md:block xl:w-[320px]">
+                  <div
+                    className={`flex h-11 items-center gap-3 rounded-none px-4 ${
+                      isDark ? "bg-white/10" : "bg-white/70"
+                    }`}
+                  >
+                    <Search className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
 
-                <input
-                  type="text"
-                  placeholder="Search properties..."
-                  className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${
-                    isDark ? "text-white" : "text-[var(--color-text-main)]"
-                  }`}
-                />
-              </div>
+                    <input
+                      type="text"
+                      value={searchValue}
+                      onChange={(event) =>
+                        handleSearchChange(event.target.value)
+                      }
+                      onFocus={() => setIsSearchFocused(true)}
+                      onBlur={() => {
+                        window.setTimeout(() => {
+                          setIsSearchFocused(false);
+                        }, 150);
+                      }}
+                      placeholder="Search properties..."
+                      aria-label="Search properties"
+                      className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${
+                        isDark
+                          ? "text-white"
+                          : "text-[var(--color-text-main)]"
+                      }`}
+                    />
+
+                    {searchValue && (
+                      <button
+                        type="button"
+                        onClick={handleClearSearch}
+                        className="shrink-0 rounded-full p-1 text-[var(--color-text-muted)] transition hover:bg-black/5 hover:text-[var(--color-primary)]"
+                        aria-label="Clear search"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {shouldShowDropdown && (
+                    <div className="absolute left-0 top-[52px] z-50 w-full overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-2xl">
+                      <div className="border-b border-[var(--color-border-light)] px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                          Matching Listings
+                        </p>
+                      </div>
+
+                      {isFetchingListings ? (
+                        <div className="px-4 py-5 text-center text-xs font-semibold text-[var(--color-text-muted)]">
+                          Searching listings...
+                        </div>
+                      ) : searchResults.length === 0 ? (
+                        <div className="px-4 py-5 text-center">
+                          <p className="text-sm font-bold text-[var(--color-text-main)]">
+                            No matching listing found.
+                          </p>
+
+                          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                            Try address, state, ZIP code, property type, or
+                            status.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="max-h-[360px] overflow-y-auto py-2">
+                          {searchResults.map((listing: any) => {
+                            const id = String(listing?._id || "");
+                            const title = getListingLabel(listing);
+
+                            return (
+                              <Link
+                                key={id}
+                                to={`/listings/${id}`}
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={closeSearchDropdown}
+                                className="block px-4 py-3 transition hover:bg-[var(--color-bg-soft)]"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-black text-[var(--color-primary)]">
+                                      {title}
+                                    </p>
+
+                                    <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">
+                                      {listing?.property_type || "Property"} ·{" "}
+                                      {formatMoney(listing?.market_price)}
+                                    </p>
+                                  </div>
+
+                                  <span className="shrink-0 rounded-full border border-[var(--color-border-light)] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">
+                                    {formatStatus(listing?.status)}
+                                  </span>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {searchResults.length > 0 && (
+                        <div className="border-t border-[var(--color-border-light)] px-4 py-3">
+                          <p className="text-[10px] font-semibold text-[var(--color-text-muted)]">
+                            Click a listing to open its details page.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <Link
                 to={primaryAction.path}
