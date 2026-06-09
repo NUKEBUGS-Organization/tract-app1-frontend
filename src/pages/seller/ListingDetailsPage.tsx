@@ -9,6 +9,7 @@ import {
   FileText,
   Gavel,
   Home,
+  ImageIcon,
   Loader2,
   RefreshCw,
   Trash2,
@@ -21,13 +22,20 @@ import {
   useGetListingByIdQuery,
 } from "../../services/listingService";
 
+type StatusBadgeVariant =
+  | "success"
+  | "warning"
+  | "danger"
+  | "gold"
+  | "neutral"
+  | "dark";
+
 function getApiPayload(response: any) {
   return response?.data?.data ?? response?.data ?? response;
 }
 
 function getListingFromResponse(response: any) {
   const payload = getApiPayload(response);
-
   return payload?.listing ?? payload;
 }
 
@@ -41,7 +49,39 @@ function getErrorMessage(error: any, fallback: string) {
   return message || fallback;
 }
 
+function isPlaceholderValue(value: any) {
+  if (value === undefined || value === null || value === "") {
+    return true;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+
+    return (
+      normalized === "" ||
+      normalized === "string" ||
+      normalized === "n/a" ||
+      normalized === "null" ||
+      normalized === "undefined"
+    );
+  }
+
+  return false;
+}
+
+function displayValue(value: any) {
+  if (isPlaceholderValue(value)) {
+    return "-";
+  }
+
+  return value;
+}
+
 function formatMoney(value: any) {
+  if (isPlaceholderValue(value)) {
+    return "-";
+  }
+
   const numberValue = Number(value);
 
   if (!Number.isFinite(numberValue)) {
@@ -78,7 +118,7 @@ function formatStatus(status?: string) {
     .join(" ");
 }
 
-function getStatusVariant(status?: string) {
+function getStatusVariant(status?: string): StatusBadgeVariant {
   const normalizedStatus = String(status || "draft").toLowerCase();
 
   if (normalizedStatus === "live") return "success";
@@ -91,6 +131,101 @@ function getStatusVariant(status?: string) {
   if (normalizedStatus === "deleted") return "danger";
 
   return "neutral";
+}
+
+function formatPropertyType(propertyType?: string) {
+  const normalized = String(propertyType || "").toLowerCase();
+
+  const propertyTypeLabels: Record<string, string> = {
+    sfh: "Single Family Home",
+    single_family: "Single Family Home",
+    single_family_home: "Single Family Home",
+    multi: "Multi-Family",
+    multi_family: "Multi-Family",
+    multifamily: "Multi-Family",
+    land: "Land",
+    commercial: "Commercial",
+    mixeduse: "Mixed Use",
+    mixed_use: "Mixed Use",
+  };
+
+  return propertyTypeLabels[normalized] || displayValue(propertyType);
+}
+
+function formatCondition(value?: string) {
+  if (isPlaceholderValue(value)) return "-";
+
+  return String(value)
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function normalizeImageUrl(rawUrl: any) {
+  if (!rawUrl) return "";
+
+  const url = String(rawUrl).trim();
+
+  if (!url) return "";
+
+  const apiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || "").replace(
+    /\/$/,
+    ""
+  );
+
+  const apiOrigin = apiBaseUrl.replace(/\/api\/v1$/, "");
+
+  /*
+    Important:
+    Do not replace %5C or backslashes here.
+    %5C may be part of the backend file key.
+    Frontend should only fix the missing /api/v1 prefix.
+  */
+
+  // Relative URL missing /v1:
+  // /api/listings/documents/view/...
+  if (url.startsWith("/api/listings/")) {
+    return `${apiOrigin}${url.replace(
+      "/api/listings/",
+      "/api/v1/listings/"
+    )}`;
+  }
+
+  // Relative URL already has /api/v1:
+  // /api/v1/listings/documents/view/...
+  if (url.startsWith("/api/v1/")) {
+    return `${apiOrigin}${url}`;
+  }
+
+  // Relative URL without leading slash and missing /v1:
+  // api/listings/documents/view/...
+  if (url.startsWith("api/listings/")) {
+    return `${apiOrigin}/${url.replace(
+      "api/listings/",
+      "api/v1/listings/"
+    )}`;
+  }
+
+  // Relative URL without leading slash but already has /api/v1:
+  // api/v1/listings/documents/view/...
+  if (url.startsWith("api/v1/")) {
+    return `${apiOrigin}/${url}`;
+  }
+
+  // Backend route only:
+  // listings/documents/view/...
+  if (url.startsWith("listings/")) {
+    return `${apiBaseUrl}/${url}`;
+  }
+
+  // Full URL but missing /v1:
+  // http://localhost:3000/api/listings/documents/view/...
+  if (url.includes("/api/listings/")) {
+    return url.replace("/api/listings/", "/api/v1/listings/");
+  }
+
+  // S3 signed URL, public URL, or already valid full URL
+  return url;
 }
 
 function getListingLabel(listing: any) {
@@ -118,6 +253,39 @@ function canWithdrawListing(listing: any) {
   const bidCount = getBidCount(listing);
 
   return bidCount === 0 && !["under_contract", "closed"].includes(status);
+}
+
+function getListingImages(listing: any) {
+  if (!Array.isArray(listing?.picture_urls)) {
+    return [];
+  }
+
+  return listing.picture_urls
+    .map((item: any, index: number) => {
+      const rawUrl =
+        typeof item === "string"
+          ? item
+          : item?.url || item?.signed_url || item?.file_url || item?.src;
+
+      const url = normalizeImageUrl(rawUrl);
+
+      return {
+        id:
+          typeof item === "string"
+            ? `picture-${index}`
+            : item?._id || item?.id || `picture-${index}`,
+        url,
+        name:
+          typeof item === "string"
+            ? `Property Image ${index + 1}`
+            : item?.file_name || item?.name || `Property Image ${index + 1}`,
+      };
+    })
+    .filter((image: any) => Boolean(image.url))
+    .filter(
+      (image: any, index: number, array: any[]) =>
+        array.findIndex((item) => item.url === image.url) === index
+    );
 }
 
 function InfoCard({
@@ -154,8 +322,119 @@ function Detail({ label, value }: { label: string; value: any }) {
       </p>
 
       <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
-        {value === undefined || value === null || value === "" ? "-" : value}
+        {displayValue(value)}
       </p>
+    </div>
+  );
+}
+
+function NotesBox({ label, value }: { label: string; value: any }) {
+  if (isPlaceholderValue(value)) {
+    return null;
+  }
+
+  return (
+    <div className="mt-5 rounded-xl bg-[var(--color-bg-soft)] p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+        {label}
+      </p>
+
+      <p className="mt-2 text-sm leading-6 text-[var(--color-text-main)]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function ImageCard({ image }: { image: any }) {
+  const [hasError, setHasError] = useState(false);
+
+  return (
+    <a
+      href={image.url}
+      target="_blank"
+      rel="noreferrer"
+      className="group overflow-hidden rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+    >
+      {!hasError ? (
+        <img
+          src={image.url}
+          alt={image.name}
+          className="h-52 w-full object-cover transition duration-300 group-hover:scale-105"
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <div className="flex h-52 flex-col items-center justify-center gap-2 bg-[var(--color-bg-soft)] px-4 text-center">
+          <ImageIcon className="h-8 w-8 text-[var(--color-text-muted)]" />
+
+          <p className="text-sm font-bold text-[var(--color-text-main)]">
+            Image preview unavailable
+          </p>
+
+          <p className="text-xs leading-5 text-[var(--color-text-muted)]">
+            The image URL was returned, but it could not be loaded.
+          </p>
+        </div>
+      )}
+
+      <div className="border-t border-[var(--color-border-light)] bg-white px-4 py-3">
+        <p className="truncate text-xs font-bold text-[var(--color-primary)]">
+          {image.name}
+        </p>
+      </div>
+    </a>
+  );
+}
+
+function PropertyImagesSection({
+  listingId,
+  listingImages,
+}: {
+  listingId: string;
+  listingImages: any[];
+}) {
+  return (
+    <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <div>
+          <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">
+            Property Images
+          </h2>
+
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+            Uploaded property pictures for this listing.
+          </p>
+        </div>
+
+        <ImageIcon className="h-5 w-5 text-[var(--color-primary)]" />
+      </div>
+
+      {listingImages.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-8 text-center">
+          <ImageIcon className="mx-auto h-8 w-8 text-[var(--color-text-muted)]" />
+
+          <p className="mt-3 text-sm font-bold text-[var(--color-text-main)]">
+            No property images uploaded yet.
+          </p>
+
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+            Upload property pictures from the Document Vault.
+          </p>
+
+          <Link
+            to={`/document-vault?listingId=${listingId}`}
+            className="mt-4 inline-flex bg-[var(--color-primary)] px-5 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-white"
+          >
+            Upload Images
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {listingImages.map((image: any) => (
+            <ImageCard key={image.id} image={image} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -181,6 +460,7 @@ export default function ListingDetailsPage() {
   }
 
   const listing = getListingFromResponse(data);
+  const listingImages = getListingImages(listing);
   const bidCount = getBidCount(listing);
   const canEdit = isDraftListing(listing);
   const canWithdraw = canWithdrawListing(listing);
@@ -345,7 +625,7 @@ export default function ListingDetailsPage() {
 
         <InfoCard
           label="Property Type"
-          value={listing?.property_type || "-"}
+          value={formatPropertyType(listing?.property_type)}
           icon={Home}
         />
 
@@ -358,6 +638,11 @@ export default function ListingDetailsPage() {
 
       <section className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
+          <PropertyImagesSection
+            listingId={id}
+            listingImages={listingImages}
+          />
+
           <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
             <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">
               Property Information
@@ -369,6 +654,10 @@ export default function ListingDetailsPage() {
               <Detail label="ZIP Code" value={listing?.zip_code} />
               <Detail label="Year Built" value={listing?.year_built} />
               <Detail label="Zoning" value={listing?.zoning} />
+              <Detail
+                label="Property Type"
+                value={formatPropertyType(listing?.property_type)}
+              />
               <Detail
                 label="Market Price"
                 value={formatMoney(listing?.market_price)}
@@ -410,17 +699,10 @@ export default function ListingDetailsPage() {
               />
             </div>
 
-            {listing?.lien_disclosure && (
-              <div className="mt-5 rounded-xl bg-[var(--color-bg-soft)] p-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-                  Lien Disclosure
-                </p>
-
-                <p className="mt-2 text-sm leading-6 text-[var(--color-text-main)]">
-                  {listing.lien_disclosure}
-                </p>
-              </div>
-            )}
+            <NotesBox
+              label="Lien Disclosure"
+              value={listing?.lien_disclosure}
+            />
           </div>
 
           <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
@@ -429,29 +711,25 @@ export default function ListingDetailsPage() {
             </h2>
 
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Detail label="Roof" value={listing?.condition_report?.roof} />
-              <Detail label="HVAC" value={listing?.condition_report?.hvac} />
+              <Detail
+                label="Roof"
+                value={formatCondition(listing?.condition_report?.roof)}
+              />
+              <Detail
+                label="HVAC"
+                value={formatCondition(listing?.condition_report?.hvac)}
+              />
               <Detail
                 label="Wetlands"
                 value={listing?.condition_report?.wetlands ? "Yes" : "No"}
               />
               <Detail
                 label="Overall"
-                value={listing?.condition_report?.overall}
+                value={formatCondition(listing?.condition_report?.overall)}
               />
             </div>
 
-            {listing?.condition_report?.notes && (
-              <div className="mt-5 rounded-xl bg-[var(--color-bg-soft)] p-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-                  Notes
-                </p>
-
-                <p className="mt-2 text-sm leading-6 text-[var(--color-text-main)]">
-                  {listing.condition_report.notes}
-                </p>
-              </div>
-            )}
+            <NotesBox label="Notes" value={listing?.condition_report?.notes} />
           </div>
 
           <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">

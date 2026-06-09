@@ -24,6 +24,9 @@ import ViewBidsPage from "../pages/seller/ViewBidsPage";
 import DealTrackerPage from "../pages/seller/DealTrackerPage";
 import ListingDetailsPage from "../pages/seller/ListingDetailsPage";
 import EditListingPage from "../pages/seller/EditListingPage";
+import ContractsPage from "../pages/seller/ContractsPage";
+
+import ProfilePage from "../pages/profile/ProfilePage";
 
 import {
   ADMIN_ROLES,
@@ -62,6 +65,14 @@ function AppRoutes() {
             }
           />
 
+          <Route
+            path="/profile"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <ProfilePage />
+              </RoleRoute>
+            }
+          />
           {/* KYC route for app users */}
           <Route
             path="/kyc"
@@ -120,6 +131,15 @@ function AppRoutes() {
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
                 <ViewBidsPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/contracts"
+            element={
+              <RoleRoute allowedRoles={SELLER_ROLES}>
+                <ContractsPage />
               </RoleRoute>
             }
           />
@@ -185,7 +205,7 @@ function AppRoutes() {
           />
 
           {/* Realtor-only routes */}
-          <Route
+          {/* <Route
             path="/profile"
             element={
               <RoleRoute allowedRoles={REALTOR_ROLES}>
@@ -195,7 +215,7 @@ function AppRoutes() {
                 />
               </RoleRoute>
             }
-          />
+          /> */}
 
           {/* Admin-only routes */}
           <Route

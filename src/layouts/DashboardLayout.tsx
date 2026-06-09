@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+
 import { useState } from "react";
 import {
   Link,
@@ -6,7 +7,18 @@ import {
   useLocation,
   useSearchParams,
 } from "react-router";
-import { Bell, Menu, Plus, Search, X } from "lucide-react";
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Plus,
+  Search,
+  Settings,
+  ShieldCheck,
+  UserCircle,
+  X,
+} from "lucide-react";
 
 import { useAuthContext } from "../contexts/AuthContext";
 import DashboardSidebar from "../components/common/DashboardSidebar";
@@ -28,11 +40,11 @@ interface DashboardLayoutProps {
 function getUserName(user: unknown) {
   const authUser = user as
     | {
-        full_name?: string;
-        fullName?: string;
-        name?: string;
-        email?: string;
-      }
+      full_name?: string;
+      fullName?: string;
+      name?: string;
+      email?: string;
+    }
     | null
     | undefined;
 
@@ -169,7 +181,7 @@ function DashboardLayout({
   mode = "light",
   children,
 }: DashboardLayoutProps) {
-  const { user } = useAuthContext();
+  const { user, logoutAuth } = useAuthContext();
   const { data: profile } = useGetMeQuery(undefined, { skip: !user });
 
   const location = useLocation();
@@ -177,6 +189,8 @@ function DashboardLayout({
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const isDark = mode === "dark";
   const displayName = getUserName(profile?.data || profile || user);
@@ -256,21 +270,19 @@ function DashboardLayout({
 
         <div className="min-w-0 flex-1">
           <nav
-            className={`sticky top-0 z-30 flex h-[86px] items-center justify-between border-b px-5 backdrop-blur-xl lg:px-10 ${
-              isDark
+            className={`sticky top-0 z-30 flex h-[86px] items-center justify-between border-b px-5 backdrop-blur-xl lg:px-10 ${isDark
                 ? "border-white/10 bg-[var(--color-dark-main)]/90"
                 : "border-[var(--color-border-light)] bg-[var(--color-bg-main)]/90"
-            }`}
+              }`}
           >
             <div className="flex min-w-0 items-center gap-4 lg:gap-6">
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
-                className={`flex h-11 w-11 items-center justify-center rounded-full border lg:hidden ${
-                  isDark
+                className={`flex h-11 w-11 items-center justify-center rounded-full border lg:hidden ${isDark
                     ? "border-white/10 bg-white/10 text-white"
                     : "border-[var(--color-border-light)] bg-white text-[var(--color-primary)]"
-                }`}
+                  }`}
                 aria-label="Open menu"
               >
                 {isMobileMenuOpen ? (
@@ -291,9 +303,8 @@ function DashboardLayout({
                   </div>
 
                   <span
-                    className={`text-base font-extrabold tracking-tight ${
-                      isDark ? "text-white" : "text-[var(--color-primary)]"
-                    }`}
+                    className={`text-base font-extrabold tracking-tight ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                      }`}
                   >
                     TRACT
                   </span>
@@ -302,17 +313,15 @@ function DashboardLayout({
 
               <div className="hidden min-w-0 lg:block">
                 <p
-                  className={`text-[10px] font-semibold uppercase tracking-[0.25em] sm:text-xs ${
-                    isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
-                  }`}
+                  className={`text-[10px] font-semibold uppercase tracking-[0.25em] sm:text-xs ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+                    }`}
                 >
                   {title}
                 </p>
 
                 <h2
-                  className={`mt-1 truncate font-serif text-xl font-black leading-tight sm:text-2xl lg:text-3xl ${
-                    isDark ? "text-white" : "text-[var(--color-primary)]"
-                  }`}
+                  className={`mt-1 truncate font-serif text-xl font-black leading-tight sm:text-2xl lg:text-3xl ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                    }`}
                 >
                   Welcome back, {displayName}
                 </h2>
@@ -325,9 +334,8 @@ function DashboardLayout({
               {showPropertySearch && (
                 <div className="relative hidden w-[280px] md:block xl:w-[320px]">
                   <div
-                    className={`flex h-11 items-center gap-3 rounded-none px-4 ${
-                      isDark ? "bg-white/10" : "bg-white/70"
-                    }`}
+                    className={`flex h-11 items-center gap-3 rounded-none px-4 ${isDark ? "bg-white/10" : "bg-white/70"
+                      }`}
                   >
                     <Search className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
 
@@ -345,11 +353,10 @@ function DashboardLayout({
                       }}
                       placeholder="Search properties..."
                       aria-label="Search properties"
-                      className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${
-                        isDark
+                      className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${isDark
                           ? "text-white"
                           : "text-[var(--color-text-main)]"
-                      }`}
+                        }`}
                     />
 
                     {searchValue && (
@@ -445,11 +452,10 @@ function DashboardLayout({
 
               <button
                 type="button"
-                className={`relative flex h-11 w-11 items-center justify-center rounded-full border transition ${
-                  isDark
+                className={`relative flex h-11 w-11 items-center justify-center rounded-full border transition ${isDark
                     ? "border-white/10 bg-white/10 hover:bg-white/15"
                     : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]"
-                }`}
+                  }`}
               >
                 <Bell
                   className={
@@ -462,8 +468,79 @@ function DashboardLayout({
                 <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[var(--color-danger)] ring-2 ring-white" />
               </button>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-black text-[var(--color-secondary)] ring-2 ring-[var(--color-secondary)]/30">
-                {initials}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileMenuOpen((value) => !value)}
+                  className="flex items-center gap-2 rounded-full"
+                  aria-label="Open profile menu"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-black text-[var(--color-secondary)] ring-2 ring-[var(--color-secondary)]/30">
+                    {initials}
+                  </div>
+
+                  <ChevronDown
+                    className={`hidden h-4 w-4 transition md:block ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"
+                      } ${isProfileMenuOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {isProfileMenuOpen && (
+                  <div className="absolute right-0 top-[56px] z-50 w-72 overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-2xl">
+                    <div className="border-b border-[var(--color-border-light)] px-5 py-4">
+                      <p className="truncate text-sm font-black text-[var(--color-primary)]">
+                        {displayName}
+                      </p>
+
+                      <p className="mt-0.5 truncate text-xs text-[var(--color-text-muted)]">
+                        Profile & account settings
+                      </p>
+                    </div>
+
+                    <div className="py-2">
+                      <Link
+                        to="/profile"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="flex items-center gap-3 px-5 py-3 text-sm font-bold text-[var(--color-text-main)] transition hover:bg-[var(--color-bg-soft)]"
+                      >
+                        <UserCircle className="h-4 w-4 text-[var(--color-primary)]" />
+                        Profile & Settings
+                      </Link>
+
+                      <Link
+                        to="/kyc"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="flex items-center gap-3 px-5 py-3 text-sm font-bold text-[var(--color-text-main)] transition hover:bg-[var(--color-bg-soft)]"
+                      >
+                        <ShieldCheck className="h-4 w-4 text-[var(--color-primary)]" />
+                        KYC Verification
+                      </Link>
+
+                      {/* <Link
+                        to="/profile"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="flex items-center gap-3 px-5 py-3 text-sm font-bold text-[var(--color-text-main)] transition hover:bg-[var(--color-bg-soft)]"
+                      >
+                        <Settings className="h-4 w-4 text-[var(--color-primary)]" />
+                        Account Settings
+                      </Link> */}
+                    </div>
+
+                    <div className="border-t border-[var(--color-border-light)] p-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsProfileMenuOpen(false);
+                          await logoutAuth();
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </nav>

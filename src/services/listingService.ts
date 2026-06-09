@@ -8,7 +8,6 @@ export const listingService = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Property"],
     }),
 
     getListings: builder.query<any, any>({
@@ -17,7 +16,6 @@ export const listingService = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
-      providesTags: ["Property"],
     }),
 
     getListingsDashboard: builder.query<any, void>({
@@ -25,7 +23,6 @@ export const listingService = baseApi.injectEndpoints({
         url: "listings/dashboard",
         method: "GET",
       }),
-      providesTags: ["Property"],
     }),
 
     getListingById: builder.query<any, string>({
@@ -33,7 +30,6 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${id}`,
         method: "GET",
       }),
-      providesTags: ["Property"],
     }),
 
     updateListing: builder.mutation<any, { id: string; body: any }>({
@@ -42,7 +38,6 @@ export const listingService = baseApi.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: ["Property"],
     }),
 
     deleteListing: builder.mutation<any, string>({
@@ -50,7 +45,6 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Property"],
     }),
 
     submitListing: builder.mutation<any, string>({
@@ -58,7 +52,6 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${id}/submit`,
         method: "POST",
       }),
-      invalidatesTags: ["Property"],
     }),
 
     uploadListingDocuments: builder.mutation<
@@ -86,7 +79,6 @@ export const listingService = baseApi.injectEndpoints({
           body: formData,
         };
       },
-      invalidatesTags: ["Property"],
     }),
 
     getListingDocuments: builder.query<any, string>({
@@ -94,7 +86,76 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${listingId}/documents`,
         method: "GET",
       }),
-      providesTags: ["Property"],
+    }),
+
+    // ─────────────────────────────────────────────
+    // Bids APIs
+    // ─────────────────────────────────────────────
+
+    submitBid: builder.mutation<any, { listingId: string; body: any }>({
+      query: ({ listingId, body }) => ({
+        url: `listings/${listingId}/bids`,
+        method: "POST",
+        body,
+      }),
+    }),
+
+    getListingBids: builder.query<any, string>({
+      query: (listingId) => ({
+        url: `listings/${listingId}/bids`,
+        method: "GET",
+      }),
+    }),
+
+    getMyBids: builder.query<any, void>({
+      query: () => ({
+        url: "bids/my-bids",
+        method: "GET",
+      }),
+    }),
+
+    getBidById: builder.query<any, string>({
+      query: (bidId) => ({
+        url: `bids/${bidId}`,
+        method: "GET",
+      }),
+    }),
+
+    deleteOwnBid: builder.mutation<any, string>({
+      query: (bidId) => ({
+        url: `bids/${bidId}`,
+        method: "DELETE",
+      }),
+    }),
+
+    selectBid: builder.mutation<
+      any,
+      {
+        listingId: string;
+        bidId: string;
+        selection: 1 | 2 | 3;
+      }
+    >({
+      query: ({ listingId, bidId, selection }) => ({
+        url: `listings/${listingId}/bids/${bidId}/select`,
+        method: "POST",
+        body: {
+          selection,
+        },
+      }),
+    }),
+
+    rejectBid: builder.mutation<
+      any,
+      {
+        listingId: string;
+        bidId: string;
+      }
+    >({
+      query: ({ listingId, bidId }) => ({
+        url: `listings/${listingId}/bids/${bidId}`,
+        method: "DELETE",
+      }),
     }),
   }),
 });
@@ -109,4 +170,12 @@ export const {
   useSubmitListingMutation,
   useUploadListingDocumentsMutation,
   useGetListingDocumentsQuery,
+
+  useSubmitBidMutation,
+  useGetListingBidsQuery,
+  useGetMyBidsQuery,
+  useGetBidByIdQuery,
+  useDeleteOwnBidMutation,
+  useSelectBidMutation,
+  useRejectBidMutation,
 } = listingService;
