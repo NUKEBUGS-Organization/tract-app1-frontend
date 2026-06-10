@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { useAuthContext } from "../../contexts/AuthContext";
+import tractLogoSidebar from "../../assets/tract-logo-sidebar.png";
 
 interface NavItem {
   label: string;
@@ -57,21 +58,21 @@ export default function DashboardSidebar({
 
   return (
     <>
-      <div className="border-b border-white/10 px-6 py-6 flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--color-secondary)]/30 bg-white/90 shadow-[var(--shadow-card)]">
-          <img
-            src="/tract-logo.png"
-            alt="TRACT logo"
-            className="h-9 w-9 object-contain"
-          />
-        </div>
+      <div className="border-b border-white/10 px-6 py-5 flex items-center gap-3">
+        <img
+          src={tractLogoSidebar}
+          alt="TRACT logo"
+          className="h-12 w-auto object-contain"
+
+        />
+
 
         <div>
-          <div className="text-2xl font-extrabold tracking-tight text-white">
+          <div className="text-3xl font-extrabold tracking-tight text-white" style={{ fontFamily: '"Montserrat", sans-serif' }}>
             TRACT
           </div>
 
-          <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
+          <p className="mt-0.6 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
             Luxury Real Estate
           </p>
         </div>
