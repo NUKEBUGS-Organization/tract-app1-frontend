@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import {
-  AlertTriangle,
   BadgeCheck,
   Calendar,
   CheckCircle2,
   Edit3,
+  KeyRound,
   Mail,
   Phone,
   RefreshCw,
@@ -20,6 +20,7 @@ import {
 import {
   useGetMeQuery,
   useUpdateMeMutation,
+  useChangePasswordMutation,
 } from "../../services/userService";
 import StatusBadge from "../../components/common/StatusBadge";
 
@@ -166,16 +167,26 @@ function InputField({
 export default function ProfilePage() {
   const { data, isLoading, refetch, isFetching } = useGetMeQuery();
   const [updateMe, { isLoading: isUpdating }] = useUpdateMeMutation();
+  const [changePassword, { isLoading: isChangingPassword }] =
+    useChangePasswordMutation();
 
   const profile = getApiPayload(data);
 
   const [isEditing, setIsEditing] = useState(false);
+
   const [fullName, setFullName] = useState("");
   const [stateCode, setStateCode] = useState("");
   const [dob, setDob] = useState("");
 
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [apiSuccess, setApiSuccess] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
   const displayName = profile?.full_name || profile?.email || "User";
   const kycStatus = profile?.kyc_status || "pending";
@@ -193,8 +204,9 @@ export default function ProfilePage() {
     setFullName(profile?.full_name || "");
     setStateCode(profile?.state_code || "");
     setDob(formatDateForInput(profile?.dob));
-    setApiError(null);
-    setApiSuccess(null);
+
+    setProfileError(null);
+    setProfileSuccess(null);
     setIsEditing(false);
   }
 
@@ -205,23 +217,23 @@ export default function ProfilePage() {
     const normalizedState = stateCode.trim().toUpperCase();
 
     if (!trimmedName) {
-      setApiError("Full name is required.");
+      setProfileError("Full name is required.");
       return;
     }
 
     if (!normalizedState) {
-      setApiError("State code is required.");
+      setProfileError("State code is required.");
       return;
     }
 
     if (normalizedState.length < 2) {
-      setApiError("State code should be valid, for example NY, NJ, TX.");
+      setProfileError("State code should be valid, for example NY, NJ, TX.");
       return;
     }
 
     try {
-      setApiError(null);
-      setApiSuccess(null);
+      setProfileError(null);
+      setProfileSuccess(null);
 
       await updateMe({
         full_name: trimmedName,
@@ -229,11 +241,59 @@ export default function ProfilePage() {
         dob: dob || undefined,
       }).unwrap();
 
-      setApiSuccess("Profile updated successfully.");
+      setProfileSuccess("Profile updated successfully.");
       setIsEditing(false);
       await refetch();
     } catch (error: any) {
-      setApiError(getErrorMessage(error, "Unable to update profile."));
+      setProfileError(getErrorMessage(error, "Unable to update profile."));
+    }
+  }
+
+  async function handlePasswordSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!currentPassword.trim()) {
+      setPasswordError("Current password is required.");
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      setPasswordError("New password is required.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New password and confirm password do not match.");
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setPasswordError("New password should be different from current password.");
+      return;
+    }
+
+    try {
+      setPasswordError(null);
+      setPasswordSuccess(null);
+
+      await changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }).unwrap();
+
+      setPasswordSuccess("Password changed successfully.");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      setPasswordError(
+        getErrorMessage(error, "Unable to change password."),
+      );
     }
   }
 
@@ -262,7 +322,7 @@ export default function ProfilePage() {
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">
             View your account information, update allowed profile details, and
-            complete identity verification.
+            change your password.
           </p>
         </div>
 
@@ -283,8 +343,8 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => {
-                setApiError(null);
-                setApiSuccess(null);
+                setProfileError(null);
+                setProfileSuccess(null);
                 setIsEditing(true);
               }}
               className="inline-flex items-center gap-2 bg-[var(--color-primary)] px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white"
@@ -295,18 +355,6 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
-
-      {apiError && (
-        <div className="rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm font-semibold text-[var(--color-danger)]">
-          {apiError}
-        </div>
-      )}
-
-      {apiSuccess && (
-        <div className="rounded-xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 p-4 text-sm font-semibold text-[var(--color-primary)]">
-          {apiSuccess}
-        </div>
-      )}
 
       <section className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
@@ -350,12 +398,19 @@ export default function ProfilePage() {
           value={profile?.state_code}
           icon={BadgeCheck}
         />
-        <DetailCard label="Date of Birth" value={formatDate(profile?.dob)} icon={Calendar} />
+
+        <DetailCard
+          label="Date of Birth"
+          value={formatDate(profile?.dob)}
+          icon={Calendar}
+        />
+
         <DetailCard
           label="Bank Verified"
           value={formatBoolean(profile?.bank_verified)}
           icon={CheckCircle2}
         />
+
         <DetailCard
           label="Deal Count"
           value={profile?.deal_count}
@@ -369,6 +424,7 @@ export default function ProfilePage() {
           value={profile?.reliability_score}
           icon={Star}
         />
+
         <DetailCard
           label="Professional Score"
           value={profile?.professional_score}
@@ -422,7 +478,7 @@ export default function ProfilePage() {
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-                You can update only full name, state code, and date of birth.
+                You can update full name, state code, and date of birth.
               </p>
             </div>
 
@@ -438,18 +494,32 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* {!isEditing && (
-            <div className="rounded-xl border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-5 w-5 text-[var(--color-secondary)]" />
-
-                <p className="text-sm leading-6 text-[var(--color-text-muted)]">
-                  Email and phone are read-only because backend update DTO does
-                  not allow changing them yet.
-                </p>
-              </div>
+          {profileError && (
+            <div className="mb-5 rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm font-semibold text-[var(--color-danger)]">
+              {profileError}
             </div>
-          )} */}
+          )}
+
+          {profileSuccess && (
+            <div className="mb-5 rounded-xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 p-4 text-sm font-semibold text-[var(--color-primary)]">
+              {profileSuccess}
+            </div>
+          )}
+
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={() => {
+                setProfileError(null);
+                setProfileSuccess(null);
+                setIsEditing(true);
+              }}
+              className="inline-flex items-center gap-2 bg-[var(--color-primary)] px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white"
+            >
+              <Edit3 className="h-4 w-4" />
+              Edit Profile
+            </button>
+          )}
 
           {isEditing && (
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -496,6 +566,74 @@ export default function ProfilePage() {
             </form>
           )}
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="flex items-center gap-2 font-serif text-xl font-black text-[var(--color-primary)]">
+              <KeyRound className="h-5 w-5 text-[var(--color-secondary)]" />
+              Change Password
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+              Enter your current password and choose a new password with at
+              least 8 characters.
+            </p>
+          </div>
+        </div>
+
+        {passwordError && (
+          <div className="mb-5 rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm font-semibold text-[var(--color-danger)]">
+            {passwordError}
+          </div>
+        )}
+
+        {passwordSuccess && (
+          <div className="mb-5 rounded-xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 p-4 text-sm font-semibold text-[var(--color-primary)]">
+            {passwordSuccess}
+          </div>
+        )}
+
+        <form
+          onSubmit={handlePasswordSubmit}
+          className="grid grid-cols-1 gap-5 lg:grid-cols-3"
+        >
+          <InputField
+            label="Current Password"
+            type="password"
+            value={currentPassword}
+            onChange={setCurrentPassword}
+            placeholder="Enter current password"
+          />
+
+          <InputField
+            label="New Password"
+            type="password"
+            value={newPassword}
+            onChange={setNewPassword}
+            placeholder="Minimum 8 characters"
+          />
+
+          <InputField
+            label="Confirm New Password"
+            type="password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            placeholder="Re-enter new password"
+          />
+
+          <div className="lg:col-span-3">
+            <button
+              type="submit"
+              disabled={isChangingPassword}
+              className="inline-flex items-center gap-2 bg-[var(--color-primary)] px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <KeyRound className="h-4 w-4" />
+              {isChangingPassword ? "Changing..." : "Change Password"}
+            </button>
+          </div>
+        </form>
       </section>
     </div>
   );

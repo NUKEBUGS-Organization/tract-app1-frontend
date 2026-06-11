@@ -498,7 +498,7 @@ export default function ViewBidsPage() {
   const [selectBid, { isLoading: isSelecting }] = useSelectBidMutation();
   const [rejectBid, { isLoading: isRejecting }] = useRejectBidMutation();
 
-  const bids = getBidsFromResponse(bidsData);
+  const bids = Array.isArray(bidsData) ? bidsData : [];
 
   const selectedPrimaryBid = bids.find(
     (bid: any) => getBidStatus(bid) === "selected"

@@ -100,12 +100,37 @@ export const listingService = baseApi.injectEndpoints({
       }),
     }),
 
-    getListingBids: builder.query<any, string>({
-      query: (listingId) => ({
-        url: `listings/${listingId}/bids`,
-        method: "GET",
-      }),
-    }),
+ getListingBids: builder.query<any[], string>({
+  query: (listingId) => ({
+    url: `listings/${listingId}/bids`,
+    method: "GET",
+  }),
+  transformResponse: (response: any) => {
+    const payload = response?.data ?? response;
+
+    if (!payload) return [];
+
+    if (Array.isArray(payload)) return payload;
+
+    if (Array.isArray(payload?.bids)) return payload.bids;
+
+    if (Array.isArray(payload?.data)) return payload.data;
+
+    if (typeof payload === "object") return Object.values(payload);
+
+    return [];
+  },
+}),
+
+// getListingBids: builder.query<any[], string>({
+//   query: (listingId) => ({
+//     url: `listings/${listingId}/bids`,
+//     method: "GET",
+//   }),
+//   transformResponse: (response: any) => {
+//     return response.data ?? [];
+//   },
+// }),
 
     getMyBids: builder.query<any, void>({
       query: () => ({
