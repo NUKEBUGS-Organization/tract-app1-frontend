@@ -14,7 +14,6 @@ import {
   Menu,
   Plus,
   Search,
-  Settings,
   ShieldCheck,
   UserCircle,
   X,

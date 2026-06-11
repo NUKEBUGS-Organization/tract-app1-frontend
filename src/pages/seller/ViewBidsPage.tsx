@@ -41,15 +41,15 @@ function getListingsFromDashboard(response: any) {
   return [];
 }
 
-function getBidsFromResponse(response: any) {
-  const payload = getApiPayload(response);
+// function getBidsFromResponse(response: any) {
+//   const payload = getApiPayload(response);
 
-  if (Array.isArray(payload?.bids)) return payload.bids;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload)) return payload;
+//   if (Array.isArray(payload?.bids)) return payload.bids;
+//   if (Array.isArray(payload?.data)) return payload.data;
+//   if (Array.isArray(payload)) return payload;
 
-  return [];
-}
+//   return [];
+// }
 
 function getBidFromResponse(response: any) {
   const payload = getApiPayload(response);

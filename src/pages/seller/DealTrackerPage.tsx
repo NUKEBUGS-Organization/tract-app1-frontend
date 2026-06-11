@@ -12,7 +12,7 @@ import {
   Loader2,
   RefreshCw,
   ShieldCheck,
-  XCircle,
+  
 } from "lucide-react";
 
 import {
@@ -162,7 +162,7 @@ function TrackerStep({
   description,
   done,
   current,
-  locked,
+
 }: {
   title: string;
   description: string;
