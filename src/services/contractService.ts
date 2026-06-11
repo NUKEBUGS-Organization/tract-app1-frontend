@@ -3,7 +3,6 @@ import { baseApi } from "./baseApi";
 function unwrapApiResponse(response: any) {
   let payload = response;
 
-
   if (
     payload &&
     typeof payload === "object" &&
@@ -13,12 +12,10 @@ function unwrapApiResponse(response: any) {
     payload = payload.data;
   }
 
-  
   if (payload?._doc) {
     payload = payload._doc;
   }
 
- 
   if (payload?.contract?._doc) {
     payload = payload.contract._doc;
   }
@@ -28,6 +25,22 @@ function unwrapApiResponse(response: any) {
   }
 
   return payload;
+}
+
+function unwrapContractListResponse(response: any) {
+  const payload = unwrapApiResponse(response);
+
+  if (!payload) return [];
+
+  if (Array.isArray(payload)) {
+    return payload.map((item) => item?._doc ?? item);
+  }
+
+  if (typeof payload === "object") {
+    return Object.values(payload).map((item: any) => item?._doc ?? item);
+  }
+
+  return [];
 }
 
 export const contractService = baseApi.injectEndpoints({
@@ -56,6 +69,14 @@ export const contractService = baseApi.injectEndpoints({
         method: "GET",
       }),
       transformResponse: unwrapApiResponse,
+    }),
+
+    getContractsByListing: builder.query<any[], string>({
+      query: (listingId) => ({
+        url: `contracts/listing/${listingId}`,
+        method: "GET",
+      }),
+      transformResponse: unwrapContractListResponse,
     }),
 
     signContractAsSeller: builder.mutation<any, string>({
@@ -87,6 +108,7 @@ export const contractService = baseApi.injectEndpoints({
 export const {
   useCreateContractMutation,
   useGetContractByIdQuery,
+  useGetContractsByListingQuery,
   useSignContractAsSellerMutation,
   useSignContractAsBuyerMutation,
   useCancelContractMutation,

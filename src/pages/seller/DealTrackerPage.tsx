@@ -1,5 +1,4 @@
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
   AlertTriangle,
@@ -12,7 +11,6 @@ import {
   Loader2,
   RefreshCw,
   ShieldCheck,
-  
 } from "lucide-react";
 
 import {
@@ -24,6 +22,7 @@ import {
   useCancelContractMutation,
   useCreateContractMutation,
   useGetContractByIdQuery,
+  useGetContractsByListingQuery,
   useSignContractAsSellerMutation,
 } from "../../services/contractService";
 
@@ -147,6 +146,7 @@ function StatCard({
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
           {title}
         </p>
+
         <Icon className="h-5 w-5 text-[var(--color-primary)]" />
       </div>
 
@@ -162,7 +162,6 @@ function TrackerStep({
   description,
   done,
   current,
-
 }: {
   title: string;
   description: string;
@@ -173,12 +172,13 @@ function TrackerStep({
   return (
     <div className="relative flex gap-4 rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
       <div
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${done
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
+          done
             ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
             : current
               ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]"
               : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
-          }`}
+        }`}
       >
         {done ? (
           <CheckCircle2 className="h-5 w-5" />
@@ -192,7 +192,6 @@ function TrackerStep({
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-black text-[var(--color-primary)]">{title}</h3>
-
         </div>
 
         <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
@@ -252,6 +251,20 @@ export default function DealTrackerPage() {
     skip: !contractIdFromUrl,
   });
 
+  const {
+    data: contractsByListingData = [],
+    isLoading: isLoadingContractsByListing,
+    isFetching: isFetchingContractsByListing,
+    refetch: refetchContractsByListing,
+  } = useGetContractsByListingQuery(activeListingId, {
+    skip: !activeListingId || Boolean(contractIdFromUrl),
+  });
+
+  const latestContractByListing =
+    Array.isArray(contractsByListingData) && contractsByListingData.length > 0
+      ? contractsByListingData[0]
+      : null;
+
   const [createContract, { isLoading: isCreatingContract }] =
     useCreateContractMutation();
 
@@ -264,7 +277,7 @@ export default function DealTrackerPage() {
   const bids = Array.isArray(bidsData) ? bidsData : [];
   const selectedBid = getSelectedBid(bids);
 
-  const contract = localContract || fetchedContract;
+  const contract = localContract || fetchedContract || latestContractByListing;
   const contractId = getId(contract);
 
   const contractStatus = String(contract?.status || "").toLowerCase();
@@ -291,6 +304,8 @@ export default function DealTrackerPage() {
     isFetchingBids ||
     isLoadingContract ||
     isFetchingContract ||
+    isLoadingContractsByListing ||
+    isFetchingContractsByListing ||
     isCreatingContract ||
     isSigningSeller ||
     isCancellingContract;
@@ -344,16 +359,14 @@ export default function DealTrackerPage() {
       },
       {
         title: "Marketing & Buyer Matching",
-        description:
-          "72-hour marketing proof tracking.",
+        description: "72-hour marketing proof tracking.",
         done: false,
         current: false,
         locked: true,
       },
       {
         title: "Inspection, Title & Escrow",
-        description:
-          "Inspection countdown, title, escrow, and closing progress.",
+        description: "Inspection countdown, title, escrow, and closing progress.",
         done: false,
         current: false,
         locked: true,
@@ -371,6 +384,22 @@ export default function DealTrackerPage() {
     ]
   );
 
+  useEffect(() => {
+    if (!activeListingId) return;
+    if (contractIdFromUrl) return;
+    if (!latestContractByListing?._id) return;
+
+    setSearchParams({
+      listingId: activeListingId,
+      contractId: latestContractByListing._id,
+    });
+  }, [
+    activeListingId,
+    contractIdFromUrl,
+    latestContractByListing?._id,
+    setSearchParams,
+  ]);
+
   async function handleRefresh() {
     setApiError(null);
 
@@ -382,10 +411,12 @@ export default function DealTrackerPage() {
 
     if (contractIdFromUrl) {
       await refetchContract();
+    } else if (activeListingId) {
+      await refetchContractsByListing();
     }
   }
 
-  async function handleListingChange(listingId: string) {
+  function handleListingChange(listingId: string) {
     setLocalContract(null);
     setApiError(null);
 
@@ -410,10 +441,14 @@ export default function DealTrackerPage() {
 
       setLocalContract(created);
 
+      const createdContractId = getId(created);
+
       setSearchParams({
         listingId: activeListingId,
-        contractId: getId(created),
+        contractId: createdContractId,
       });
+
+      await refetchContractsByListing();
     } catch (error: any) {
       setApiError(
         getErrorMessage(error, "Unable to create contract from selected bid.")
@@ -423,7 +458,9 @@ export default function DealTrackerPage() {
 
   async function handleSellerSign() {
     if (!contractId) {
-      setApiError("Contract ID is missing. Please refresh the page or load a valid contract.");
+      setApiError(
+        "Contract ID is missing. Please refresh the page or load a valid contract."
+      );
       return;
     }
 
@@ -437,11 +474,12 @@ export default function DealTrackerPage() {
         listingId: activeListingId,
         contractId,
       });
+
+      await refetchContract();
     } catch (error: any) {
       setApiError(getErrorMessage(error, "Unable to sign contract as seller."));
     }
   }
-
 
   async function handleCancelContract() {
     if (!contractId) return;
@@ -451,6 +489,8 @@ export default function DealTrackerPage() {
 
       const updated = await cancelContract(contractId).unwrap();
       setLocalContract(updated);
+
+      await refetchContract();
     } catch (error: any) {
       setApiError(getErrorMessage(error, "Unable to cancel contract."));
     }
@@ -470,7 +510,6 @@ export default function DealTrackerPage() {
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">
             Track the selected partner, contract signatures, and deal progress.
-
           </p>
         </div>
 
@@ -545,8 +584,9 @@ export default function DealTrackerPage() {
 
         <StatCard
           title="Signatures"
-          value={`${sellerSigned ? "Seller ✓" : "Seller -"} / ${buyerSigned ? "Buyer ✓" : "Buyer -"
-            }`}
+          value={`${sellerSigned ? "Seller ✓" : "Seller -"} / ${
+            buyerSigned ? "Buyer ✓" : "Buyer -"
+          }`}
           icon={FileSignature}
         />
       </div>
@@ -561,8 +601,8 @@ export default function DealTrackerPage() {
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">
               {selectedBid
                 ? `Selected partner: ${partnerName} · Bid: ${formatMoney(
-                  selectedBid?.bid_price
-                )} · Net: ${formatMoney(selectedBid?.net_to_seller)}`
+                    selectedBid?.bid_price
+                  )} · Net: ${formatMoney(selectedBid?.net_to_seller)}`
                 : contract
                   ? "Contract loaded from backend."
                   : "Select a primary bid before creating a contract."}
@@ -580,16 +620,17 @@ export default function DealTrackerPage() {
               </div>
             )}
 
-            {!isBusy && trackerSteps.map((step) => (
-              <TrackerStep
-                key={step.title}
-                title={step.title}
-                description={step.description}
-                done={step.done}
-                current={step.current}
-                locked={step.locked}
-              />
-            ))}
+            {!isBusy &&
+              trackerSteps.map((step) => (
+                <TrackerStep
+                  key={step.title}
+                  title={step.title}
+                  description={step.description}
+                  done={step.done}
+                  current={step.current}
+                  locked={step.locked}
+                />
+              ))}
           </div>
 
           <div className="space-y-4">
