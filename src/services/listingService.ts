@@ -100,28 +100,70 @@ export const listingService = baseApi.injectEndpoints({
       }),
     }),
 
- getListingBids: builder.query<any[], string>({
+getListingBids: builder.query<any[], string>({
   query: (listingId) => ({
     url: `listings/${listingId}/bids`,
     method: "GET",
   }),
+
   transformResponse: (response: any) => {
+    function unwrapBid(item: any): any {
+      if (!item) return null;
+
+      if (item?._doc) return unwrapBid(item._doc);
+      if (item?.bid?._doc) return unwrapBid(item.bid._doc);
+      if (item?.bid) return unwrapBid(item.bid);
+      if (item?.data?._doc) return unwrapBid(item.data._doc);
+      if (item?.data) return unwrapBid(item.data);
+
+      return item;
+    }
+
+    function isRealBid(item: any) {
+      const bid = unwrapBid(item);
+
+      return Boolean(
+        bid &&
+          typeof bid === "object" &&
+          (bid._id || bid.id) &&
+          (
+            bid.bid_price !== undefined ||
+            bid.property_id !== undefined ||
+            bid.bidder_id !== undefined ||
+            bid.status !== undefined
+          )
+      );
+    }
+
     const payload = response?.data ?? response;
 
     if (!payload) return [];
 
-    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload)) {
+      return payload.map(unwrapBid).filter(isRealBid);
+    }
 
-    if (Array.isArray(payload?.bids)) return payload.bids;
+    if (Array.isArray(payload?.bids)) {
+      return payload.bids.map(unwrapBid).filter(isRealBid);
+    }
 
-    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.data)) {
+      return payload.data.map(unwrapBid).filter(isRealBid);
+    }
 
-    if (typeof payload === "object") return Object.values(payload);
+    const single = unwrapBid(payload);
+
+    if (isRealBid(single)) {
+      return [single];
+    }
+
+    if (typeof payload === "object") {
+      return Object.values(payload).map(unwrapBid).filter(isRealBid);
+    }
 
     return [];
   },
 }),
-
 // getListingBids: builder.query<any[], string>({
 //   query: (listingId) => ({
 //     url: `listings/${listingId}/bids`,

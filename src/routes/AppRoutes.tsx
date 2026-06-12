@@ -28,6 +28,9 @@ import ContractsPage from "../pages/seller/ContractsPage";
 
 import ProfilePage from "../pages/profile/ProfilePage";
 
+import ChatRoomsPage from "../pages/chat/ChatRoomsPage";
+import ChatRoomPage from "../pages/chat/ChatRoomPage";
+
 import {
   ADMIN_ROLES,
   ALL_APP_ROLES,
@@ -89,6 +92,35 @@ function AppRoutes() {
               </RoleRoute>
             }
           />
+          <Route
+  path="/chat"
+  element={
+    <RoleRoute
+      allowedRoles={[
+        ...SELLER_ROLES,
+        ...PARTNER_ROLES,
+        ...REALTOR_ROLES,
+      ]}
+    >
+      <ChatRoomsPage />
+    </RoleRoute>
+  }
+/>
+
+<Route
+  path="/chat/:roomId"
+  element={
+    <RoleRoute
+      allowedRoles={[
+        ...SELLER_ROLES,
+        ...PARTNER_ROLES,
+        ...REALTOR_ROLES,
+      ]}
+    >
+      <ChatRoomPage />
+    </RoleRoute>
+  }
+/>
 
           {/* Seller-only routes */}
           <Route

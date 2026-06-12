@@ -26,6 +26,8 @@ import {
   useSignContractAsSellerMutation,
 } from "../../services/contractService";
 
+import { useGetMyDealsQuery } from "../../services/dealService";
+
 function getDashboardPayload(response: any) {
   return response?.data ?? response ?? {};
 }
@@ -35,7 +37,22 @@ function getListingsFromDashboard(response: any) {
   return Array.isArray(payload?.listings) ? payload.listings : [];
 }
 
+function getArrayPayload(value: any) {
+  const payload = value?.data ?? value;
+
+  if (!payload) return [];
+
+  if (Array.isArray(payload)) return payload;
+
+  if (typeof payload === "object") return Object.values(payload);
+
+  return [];
+}
+
 function getId(item: any) {
+  if (!item) return "";
+  if (typeof item === "string") return item;
+
   return item?._id || item?.id || "";
 }
 
@@ -63,6 +80,10 @@ function getBidderName(bid: any, contract?: any) {
     contract?.buyer_id?.email ||
     "Selected Partner"
   );
+}
+
+function getDealContractId(deal: any) {
+  return getId(deal?.contract_id) || deal?.contract_id || "";
 }
 
 function formatMoney(value: any) {
@@ -93,6 +114,30 @@ function formatDateTime(value?: string) {
   });
 }
 
+function getTimeRemaining(value?: string) {
+  if (!value) return "";
+
+  const deadline = new Date(value).getTime();
+
+  if (Number.isNaN(deadline)) return "";
+
+  const diff = deadline - Date.now();
+
+  if (diff <= 0) return "Deadline passed";
+
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff / (1000 * 60)) % 60);
+
+  if (hours >= 24) {
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+
+    return `${days}d ${remainingHours}h remaining`;
+  }
+
+  return `${hours}h ${minutes}m remaining`;
+}
+
 function formatStatus(status?: string) {
   if (!status) return "Not Started";
 
@@ -114,13 +159,15 @@ function StatusPill({ status }: { status?: string }) {
   const normalized = String(status || "not_started").toLowerCase();
 
   const className =
-    normalized === "signed"
+    normalized === "signed" || normalized === "active"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
       : normalized === "cancelled" || normalized === "canceled"
         ? "border-red-200 bg-red-50 text-red-700"
         : normalized === "pending"
           ? "border-yellow-200 bg-yellow-50 text-yellow-700"
-          : "border-slate-200 bg-slate-50 text-slate-600";
+          : normalized === "proceeding_to_closing"
+            ? "border-blue-200 bg-blue-50 text-blue-700"
+            : "border-slate-200 bg-slate-50 text-slate-600";
 
   return (
     <span
@@ -190,9 +237,7 @@ function TrackerStep({
       </div>
 
       <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-black text-[var(--color-primary)]">{title}</h3>
-        </div>
+        <h3 className="font-black text-[var(--color-primary)]">{title}</h3>
 
         <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
           {description}
@@ -260,6 +305,13 @@ export default function DealTrackerPage() {
     skip: !activeListingId || Boolean(contractIdFromUrl),
   });
 
+  const {
+    data: myDealsData = [],
+    isLoading: isLoadingDeals,
+    isFetching: isFetchingDeals,
+    refetch: refetchDeals,
+  } = useGetMyDealsQuery();
+
   const latestContractByListing =
     Array.isArray(contractsByListingData) && contractsByListingData.length > 0
       ? contractsByListingData[0]
@@ -280,6 +332,15 @@ export default function DealTrackerPage() {
   const contract = localContract || fetchedContract || latestContractByListing;
   const contractId = getId(contract);
 
+  const deals = getArrayPayload(myDealsData);
+
+  const activeDeal =
+    contractId && deals.length > 0
+      ? deals.find((deal: any) => getDealContractId(deal) === contractId)
+      : null;
+
+  const activeDealId = getId(activeDeal);
+
   const contractStatus = String(contract?.status || "").toLowerCase();
 
   const isPending = contractStatus === "pending";
@@ -289,6 +350,16 @@ export default function DealTrackerPage() {
 
   const sellerSigned = Boolean(contract?.seller_signed_at);
   const buyerSigned = Boolean(contract?.buyer_signed_at);
+
+  const marketingDeadline = activeDeal?.marketing_deadline;
+  const marketLaunchDeadline = activeDeal?.market_launch_deadline;
+  const marketingProofUrl = activeDeal?.marketing_proof_url;
+  const marketLaunchProofUrl = activeDeal?.market_launch_proof_url;
+  const proceedToClosingAt = activeDeal?.proceed_to_closing_at;
+  const dealStatus = activeDeal?.status;
+
+  const hasMarketingTracking = Boolean(marketingDeadline || marketLaunchDeadline);
+  const hasProofUploaded = Boolean(marketingProofUrl || marketLaunchProofUrl);
 
   const partnerName = getBidderName(selectedBid, contract);
 
@@ -306,6 +377,8 @@ export default function DealTrackerPage() {
     isFetchingContract ||
     isLoadingContractsByListing ||
     isFetchingContractsByListing ||
+    isLoadingDeals ||
+    isFetchingDeals ||
     isCreatingContract ||
     isSigningSeller ||
     isCancellingContract;
@@ -351,7 +424,9 @@ export default function DealTrackerPage() {
       {
         title: "Partnership Secured",
         description: isSigned
-          ? "Both parties signed. Deal is officially secured."
+          ? activeDeal
+            ? `Both parties signed. Deal created with ID: ${activeDealId}.`
+            : "Both parties signed. Waiting for deal record to load from backend."
           : "This becomes complete when both seller and buyer have signed.",
         done: isSigned,
         current: Boolean(contract && sellerSigned && buyerSigned && !isSigned),
@@ -359,17 +434,45 @@ export default function DealTrackerPage() {
       },
       {
         title: "Marketing & Buyer Matching",
-        description: "72-hour marketing proof tracking.",
-        done: false,
-        current: false,
-        locked: true,
+        description: marketingDeadline
+          ? marketingProofUrl
+            ? `Marketing proof uploaded. Deadline was ${formatDateTime(
+                marketingDeadline
+              )}.`
+            : `72-hour marketing tracking started. Deadline: ${formatDateTime(
+                marketingDeadline
+              )}. ${getTimeRemaining(marketingDeadline)}.`
+          : marketLaunchDeadline
+            ? marketLaunchProofUrl
+              ? `Market launch proof uploaded. Deadline was ${formatDateTime(
+                  marketLaunchDeadline
+                )}.`
+              : `Market launch tracking started. Deadline: ${formatDateTime(
+                  marketLaunchDeadline
+                )}. ${getTimeRemaining(marketLaunchDeadline)}.`
+            : isSigned
+              ? "Deal is signed, but deadline is not loaded yet. Refresh after backend creates deal."
+              : "This starts after both parties sign and the deal is created.",
+        done: hasProofUploaded,
+        current: Boolean(
+          isSigned &&
+            activeDeal &&
+            hasMarketingTracking &&
+            !hasProofUploaded &&
+            !proceedToClosingAt
+        ),
+        locked: !activeDeal,
       },
       {
         title: "Inspection, Title & Escrow",
-        description: "Inspection countdown, title, escrow, and closing progress.",
-        done: false,
-        current: false,
-        locked: true,
+        description: proceedToClosingAt
+          ? `Deal moved to closing at ${formatDateTime(proceedToClosingAt)}.`
+          : hasProofUploaded
+            ? "Proof is uploaded. Buyer can now proceed to closing."
+            : "Inspection countdown, title, escrow, and closing progress.",
+        done: Boolean(proceedToClosingAt),
+        current: Boolean(activeDeal && hasProofUploaded && !proceedToClosingAt),
+        locked: !activeDeal || !hasProofUploaded,
       },
     ],
     [
@@ -381,6 +484,15 @@ export default function DealTrackerPage() {
       buyerSigned,
       isSigned,
       isCancelled,
+      activeDeal,
+      activeDealId,
+      marketingDeadline,
+      marketLaunchDeadline,
+      marketingProofUrl,
+      marketLaunchProofUrl,
+      proceedToClosingAt,
+      hasMarketingTracking,
+      hasProofUploaded,
     ]
   );
 
@@ -400,6 +512,12 @@ export default function DealTrackerPage() {
     setSearchParams,
   ]);
 
+  useEffect(() => {
+    if (!isSigned) return;
+
+    refetchDeals();
+  }, [isSigned, refetchDeals]);
+
   async function handleRefresh() {
     setApiError(null);
 
@@ -414,6 +532,8 @@ export default function DealTrackerPage() {
     } else if (activeListingId) {
       await refetchContractsByListing();
     }
+
+    await refetchDeals();
   }
 
   function handleListingChange(listingId: string) {
@@ -449,6 +569,7 @@ export default function DealTrackerPage() {
       });
 
       await refetchContractsByListing();
+      await refetchDeals();
     } catch (error: any) {
       setApiError(
         getErrorMessage(error, "Unable to create contract from selected bid.")
@@ -476,6 +597,7 @@ export default function DealTrackerPage() {
       });
 
       await refetchContract();
+      await refetchDeals();
     } catch (error: any) {
       setApiError(getErrorMessage(error, "Unable to sign contract as seller."));
     }
@@ -491,6 +613,7 @@ export default function DealTrackerPage() {
       setLocalContract(updated);
 
       await refetchContract();
+      await refetchDeals();
     } catch (error: any) {
       setApiError(getErrorMessage(error, "Unable to cancel contract."));
     }
@@ -509,7 +632,8 @@ export default function DealTrackerPage() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">
-            Track the selected partner, contract signatures, and deal progress.
+            Track the selected partner, contract signatures, marketing deadline,
+            and deal progress.
           </p>
         </div>
 
@@ -583,11 +707,43 @@ export default function DealTrackerPage() {
         />
 
         <StatCard
+          title="Marketing Deadline"
+          value={
+            marketingDeadline
+              ? getTimeRemaining(marketingDeadline)
+              : marketLaunchDeadline
+                ? getTimeRemaining(marketLaunchDeadline)
+                : "-"
+          }
+          icon={Clock3}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+        <StatCard
           title="Signatures"
           value={`${sellerSigned ? "Seller ✓" : "Seller -"} / ${
             buyerSigned ? "Buyer ✓" : "Buyer -"
           }`}
           icon={FileSignature}
+        />
+
+        <StatCard
+          title="Deal Status"
+          value={activeDeal ? formatStatus(dealStatus) : "No Deal Yet"}
+          icon={Handshake}
+        />
+
+        <StatCard
+          title="Deal ID"
+          value={activeDealId || "-"}
+          icon={FileText}
+        />
+
+        <StatCard
+          title="Proof Status"
+          value={hasProofUploaded ? "Uploaded" : "Pending"}
+          icon={ShieldCheck}
         />
       </div>
 
@@ -609,7 +765,7 @@ export default function DealTrackerPage() {
             </p>
           </div>
 
-          <StatusPill status={contract?.status || "not_started"} />
+          <StatusPill status={activeDeal?.status || contract?.status || "not_started"} />
         </div>
 
         <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -696,6 +852,64 @@ export default function DealTrackerPage() {
               )}
             </div>
 
+            {activeDeal && (
+              <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                  Deal Panel
+                </p>
+
+                <h3 className="mt-2 font-serif text-xl font-black text-[var(--color-primary)]">
+                  {formatStatus(activeDeal?.status)}
+                </h3>
+
+                <div className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                      Deal ID
+                    </p>
+                    <p className="mt-1 break-all font-bold text-[var(--color-primary)]">
+                      {activeDealId}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                      Deadline
+                    </p>
+                    <p className="mt-1 font-bold text-[var(--color-text-main)]">
+                      {marketingDeadline
+                        ? formatDateTime(marketingDeadline)
+                        : marketLaunchDeadline
+                          ? formatDateTime(marketLaunchDeadline)
+                          : "-"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                      Remaining
+                    </p>
+                    <p className="mt-1 font-bold text-[var(--color-text-main)]">
+                      {marketingDeadline
+                        ? getTimeRemaining(marketingDeadline)
+                        : marketLaunchDeadline
+                          ? getTimeRemaining(marketLaunchDeadline)
+                          : "-"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                      Chat
+                    </p>
+                    <p className="mt-1 font-bold text-[var(--color-text-main)]">
+                      {activeDeal?.chat_unlocked ? "Unlocked" : "Locked"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {!selectedBid && !contract && (
               <Link
                 to={activeListingId ? `/bids?listingId=${activeListingId}` : "/bids"}
@@ -748,6 +962,22 @@ export default function DealTrackerPage() {
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
                 Both parties signed. Partnership is secured.
               </div>
+            )}
+
+            {contract && isSigned && activeDeal && hasMarketingTracking && !hasProofUploaded && (
+              <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm font-semibold text-yellow-700">
+                72-hour marketing tracking is active. Waiting for buyer to
+                upload proof.
+              </div>
+            )}
+
+            {activeDeal?.chat_unlocked && (
+              <Link
+                to="/chat"
+                className="flex w-full items-center justify-center gap-2 bg-[var(--color-primary)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white transition hover:scale-[1.01]"
+              >
+                Open Deal Chat
+              </Link>
             )}
 
             {contract && !isCancelled && !isSigned && (

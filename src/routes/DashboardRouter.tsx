@@ -22,12 +22,14 @@ const sellerNav = [
   { label: "View Bids", path: "/bids" },
   { label: "Contracts", path: "/contracts" },
   { label: "Deal Tracker", path: "/deal-tracker" },
+  { label: "Chat", path: "/chat" },
 ];
 
 const partnerNav = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Property Stream", path: "/properties" },
   { label: "Active Deals", path: "/deals" },
+  { label: "Chat", path: "/chat" },
   { label: "Score", path: "/score" },
 ];
 
@@ -35,6 +37,7 @@ const realtorNav = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Properties", path: "/properties" },
   { label: "Deals", path: "/deals" },
+  { label: "Chat", path: "/chat" },
 ];
 
 const adminNav = [
