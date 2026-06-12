@@ -26,6 +26,10 @@ import {
 import { useGetMyDealsQuery } from "../../services/dealService";
 import { useAppSelector } from "../../redux/hooks";
 import { getChatSocket } from "../../utils/chatSocket";
+import {
+  CONTACT_RULE_WARNING,
+  detectContactViolation,
+} from "../../utils/contactDetection";
 
 function getId(item: any) {
   if (!item) return "";
@@ -85,18 +89,6 @@ function formatStatus(status?: string) {
     .join(" ");
 }
 
-// function formatMoney(value: any) {
-//   const numberValue = Number(value);
-
-//   if (!Number.isFinite(numberValue)) return "-";
-
-//   return numberValue.toLocaleString(undefined, {
-//     style: "currency",
-//     currency: "USD",
-//     maximumFractionDigits: 0,
-//   });
-// }
-
 function getOtherParticipant(room: any, currentUserId: string) {
   const sellerId = getId(room?.seller_id);
   const buyerId = getId(room?.buyer_id);
@@ -131,38 +123,6 @@ function getRoomDealId(room: any) {
   return getId(room?.deal_id) || room?.deal_id || "";
 }
 
-// function getDealContractId(deal: any) {
-//   return getId(deal?.contract_id) || deal?.contract_id || "";
-// }
-
-function detectContactViolation(message: string) {
-  const trimmed = message.trim();
-
-  const phoneRegex = /(\+?\d[\d\s().-]{7,}\d)/;
-  const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-  const urlRegex =
-    /\b((https?:\/\/)|(www\.)|([a-z0-9-]+\.(com|net|org|io|co|pk|us|uk|ca|edu|gov)\b))/i;
-  const whatsappRegex = /\b(wa\.me|whatsapp\.com|api\.whatsapp\.com)\b/i;
-
-  if (phoneRegex.test(trimmed)) {
-    return "Phone number sharing is not allowed in chat.";
-  }
-
-  if (emailRegex.test(trimmed)) {
-    return "Email sharing is not allowed in chat.";
-  }
-
-  if (whatsappRegex.test(trimmed)) {
-    return "WhatsApp links are not allowed in chat.";
-  }
-
-  if (urlRegex.test(trimmed)) {
-    return "External links are not allowed in chat.";
-  }
-
-  return "";
-}
-
 export default function ChatRoomPage() {
   const { roomId = "" } = useParams();
 
@@ -173,8 +133,10 @@ export default function ChatRoomPage() {
   const [messageText, setMessageText] = useState("");
   const [apiError, setApiError] = useState<string | null>(null);
   const [typingUserId, setTypingUserId] = useState<string | null>(null);
+  const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
 
   const typingTimeoutRef = useRef<number | null>(null);
+  const blockedNoticeTimerRef = useRef<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const {
@@ -210,9 +172,6 @@ export default function ChatRoomPage() {
   } = useGetMyDealsQuery();
 
   const [markChatRoomAsRead] = useMarkChatRoomAsReadMutation();
-
-  const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
-const blockedNoticeTimerRef = useRef<number | null>(null);
 
   const chatRooms = getArrayPayload(chatRoomsData);
   const myDeals = getArrayPayload(myDealsData);
@@ -254,6 +213,18 @@ const blockedNoticeTimerRef = useRef<number | null>(null);
     isLoadingDeals ||
     isFetchingDeals;
 
+  function showBlockedNotice(message: string) {
+    setBlockedNotice(message);
+
+    if (blockedNoticeTimerRef.current) {
+      window.clearTimeout(blockedNoticeTimerRef.current);
+    }
+
+    blockedNoticeTimerRef.current = window.setTimeout(() => {
+      setBlockedNotice(null);
+    }, 4000);
+  }
+
   useEffect(() => {
     setMessages(Array.isArray(fetchedMessages) ? fetchedMessages : []);
   }, [fetchedMessages]);
@@ -265,12 +236,16 @@ const blockedNoticeTimerRef = useRef<number | null>(null);
   }, [roomId, markChatRoomAsRead]);
 
   useEffect(() => {
-  return () => {
-    if (blockedNoticeTimerRef.current) {
-      window.clearTimeout(blockedNoticeTimerRef.current);
-    }
-  };
-}, []);
+    return () => {
+      if (blockedNoticeTimerRef.current) {
+        window.clearTimeout(blockedNoticeTimerRef.current);
+      }
+
+      if (typingTimeoutRef.current) {
+        window.clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!roomId) return;
@@ -376,24 +351,17 @@ const blockedNoticeTimerRef = useRef<number | null>(null);
     });
   }
 
-  function showBlockedNotice(message: string) {
-  setBlockedNotice(message);
-
-  if (blockedNoticeTimerRef.current) {
-    window.clearTimeout(blockedNoticeTimerRef.current);
-  }
-
-  blockedNoticeTimerRef.current = window.setTimeout(() => {
-    setBlockedNotice(null);
-  }, 3000);
-}
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmedMessage = messageText.trim();
 
     if (!trimmedMessage) return;
+
+    if (displayRoom?.is_locked) {
+      setApiError("This chat room is locked. You cannot send more messages.");
+      return;
+    }
 
     if (!currentUserId) {
       setApiError("Unable to identify current user. Please login again.");
@@ -402,10 +370,10 @@ const blockedNoticeTimerRef = useRef<number | null>(null);
 
     const violationMessage = detectContactViolation(trimmedMessage);
 
-   if (violationMessage) {
-  showBlockedNotice(violationMessage);
-  return;
-}
+    if (violationMessage) {
+      showBlockedNotice(violationMessage);
+      return;
+    }
 
     setApiError(null);
 
@@ -431,22 +399,23 @@ const blockedNoticeTimerRef = useRef<number | null>(null);
   return (
     <div className="space-y-6">
       {blockedNotice && (
-  <div className="fixed right-6 top-24 z-50 max-w-sm animate-bounce rounded-2xl border border-red-200 bg-red-50 px-5 py-4 shadow-xl">
-    <div className="flex items-start gap-3">
-      <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+        <div className="fixed right-6 top-24 z-50 max-w-sm rounded-2xl border border-red-200 bg-red-50 px-5 py-4 shadow-xl">
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
 
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600">
-          Message Blocked
-        </p>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600">
+                Message Blocked
+              </p>
 
-        <p className="mt-1 text-sm font-bold leading-6 text-red-700">
-          {blockedNotice}
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+              <p className="mt-1 text-sm font-bold leading-6 text-red-700">
+                {blockedNotice}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link
@@ -523,7 +492,9 @@ const blockedNoticeTimerRef = useRef<number | null>(null);
               </p>
 
               <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
-                {formatStatus(dealFromList?.status || displayRoom?.deal_id?.status)}
+                {formatStatus(
+                  dealFromList?.status || displayRoom?.deal_id?.status
+                )}
               </p>
             </div>
 
@@ -639,8 +610,7 @@ const blockedNoticeTimerRef = useRef<number | null>(null);
           className="flex flex-col gap-3 border-t border-[var(--color-border-light)] bg-white p-4"
         >
           <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-xs font-semibold text-yellow-800">
-            Do not share phone numbers, emails, WhatsApp links, or external
-            links. These messages will be blocked before sending.
+            {CONTACT_RULE_WARNING}
           </div>
 
           <div className="flex flex-col gap-3 md:flex-row">

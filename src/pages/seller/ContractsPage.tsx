@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -340,8 +341,8 @@ function ConfirmationModal({
     ? "This will mark the contract as cancelled. This action should only be used when the deal is no longer moving forward."
     : "This will record the seller signature timestamp on this contract.";
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex min-h-screen w-screen items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl border border-[var(--color-border-light)] bg-white p-8 shadow-2xl">
         <div className="mb-6 flex items-start justify-between">
           <div
@@ -391,14 +392,17 @@ function ConfirmationModal({
             onClick={onConfirm}
             disabled={isLoading}
             className={`flex-1 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
-              isCancel ? "bg-[var(--color-danger)]" : "bg-[var(--color-primary)]"
+              isCancel
+                ? "bg-[var(--color-danger)]"
+                : "bg-[var(--color-primary)]"
             }`}
           >
             {isLoading ? "Working..." : isCancel ? "Cancel Contract" : "Sign"}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -537,6 +541,16 @@ export default function ContractsPage() {
     ]
   );
 
+  useEffect(() => {
+  if (!confirmAction) return;
+
+  const originalOverflow = document.body.style.overflow;
+  document.body.style.overflow = "hidden";
+
+  return () => {
+    document.body.style.overflow = originalOverflow;
+  };
+}, [confirmAction]);
   useEffect(() => {
     setManualContractId(contractIdFromUrl);
   }, [contractIdFromUrl]);

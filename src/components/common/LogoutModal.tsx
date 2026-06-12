@@ -1,6 +1,6 @@
-import { LogOut, X } from "lucide-react";
-import { createPortal } from "react-dom";
-import StatusBadge from "./StatusBadge";
+import { AlertTriangle, LogOut } from "lucide-react";
+
+import ConfirmModal from "./ConfirmModal";
 
 interface LogoutModalProps {
   isOpen: boolean;
@@ -9,67 +9,30 @@ interface LogoutModalProps {
 }
 
 function LogoutModal({ isOpen, onCancel, onConfirm }: LogoutModalProps) {
-  if (!isOpen) return null;
+  return (
+    <ConfirmModal
+      isOpen={isOpen}
+      variant="danger"
+      badgeLabel="Logout"
+      title="Sign out of TRACT?"
+      description="You are about to end your current session. You will need to sign in again to access your dashboard."
+      icon={<LogOut className="h-6 w-6" />}
+      confirmIcon={<LogOut className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
+      confirmLabel="Sign Out"
+      cancelLabel="Stay Logged In"
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    >
+      <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+        <div className="flex gap-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-danger)]" />
 
-  return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 transition-all">
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300"
-        onClick={onCancel}
-      />
-
-      <div className="relative w-full max-w-md animate-in zoom-in-95 fade-in slide-in-from-bottom-5 duration-300">
-        <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-2xl">
-          <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]" />
-
-          <div className="p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <StatusBadge label="Notice" variant="success" />
-
-                <h2 className="mt-3 font-serif text-2xl font-black tracking-tight text-[var(--color-primary)]">
-                  Ready to sign out?
-                </h2>
-
-                <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-muted)]">
-                  You are about to log out of your TRACT account. You will
-                  need to sign in again to access your dashboard.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={onCancel}
-                className="rounded-full p-1.5 text-[var(--color-text-muted)] transition-all hover:bg-gray-100 hover:text-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/50"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={onCancel}
-                className="rounded-full border border-[var(--color-border-light)] bg-white px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-text-muted)] transition-all hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/5 hover:text-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/50"
-              >
-                Stay Logged In
-              </button>
-
-              <button
-                type="button"
-                onClick={onConfirm}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--color-primary)] px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.18em] text-white transition-all hover:scale-[1.02] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/50"
-              >
-                <LogOut className="h-4 w-4 transition-transform group-hover:-translate-y-px" />
-                Sign Out
-              </button>
-            </div>
-          </div>
+          <p className="text-xs font-semibold leading-5 text-red-700">
+            Make sure any unsaved changes are completed before signing out.
+          </p>
         </div>
       </div>
-    </div>,
-    document.body
+    </ConfirmModal>
   );
 }
 
