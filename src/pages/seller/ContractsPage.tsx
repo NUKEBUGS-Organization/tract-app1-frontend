@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
   AlertTriangle,
@@ -23,6 +23,7 @@ import {
   useCancelContractMutation,
   useCreateContractMutation,
   useGetContractByIdQuery,
+  useGetContractsByListingQuery,
   useSignContractAsSellerMutation,
 } from "../../services/contractService";
 
@@ -36,12 +37,18 @@ type BadgeVariant =
 
 type ModalAction = "seller-sign" | "cancel";
 
-function getApiPayload(response: any) {
-  return response?.data?.data ?? response?.data ?? response;
+function unwrapApiPayload(response: any) {
+  let payload = response?.data?.data ?? response?.data ?? response;
+
+  if (payload?._doc) {
+    payload = payload._doc;
+  }
+
+  return payload;
 }
 
 function getListingsFromDashboard(response: any) {
-  const payload = getApiPayload(response);
+  const payload = unwrapApiPayload(response);
 
   if (Array.isArray(payload?.listings)) return payload.listings;
   if (Array.isArray(payload?.data?.listings)) return payload.data.listings;
@@ -51,18 +58,71 @@ function getListingsFromDashboard(response: any) {
 }
 
 function getBidsFromResponse(response: any) {
-  const payload = getApiPayload(response);
+  const payload = unwrapApiPayload(response);
 
-  if (Array.isArray(payload?.bids)) return payload.bids;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload)) return payload;
+  if (!payload) return [];
+
+  if (Array.isArray(payload)) {
+    return payload.map((item) => item?._doc ?? item);
+  }
+
+  if (Array.isArray(payload?.bids)) {
+    return payload.bids.map((item: any) => item?._doc ?? item);
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data.map((item: any) => item?._doc ?? item);
+  }
+
+  if (typeof payload === "object") {
+    return Object.values(payload)
+      .map((item: any) => item?._doc ?? item)
+      .filter((item: any) => item && (item._id || item.id));
+  }
 
   return [];
 }
 
 function getContractFromResponse(response: any) {
-  const payload = getApiPayload(response);
-  return payload?.contract ?? payload;
+  let payload = unwrapApiPayload(response);
+
+  if (payload?.contract?._doc) {
+    payload = payload.contract._doc;
+  } else if (payload?.contract) {
+    payload = payload.contract;
+  }
+
+  if (payload?._doc) {
+    payload = payload._doc;
+  }
+
+  return payload;
+}
+
+function getContractsFromResponse(response: any) {
+  const payload = unwrapApiPayload(response);
+
+  if (!payload) return [];
+
+  if (Array.isArray(payload)) {
+    return payload.map((item) => item?._doc ?? item);
+  }
+
+  if (Array.isArray(payload?.contracts)) {
+    return payload.contracts.map((item: any) => item?._doc ?? item);
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data.map((item: any) => item?._doc ?? item);
+  }
+
+  if (typeof payload === "object") {
+    return Object.values(payload)
+      .map((item: any) => item?._doc ?? item)
+      .filter((item: any) => item && (item._id || item.id));
+  }
+
+  return [];
 }
 
 function getErrorMessage(error: any, fallback: string) {
@@ -169,7 +229,22 @@ function getSelectedBid(bids: any[]) {
 }
 
 function getId(item: any) {
+  if (!item) return "";
+  if (typeof item === "string") return item;
+
   return item?._id || item?.id || "";
+}
+
+function getContractListingId(contract: any) {
+  return getId(contract?.property_id) || contract?.property_id || "";
+}
+
+function contractBelongsToListing(contract: any, listingId: string) {
+  if (!contract || !listingId) return false;
+
+  const contractListingId = getContractListingId(contract);
+
+  return !contractListingId || contractListingId === listingId;
 }
 
 function getPopulatedListingLabel(contract: any, fallbackListing: any) {
@@ -192,6 +267,7 @@ function getPersonName(person: any, fallback: string) {
 
 function isContractCancelled(contract: any) {
   const status = String(contract?.status || "").toLowerCase();
+
   return status === "cancelled" || status === "canceled";
 }
 
@@ -212,7 +288,7 @@ function Detail({
         {label}
       </p>
 
-      <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
+      <p className="mt-1 break-words text-sm font-bold text-[var(--color-text-main)]">
         {value === undefined || value === null || value === "" ? "-" : value}
       </p>
     </div>
@@ -238,7 +314,7 @@ function SummaryCard({
         <Icon className="h-5 w-5 text-[var(--color-primary)]" />
       </div>
 
-      <p className="font-serif text-2xl font-black text-[var(--color-primary)]">
+      <p className="break-words font-serif text-2xl font-black text-[var(--color-primary)]">
         {value}
       </p>
     </div>
@@ -341,12 +417,13 @@ export default function ContractsPage() {
 
   const {
     data: dashboardData,
+    currentData: dashboardCurrentData,
     isLoading: isLoadingDashboard,
     isFetching: isFetchingDashboard,
     refetch: refetchDashboard,
   } = useGetListingsDashboardQuery();
 
-  const listings = getListingsFromDashboard(dashboardData);
+  const listings = getListingsFromDashboard(dashboardCurrentData ?? dashboardData);
 
   const selectedListing =
     listings.find((listing: any) => getId(listing) === listingIdFromUrl) ||
@@ -354,12 +431,12 @@ export default function ContractsPage() {
 
   const activeListingId = listingIdFromUrl || getId(selectedListing);
 
-  const activeListing = listings.find(
-    (listing: any) => getId(listing) === activeListingId
-  );
+  const activeListing =
+    listings.find((listing: any) => getId(listing) === activeListingId) ||
+    selectedListing;
 
   const {
-    data: bidsData,
+    currentData: bidsCurrentData,
     isLoading: isLoadingBids,
     isFetching: isFetchingBids,
     refetch: refetchBids,
@@ -367,14 +444,32 @@ export default function ContractsPage() {
     skip: !activeListingId,
   });
 
-  const bids = getBidsFromResponse(bidsData);
+  const bids = activeListingId ? getBidsFromResponse(bidsCurrentData) : [];
   const selectedBid = getSelectedBid(bids);
 
+  const {
+    currentData: contractsByListingCurrentData,
+    isLoading: isLoadingContractsByListing,
+    isFetching: isFetchingContractsByListing,
+    refetch: refetchContractsByListing,
+  } = useGetContractsByListingQuery(activeListingId, {
+    skip: !activeListingId,
+  });
+
+  const contractsForListing = activeListingId
+    ? getContractsFromResponse(contractsByListingCurrentData)
+    : [];
+
+  const latestContract =
+    contractsForListing.length > 0 ? contractsForListing[0] : null;
+
+  const latestContractId = getId(latestContract);
+
   const activeContractId =
-    contractIdFromUrl || getId(createdContract) || manualContractId.trim();
+    contractIdFromUrl || getId(createdContract) || latestContractId;
 
   const {
-    data: contractData,
+    currentData: contractCurrentData,
     isLoading: isLoadingContract,
     isFetching: isFetchingContract,
     refetch: refetchContract,
@@ -382,10 +477,19 @@ export default function ContractsPage() {
     skip: !activeContractId,
   });
 
-  const contractFromApi = getContractFromResponse(contractData);
-  const activeContract = getId(contractFromApi)
-    ? contractFromApi
-    : createdContract;
+  const contractFromApi = activeContractId
+    ? getContractFromResponse(contractCurrentData)
+    : null;
+
+  const createdContractForCurrentListing =
+    getId(createdContract) && contractBelongsToListing(createdContract, activeListingId)
+      ? createdContract
+      : null;
+
+  const activeContract =
+    getId(contractFromApi) && contractBelongsToListing(contractFromApi, activeListingId)
+      ? contractFromApi
+      : createdContractForCurrentListing || latestContract;
 
   const [createContract, { isLoading: isCreatingContract }] =
     useCreateContractMutation();
@@ -419,11 +523,39 @@ export default function ContractsPage() {
     () => ({
       totalListings: listings.length,
       bidsForListing: bids.length,
-      hasSelectedBid: selectedBid ? "Yes" : "No",
-      contractStatus: formatStatus(contractStatus),
+      contractsForListing: contractsForListing.length,
+      contractStatus: getId(activeContract)
+        ? formatStatus(contractStatus)
+        : "No Contract",
     }),
-    [listings.length, bids.length, selectedBid, contractStatus]
+    [
+      listings.length,
+      bids.length,
+      contractsForListing.length,
+      activeContract,
+      contractStatus,
+    ]
   );
+
+  useEffect(() => {
+    setManualContractId(contractIdFromUrl);
+  }, [contractIdFromUrl]);
+
+  useEffect(() => {
+    if (!activeListingId) return;
+    if (contractIdFromUrl) return;
+    if (!latestContractId) return;
+
+    setSearchParams(
+      {
+        listingId: activeListingId,
+        contractId: latestContractId,
+      },
+      {
+        replace: true,
+      }
+    );
+  }, [activeListingId, contractIdFromUrl, latestContractId, setSearchParams]);
 
   function updateSearchParams(next: {
     listingId?: string;
@@ -439,7 +571,9 @@ export default function ContractsPage() {
       params.contractId = next.contractId;
     }
 
-    setSearchParams(params);
+    setSearchParams(params, {
+      replace: true,
+    });
   }
 
   function handleListingChange(listingId: string) {
@@ -514,6 +648,8 @@ export default function ContractsPage() {
         });
       }
 
+      await refetchContractsByListing();
+
       setApiSuccess("Contract created/opened successfully.");
     } catch (error: any) {
       setApiError(getErrorMessage(error, "Unable to create contract."));
@@ -553,15 +689,40 @@ export default function ContractsPage() {
       }
 
       await refetchDashboard();
-      await refetchBids();
+
+      if (activeListingId) {
+        await refetchBids();
+        await refetchContractsByListing();
+      }
     } catch (error: any) {
       setApiError(getErrorMessage(error, "Unable to update contract."));
       setConfirmAction(null);
     }
   }
 
+  async function handleRefresh() {
+    setApiError(null);
+
+    await refetchDashboard();
+
+    if (activeListingId) {
+      await refetchBids();
+      await refetchContractsByListing();
+    }
+
+    if (activeContractId) {
+      await refetchContract();
+    }
+  }
+
   const isWorking =
     isCreatingContract || isSigningSeller || isCancellingContract;
+
+  const isFetchingAnything =
+    isFetchingDashboard ||
+    isFetchingBids ||
+    isFetchingContract ||
+    isFetchingContractsByListing;
 
   return (
     <div className="space-y-8">
@@ -593,22 +754,12 @@ export default function ContractsPage() {
 
         <button
           type="button"
-          onClick={() => {
-            refetchDashboard();
-            if (activeListingId) refetchBids();
-            if (activeContractId) refetchContract();
-          }}
-          disabled={
-            isFetchingDashboard || isFetchingBids || isFetchingContract
-          }
+          onClick={handleRefresh}
+          disabled={isFetchingAnything}
           className="inline-flex items-center gap-2 border border-[var(--color-border-light)] bg-white px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <RefreshCw
-            className={`h-4 w-4 ${
-              isFetchingDashboard || isFetchingBids || isFetchingContract
-                ? "animate-spin"
-                : ""
-            }`}
+            className={`h-4 w-4 ${isFetchingAnything ? "animate-spin" : ""}`}
           />
           Refresh
         </button>
@@ -638,8 +789,8 @@ export default function ContractsPage() {
           icon={Gavel}
         />
         <SummaryCard
-          label="Selected Bid"
-          value={summary.hasSelectedBid}
+          label="Contracts"
+          value={summary.contractsForListing}
           icon={CheckCircle2}
         />
         <SummaryCard
@@ -664,8 +815,8 @@ export default function ContractsPage() {
               </div>
 
               <StatusBadge
-                label={formatStatus(contractStatus)}
-                variant={getStatusVariant(contractStatus)}
+                label={getId(activeContract) ? formatStatus(contractStatus) : "No Contract"}
+                variant={getId(activeContract) ? getStatusVariant(contractStatus) : "neutral"}
               />
             </div>
 
@@ -725,6 +876,64 @@ export default function ContractsPage() {
                       View Bids
                       <ArrowUpRight className="h-3 w-3" />
                     </Link>
+
+                    {getId(activeContract) && (
+                      <Link
+                        to={`/deal-tracker?listingId=${activeListingId}&contractId=${getId(activeContract)}`}
+                        className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)]"
+                      >
+                        Deal Tracker
+                        <ArrowUpRight className="h-3 w-3" />
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {contractsForListing.length > 0 && (
+                <div className="rounded-xl border border-[var(--color-border-light)] bg-white p-5">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                    Contracts On This Listing
+                  </p>
+
+                  <div className="mt-4 space-y-3">
+                    {contractsForListing.map((contract: any) => {
+                      const contractId = getId(contract);
+                      const isActive = contractId === getId(activeContract);
+
+                      return (
+                        <button
+                          key={contractId}
+                          type="button"
+                          onClick={() => {
+                            setCreatedContract(null);
+                            updateSearchParams({
+                              listingId: activeListingId,
+                              contractId,
+                            });
+                          }}
+                          className={`flex w-full items-center justify-between gap-4 rounded-xl border p-4 text-left transition ${
+                            isActive
+                              ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5"
+                              : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] hover:border-[var(--color-secondary)]"
+                          }`}
+                        >
+                          <div>
+                            <p className="break-all text-xs font-black text-[var(--color-primary)]">
+                              {contractId}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
+                              Created {formatDateTime(contract?.createdAt)}
+                            </p>
+                          </div>
+
+                          <StatusBadge
+                            label={formatStatus(contract?.status)}
+                            variant={getStatusVariant(contract?.status)}
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -799,9 +1008,7 @@ export default function ContractsPage() {
                     />
                     <Detail
                       label="Due Diligence"
-                      value={`${
-                        selectedBid?.due_diligence_period ?? "-"
-                      } days`}
+                      value={`${selectedBid?.due_diligence_period ?? "-"} days`}
                     />
                   </div>
                 )}
@@ -848,8 +1055,7 @@ export default function ContractsPage() {
             </h2>
 
             <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
-              Because backend has no “list contracts” endpoint yet, you can open
-              a contract directly by ID.
+              You can still open a contract directly by ID if needed.
             </p>
 
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
@@ -884,7 +1090,7 @@ export default function ContractsPage() {
                 </p>
               </div>
 
-              {isLoadingContract && (
+              {(isLoadingContract || isLoadingContractsByListing) && (
                 <Loader2 className="h-5 w-5 animate-spin text-[var(--color-primary)]" />
               )}
             </div>
@@ -915,10 +1121,7 @@ export default function ContractsPage() {
                 <Detail label="Contract ID" value={getId(activeContract)} />
                 <Detail
                   label="Listing"
-                  value={getPopulatedListingLabel(
-                    activeContract,
-                    activeListing
-                  )}
+                  value={getPopulatedListingLabel(activeContract, activeListing)}
                 />
                 <Detail
                   label="Seller"
@@ -928,10 +1131,7 @@ export default function ContractsPage() {
                   label="Buyer"
                   value={getPersonName(activeContract?.buyer_id, "Buyer")}
                 />
-                <Detail
-                  label="Created"
-                  value={formatDate(activeContract?.createdAt)}
-                />
+                <Detail label="Created" value={formatDate(activeContract?.createdAt)} />
 
                 {activeContract?.pdf_url && (
                   <a
@@ -994,9 +1194,7 @@ export default function ContractsPage() {
 
                   <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                     {signedByBuyer
-                      ? `Signed at ${formatDateTime(
-                          activeContract?.buyer_signed_at
-                        )}`
+                      ? `Signed at ${formatDateTime(activeContract?.buyer_signed_at)}`
                       : "Waiting for buyer"}
                   </p>
                 </div>
@@ -1033,7 +1231,6 @@ export default function ContractsPage() {
               </button>
             </div>
           </div>
-
         </aside>
       </section>
     </div>

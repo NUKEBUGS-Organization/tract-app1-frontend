@@ -11,7 +11,23 @@ import { useGetChatRoomsQuery } from "../../services/chatService";
 import { useGetMyDealsQuery } from "../../services/dealService";
 import { useAppSelector } from "../../redux/hooks";
 
+function getArrayPayload(value: any) {
+  const payload = value?.data ?? value;
+
+  if (!payload) return [];
+
+  if (Array.isArray(payload)) return payload;
+
+  if (typeof payload === "object") return Object.values(payload);
+
+  return [];
+}
+
 function getId(item: any) {
+  if (!item) return "";
+
+  if (typeof item === "string") return item;
+
   return item?._id || item?.id || "";
 }
 
@@ -43,6 +59,18 @@ function formatStatus(status?: string) {
     .join(" ");
 }
 
+function formatMoney(value: any) {
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) return "-";
+
+  return numberValue.toLocaleString(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
 function getOtherParticipant(room: any, currentUserId: string) {
   const sellerId = getId(room?.seller_id);
   const buyerId = getId(room?.buyer_id);
@@ -53,13 +81,40 @@ function getOtherParticipant(room: any, currentUserId: string) {
   return room?.buyer_id || room?.seller_id;
 }
 
-function getDealLabel(room: any) {
-  const listing = room?.deal_id?.listing_id;
-  const address = listing?.address;
+function getRoomDealId(room: any) {
+  return getId(room?.deal_id) || room?.deal_id || "";
+}
 
-  if (address) return address;
+function getDealForRoom(room: any, deals: any[]) {
+  const roomDealId = getRoomDealId(room);
 
-  return `Deal ${getId(room?.deal_id).slice(-6)}`;
+  if (!roomDealId) return null;
+
+  return (
+    deals.find((deal: any) => getId(deal) === roomDealId) ||
+    room?.deal_id ||
+    null
+  );
+}
+
+function getListingFromRoomOrDeal(room: any, deal: any) {
+  return (
+    deal?.listing_id ||
+    room?.deal_id?.listing_id ||
+    deal?.contract_id?.property_id ||
+    room?.deal_id?.contract_id?.property_id ||
+    null
+  );
+}
+
+function getListingLabel(listing: any) {
+  if (!listing || typeof listing === "string") return "Listing details unavailable";
+
+  const address = listing?.address || "Untitled Listing";
+  const state = listing?.state_code ? `, ${listing.state_code}` : "";
+  const zip = listing?.zip_code ? ` ${listing.zip_code}` : "";
+
+  return `${address}${state}${zip}`;
 }
 
 export default function ChatRoomsPage() {
@@ -67,18 +122,21 @@ export default function ChatRoomsPage() {
   const currentUserId = getCurrentUserId(user);
 
   const {
-    data: rooms = [],
+    data: roomsData = [],
     isLoading: isLoadingRooms,
     isFetching: isFetchingRooms,
     refetch: refetchRooms,
   } = useGetChatRoomsQuery();
 
   const {
-    data: deals = [],
+    data: dealsData = [],
     isLoading: isLoadingDeals,
     isFetching: isFetchingDeals,
     refetch: refetchDeals,
   } = useGetMyDealsQuery();
+
+  const rooms = getArrayPayload(roomsData);
+  const deals = getArrayPayload(dealsData);
 
   const isBusy =
     isLoadingRooms || isFetchingRooms || isLoadingDeals || isFetchingDeals;
@@ -154,6 +212,13 @@ export default function ChatRoomsPage() {
           {rooms.map((room: any) => {
             const roomId = getId(room);
             const otherUser = getOtherParticipant(room, currentUserId);
+            const deal = getDealForRoom(room, deals);
+            const listing = getListingFromRoomOrDeal(room, deal);
+
+            const listingLabel = getListingLabel(listing);
+            const dealStatus = deal?.status || room?.deal_id?.status;
+            const marketPrice =
+              listing?.market_price || deal?.listing_id?.market_price;
 
             return (
               <Link
@@ -161,19 +226,47 @@ export default function ChatRoomsPage() {
                 to={`/chat/${roomId}`}
                 className="block rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:border-[var(--color-secondary)]"
               >
-                <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-                  <div>
+                <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+                  <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-                      {getDealLabel(room)}
+                      Chat Partner
                     </p>
 
                     <h2 className="mt-2 font-serif text-2xl font-black text-[var(--color-primary)]">
                       {otherUser?.full_name || otherUser?.email || "Deal Chat"}
                     </h2>
 
-                    <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-                      Last activity: {formatDateTime(room?.last_message_at)}
-                    </p>
+                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                          Listing
+                        </p>
+
+                        <p className="mt-1 text-sm font-bold text-[var(--color-primary)]">
+                          {listingLabel}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                          Market Price
+                        </p>
+
+                        <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
+                          {formatMoney(marketPrice)}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                          Last Activity
+                        </p>
+
+                        <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
+                          {formatDateTime(room?.last_message_at)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3">
@@ -183,7 +276,7 @@ export default function ChatRoomsPage() {
                     </span>
 
                     <span className="rounded-full border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-                      {formatStatus(room?.deal_id?.status)}
+                      {formatStatus(dealStatus)}
                     </span>
                   </div>
                 </div>

@@ -61,6 +61,11 @@ export const contractService = baseApi.injectEndpoints({
         body,
       }),
       transformResponse: unwrapApiResponse,
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Contract", id: "LIST" },
+        { type: "Contract", id: `LISTING-${arg.listingId}` },
+        { type: "Deal", id: "LIST" },
+      ],
     }),
 
     getContractById: builder.query<any, string>({
@@ -69,6 +74,9 @@ export const contractService = baseApi.injectEndpoints({
         method: "GET",
       }),
       transformResponse: unwrapApiResponse,
+      providesTags: (_result, _error, contractId) => [
+        { type: "Contract", id: contractId },
+      ],
     }),
 
     getContractsByListing: builder.query<any[], string>({
@@ -77,6 +85,10 @@ export const contractService = baseApi.injectEndpoints({
         method: "GET",
       }),
       transformResponse: unwrapContractListResponse,
+      providesTags: (_result, _error, listingId) => [
+        { type: "Contract", id: "LIST" },
+        { type: "Contract", id: `LISTING-${listingId}` },
+      ],
     }),
 
     signContractAsSeller: builder.mutation<any, string>({
@@ -85,6 +97,11 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapApiResponse,
+      invalidatesTags: (_result, _error, contractId) => [
+        { type: "Contract", id: contractId },
+        { type: "Contract", id: "LIST" },
+        { type: "Deal", id: "LIST" },
+      ],
     }),
 
     signContractAsBuyer: builder.mutation<any, string>({
@@ -93,6 +110,11 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapApiResponse,
+      invalidatesTags: (_result, _error, contractId) => [
+        { type: "Contract", id: contractId },
+        { type: "Contract", id: "LIST" },
+        { type: "Deal", id: "LIST" },
+      ],
     }),
 
     cancelContract: builder.mutation<any, string>({
@@ -101,6 +123,11 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapApiResponse,
+      invalidatesTags: (_result, _error, contractId) => [
+        { type: "Contract", id: contractId },
+        { type: "Contract", id: "LIST" },
+        { type: "Deal", id: "LIST" },
+      ],
     }),
   }),
 });

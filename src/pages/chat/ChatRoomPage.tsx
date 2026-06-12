@@ -35,6 +35,18 @@ function getId(item: any) {
   return item?._id || item?.id || "";
 }
 
+function getArrayPayload(value: any) {
+  const payload = value?.data ?? value;
+
+  if (!payload) return [];
+
+  if (Array.isArray(payload)) return payload;
+
+  if (typeof payload === "object") return Object.values(payload);
+
+  return [];
+}
+
 function getCurrentUserId(user: any) {
   return user?._id || user?.id || user?.user_id || user?.sub || "";
 }
@@ -119,6 +131,38 @@ function getRoomDealId(room: any) {
   return getId(room?.deal_id) || room?.deal_id || "";
 }
 
+function getDealContractId(deal: any) {
+  return getId(deal?.contract_id) || deal?.contract_id || "";
+}
+
+function detectContactViolation(message: string) {
+  const trimmed = message.trim();
+
+  const phoneRegex = /(\+?\d[\d\s().-]{7,}\d)/;
+  const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+  const urlRegex =
+    /\b((https?:\/\/)|(www\.)|([a-z0-9-]+\.(com|net|org|io|co|pk|us|uk|ca|edu|gov)\b))/i;
+  const whatsappRegex = /\b(wa\.me|whatsapp\.com|api\.whatsapp\.com)\b/i;
+
+  if (phoneRegex.test(trimmed)) {
+    return "Phone number sharing is not allowed in chat.";
+  }
+
+  if (emailRegex.test(trimmed)) {
+    return "Email sharing is not allowed in chat.";
+  }
+
+  if (whatsappRegex.test(trimmed)) {
+    return "WhatsApp links are not allowed in chat.";
+  }
+
+  if (urlRegex.test(trimmed)) {
+    return "External links are not allowed in chat.";
+  }
+
+  return "";
+}
+
 export default function ChatRoomPage() {
   const { roomId = "" } = useParams();
 
@@ -152,14 +196,14 @@ export default function ChatRoomPage() {
   });
 
   const {
-    data: chatRooms = [],
+    data: chatRoomsData = [],
     isLoading: isLoadingRooms,
     isFetching: isFetchingRooms,
     refetch: refetchRooms,
   } = useGetChatRoomsQuery();
 
   const {
-    data: myDeals = [],
+    data: myDealsData = [],
     isLoading: isLoadingDeals,
     isFetching: isFetchingDeals,
     refetch: refetchDeals,
@@ -167,8 +211,14 @@ export default function ChatRoomPage() {
 
   const [markChatRoomAsRead] = useMarkChatRoomAsReadMutation();
 
+  const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
+const blockedNoticeTimerRef = useRef<number | null>(null);
+
+  const chatRooms = getArrayPayload(chatRoomsData);
+  const myDeals = getArrayPayload(myDealsData);
+
   const roomFromList = useMemo(() => {
-    if (!Array.isArray(chatRooms) || !roomId) return null;
+    if (!roomId) return null;
 
     return chatRooms.find((item: any) => getId(item) === roomId) || null;
   }, [chatRooms, roomId]);
@@ -178,7 +228,7 @@ export default function ChatRoomPage() {
   const displayDealId = getRoomDealId(displayRoom);
 
   const dealFromList = useMemo(() => {
-    if (!Array.isArray(myDeals) || !displayDealId) return null;
+    if (!displayDealId) return null;
 
     return myDeals.find((deal: any) => getId(deal) === displayDealId) || null;
   }, [myDeals, displayDealId]);
@@ -213,6 +263,14 @@ export default function ChatRoomPage() {
 
     markChatRoomAsRead(roomId).catch(() => {});
   }, [roomId, markChatRoomAsRead]);
+
+  useEffect(() => {
+  return () => {
+    if (blockedNoticeTimerRef.current) {
+      window.clearTimeout(blockedNoticeTimerRef.current);
+    }
+  };
+}, []);
 
   useEffect(() => {
     if (!roomId) return;
@@ -318,6 +376,18 @@ export default function ChatRoomPage() {
     });
   }
 
+  function showBlockedNotice(message: string) {
+  setBlockedNotice(message);
+
+  if (blockedNoticeTimerRef.current) {
+    window.clearTimeout(blockedNoticeTimerRef.current);
+  }
+
+  blockedNoticeTimerRef.current = window.setTimeout(() => {
+    setBlockedNotice(null);
+  }, 3000);
+}
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -329,6 +399,13 @@ export default function ChatRoomPage() {
       setApiError("Unable to identify current user. Please login again.");
       return;
     }
+
+    const violationMessage = detectContactViolation(trimmedMessage);
+
+   if (violationMessage) {
+  showBlockedNotice(violationMessage);
+  return;
+}
 
     setApiError(null);
 
@@ -353,6 +430,23 @@ export default function ChatRoomPage() {
 
   return (
     <div className="space-y-6">
+      {blockedNotice && (
+  <div className="fixed right-6 top-24 z-50 max-w-sm animate-bounce rounded-2xl border border-red-200 bg-red-50 px-5 py-4 shadow-xl">
+    <div className="flex items-start gap-3">
+      <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600">
+          Message Blocked
+        </p>
+
+        <p className="mt-1 text-sm font-bold leading-6 text-red-700">
+          {blockedNotice}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link
@@ -410,14 +504,6 @@ export default function ChatRoomPage() {
 
       <div className="overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
         <div className="border-b border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-            Listing
-          </p>
-
-          <p className="mt-1 text-sm font-bold text-[var(--color-primary)]">
-            {getListingLabel(displayListing)}
-          </p>
-
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
@@ -448,38 +534,6 @@ export default function ChatRoomPage() {
 
               <p className="mt-1 break-all text-xs font-bold text-[var(--color-text-muted)]">
                 {getContractLabel(displayContract)}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-                Market Price
-              </p>
-
-              <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
-                {formatMoney(displayListing?.market_price)}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-                Chat Status
-              </p>
-
-              <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
-                {displayRoom?.is_locked ? "Locked" : "Open"}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-                Room ID
-              </p>
-
-              <p className="mt-1 break-all text-xs font-bold text-[var(--color-text-muted)]">
-                {roomId}
               </p>
             </div>
           </div>
@@ -582,28 +636,40 @@ export default function ChatRoomPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-3 border-t border-[var(--color-border-light)] bg-white p-4 md:flex-row"
+          className="flex flex-col gap-3 border-t border-[var(--color-border-light)] bg-white p-4"
         >
-          <textarea
-            value={messageText}
-            onChange={(event) => {
-              setMessageText(event.target.value);
-              handleTyping();
-            }}
-            disabled={displayRoom?.is_locked}
-            placeholder="Write a message..."
-            rows={2}
-            className="min-h-[52px] flex-1 resize-none border border-[var(--color-border-light)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-text-main)] outline-none transition focus:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:bg-[var(--color-bg-soft)]"
-          />
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-xs font-semibold text-yellow-800">
+            Do not share phone numbers, emails, WhatsApp links, or external
+            links. These messages will be blocked before sending.
+          </div>
 
-          <button
-            type="submit"
-            disabled={!messageText.trim() || displayRoom?.is_locked}
-            className="inline-flex items-center justify-center gap-2 bg-[var(--color-primary)] px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Send className="h-4 w-4" />
-            Send
-          </button>
+          <div className="flex flex-col gap-3 md:flex-row">
+            <textarea
+              value={messageText}
+              onChange={(event) => {
+                setMessageText(event.target.value);
+
+                if (apiError) {
+                  setApiError(null);
+                }
+
+                handleTyping();
+              }}
+              disabled={displayRoom?.is_locked}
+              placeholder="Write a message..."
+              rows={2}
+              className="min-h-[52px] flex-1 resize-none border border-[var(--color-border-light)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-text-main)] outline-none transition focus:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:bg-[var(--color-bg-soft)]"
+            />
+
+            <button
+              type="submit"
+              disabled={!messageText.trim() || displayRoom?.is_locked}
+              className="inline-flex items-center justify-center gap-2 bg-[var(--color-primary)] px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+              Send
+            </button>
+          </div>
         </form>
       </div>
     </div>

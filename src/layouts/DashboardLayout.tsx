@@ -525,7 +525,7 @@ function DashboardLayout({
                       </Link> */}
                     </div>
 
-                    <div className="border-t border-[var(--color-border-light)] p-2">
+                    {/* <div className="border-t border-[var(--color-border-light)] p-2">
                       <button
                         type="button"
                         onClick={async () => {
@@ -537,7 +537,7 @@ function DashboardLayout({
                         <LogOut className="h-4 w-4" />
                         Logout
                       </button>
-                    </div>
+                    </div> */}
                   </div>
                 )}
               </div>
