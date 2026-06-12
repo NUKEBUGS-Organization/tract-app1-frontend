@@ -15,9 +15,9 @@ function unwrapContractDoc(response: ApiEnvelope<MongooseDocEnvelope>) {
   return response.data._doc;
 }
 
-function unwrapContract(response: ApiEnvelope<any>) {
-  return response.data;
-}
+// function unwrapContract(response: ApiEnvelope<any>) {
+//   return response.data;
+// }
 
 function unwrapContractList(response: ApiEnvelope<Record<string, any> | null>) {
   if (!response.data) return [];

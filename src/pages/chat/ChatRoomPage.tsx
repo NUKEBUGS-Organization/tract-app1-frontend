@@ -85,17 +85,17 @@ function formatStatus(status?: string) {
     .join(" ");
 }
 
-function formatMoney(value: any) {
-  const numberValue = Number(value);
+// function formatMoney(value: any) {
+//   const numberValue = Number(value);
 
-  if (!Number.isFinite(numberValue)) return "-";
+//   if (!Number.isFinite(numberValue)) return "-";
 
-  return numberValue.toLocaleString(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
-}
+//   return numberValue.toLocaleString(undefined, {
+//     style: "currency",
+//     currency: "USD",
+//     maximumFractionDigits: 0,
+//   });
+// }
 
 function getOtherParticipant(room: any, currentUserId: string) {
   const sellerId = getId(room?.seller_id);
@@ -131,9 +131,9 @@ function getRoomDealId(room: any) {
   return getId(room?.deal_id) || room?.deal_id || "";
 }
 
-function getDealContractId(deal: any) {
-  return getId(deal?.contract_id) || deal?.contract_id || "";
-}
+// function getDealContractId(deal: any) {
+//   return getId(deal?.contract_id) || deal?.contract_id || "";
+// }
 
 function detectContactViolation(message: string) {
   const trimmed = message.trim();

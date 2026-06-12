@@ -10,7 +10,6 @@ import {
 import {
   Bell,
   ChevronDown,
-  LogOut,
   Menu,
   Plus,
   Search,
@@ -180,7 +179,7 @@ function DashboardLayout({
   mode = "light",
   children,
 }: DashboardLayoutProps) {
-  const { user, logoutAuth } = useAuthContext();
+  const { user } = useAuthContext();
   const { data: profile } = useGetMeQuery(undefined, { skip: !user });
 
   const location = useLocation();
