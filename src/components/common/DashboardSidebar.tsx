@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import {
   BarChart3,
@@ -19,6 +20,7 @@ import {
 
 import { useAuthContext } from "../../contexts/AuthContext";
 import tractLogoSidebar from "../../assets/tract-logo-sidebar.png";
+import LogoutModal from "./LogoutModal";
 
 interface NavItem {
   label: string;
@@ -55,6 +57,7 @@ export default function DashboardSidebar({
 }: DashboardSidebarProps) {
   const location = useLocation();
   const { logoutAuth } = useAuthContext();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   return (
     <>
@@ -68,7 +71,7 @@ export default function DashboardSidebar({
 
 
         <div>
-          <div className="text-3xl font-extrabold tracking-tight text-white" style={{ fontFamily: '"Montserrat", sans-serif' }}>
+          <div className="text-3xl font-normal tracking-tight text-white" style={{ fontFamily: '"Cinzel", serif' }}>
             TRACT
           </div>
 
@@ -121,13 +124,19 @@ export default function DashboardSidebar({
 
         <button
           type="button"
-          onClick={logoutAuth}
+          onClick={() => setIsLogoutModalOpen(true)}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-white/75 transition hover:bg-[var(--color-danger)] hover:text-white"
         >
           <LogOut className="h-4 w-4" />
           Logout
         </button>
       </div>
+
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onCancel={() => setIsLogoutModalOpen(false)}
+        onConfirm={logoutAuth}
+      />
     </>
   );
 }
