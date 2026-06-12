@@ -127,12 +127,6 @@ const baseQueryWithReAuth: BaseQueryFn<
 
   const status = result.error?.status;
 
-  /*
-    Only refresh on 401 for protected APIs.
-
-    Do not force logout on normal protected 400 errors because listing validation
-    can return 400 and user should see validation message instead of logout.
-  */
   if (status === 401 && !isAuthPublicApi(requestUrl)) {
     const refreshed = await refreshAuthSession(api, extraOptions);
 
@@ -147,6 +141,15 @@ const baseQueryWithReAuth: BaseQueryFn<
 export const baseApi = createApi({
   reducerPath: "baseApi",
   baseQuery: baseQueryWithReAuth,
-  tagTypes: ["Auth", "User", "Property", "Bid", "Deal","Chat", "Admin"],
+  tagTypes: [
+    "Auth",
+    "User",
+    "Property",
+    "Bid",
+    "Contract",
+    "Deal",
+    "Chat",
+    "Admin",
+  ],
   endpoints: () => ({}),
 });

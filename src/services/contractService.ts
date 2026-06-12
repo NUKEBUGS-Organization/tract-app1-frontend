@@ -1,46 +1,28 @@
 import { baseApi } from "./baseApi";
 
-function unwrapApiResponse(response: any) {
-  let payload = response;
+type ApiEnvelope<T> = {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: T;
+};
 
-  if (
-    payload &&
-    typeof payload === "object" &&
-    "data" in payload &&
-    ("success" in payload || "statusCode" in payload || "message" in payload)
-  ) {
-    payload = payload.data;
-  }
+type MongooseDocEnvelope = {
+  _doc: any;
+};
 
-  if (payload?._doc) {
-    payload = payload._doc;
-  }
-
-  if (payload?.contract?._doc) {
-    payload = payload.contract._doc;
-  }
-
-  if (payload?.contract) {
-    payload = payload.contract;
-  }
-
-  return payload;
+function unwrapContractDoc(response: ApiEnvelope<MongooseDocEnvelope>) {
+  return response.data._doc;
 }
 
-function unwrapContractListResponse(response: any) {
-  const payload = unwrapApiResponse(response);
+function unwrapContract(response: ApiEnvelope<any>) {
+  return response.data;
+}
 
-  if (!payload) return [];
+function unwrapContractList(response: ApiEnvelope<Record<string, any> | null>) {
+  if (!response.data) return [];
 
-  if (Array.isArray(payload)) {
-    return payload.map((item) => item?._doc ?? item);
-  }
-
-  if (typeof payload === "object") {
-    return Object.values(payload).map((item: any) => item?._doc ?? item);
-  }
-
-  return [];
+  return Object.values(response.data);
 }
 
 export const contractService = baseApi.injectEndpoints({
@@ -60,35 +42,26 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      transformResponse: unwrapApiResponse,
-      invalidatesTags: (_result, _error, arg) => [
-        { type: "Contract", id: "LIST" },
-        { type: "Contract", id: `LISTING-${arg.listingId}` },
-        { type: "Deal", id: "LIST" },
-      ],
+      transformResponse: unwrapContractDoc,
+      invalidatesTags: ["Contract", "Deal"],
     }),
 
-    getContractById: builder.query<any, string>({
-      query: (contractId) => ({
-        url: `contracts/${contractId}`,
-        method: "GET",
-      }),
-      transformResponse: unwrapApiResponse,
-      providesTags: (_result, _error, contractId) => [
-        { type: "Contract", id: contractId },
-      ],
-    }),
+   getContractById: builder.query<any, string>({
+  query: (contractId) => ({
+    url: `contracts/${contractId}`,
+    method: "GET",
+  }),
+  transformResponse: unwrapContractDoc,
+  providesTags: ["Contract"],
+}),
 
     getContractsByListing: builder.query<any[], string>({
       query: (listingId) => ({
         url: `contracts/listing/${listingId}`,
         method: "GET",
       }),
-      transformResponse: unwrapContractListResponse,
-      providesTags: (_result, _error, listingId) => [
-        { type: "Contract", id: "LIST" },
-        { type: "Contract", id: `LISTING-${listingId}` },
-      ],
+      transformResponse: unwrapContractList,
+      providesTags: ["Contract"],
     }),
 
     signContractAsSeller: builder.mutation<any, string>({
@@ -96,12 +69,8 @@ export const contractService = baseApi.injectEndpoints({
         url: `contracts/${contractId}/sign/seller`,
         method: "POST",
       }),
-      transformResponse: unwrapApiResponse,
-      invalidatesTags: (_result, _error, contractId) => [
-        { type: "Contract", id: contractId },
-        { type: "Contract", id: "LIST" },
-        { type: "Deal", id: "LIST" },
-      ],
+      transformResponse: unwrapContractDoc,
+      invalidatesTags: ["Contract", "Deal"],
     }),
 
     signContractAsBuyer: builder.mutation<any, string>({
@@ -109,12 +78,8 @@ export const contractService = baseApi.injectEndpoints({
         url: `contracts/${contractId}/sign/buyer`,
         method: "POST",
       }),
-      transformResponse: unwrapApiResponse,
-      invalidatesTags: (_result, _error, contractId) => [
-        { type: "Contract", id: contractId },
-        { type: "Contract", id: "LIST" },
-        { type: "Deal", id: "LIST" },
-      ],
+      transformResponse: unwrapContractDoc,
+      invalidatesTags: ["Contract", "Deal"],
     }),
 
     cancelContract: builder.mutation<any, string>({
@@ -122,12 +87,8 @@ export const contractService = baseApi.injectEndpoints({
         url: `contracts/${contractId}/cancel`,
         method: "POST",
       }),
-      transformResponse: unwrapApiResponse,
-      invalidatesTags: (_result, _error, contractId) => [
-        { type: "Contract", id: contractId },
-        { type: "Contract", id: "LIST" },
-        { type: "Deal", id: "LIST" },
-      ],
+      transformResponse: unwrapContractDoc,
+      invalidatesTags: ["Contract", "Deal"],
     }),
   }),
 });

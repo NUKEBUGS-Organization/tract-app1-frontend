@@ -1,46 +1,20 @@
 import { baseApi } from "./baseApi";
 
-function unwrapApiResponse(response: any) {
-  let payload = response;
+type ApiEnvelope<T> = {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: T;
+};
 
-  if (
-    payload &&
-    typeof payload === "object" &&
-    "data" in payload &&
-    ("success" in payload || "statusCode" in payload || "message" in payload)
-  ) {
-    payload = payload.data;
-  }
-
-  if (payload?._doc) {
-    payload = payload._doc;
-  }
-
-  if (payload?.deal?._doc) {
-    payload = payload.deal._doc;
-  }
-
-  if (payload?.deal) {
-    payload = payload.deal;
-  }
-
-  return payload;
+function unwrapDeal(response: ApiEnvelope<any>) {
+  return response.data;
 }
 
-function unwrapArrayResponse(response: any) {
-  const payload = unwrapApiResponse(response);
+function unwrapDealList(response: ApiEnvelope<Record<string, any> | null>) {
+  if (!response.data) return [];
 
-  if (!payload) return [];
-
-  if (Array.isArray(payload)) {
-    return payload.map((item) => item?._doc ?? item);
-  }
-
-  if (typeof payload === "object") {
-    return Object.values(payload).map((item: any) => item?._doc ?? item);
-  }
-
-  return [];
+  return Object.values(response.data);
 }
 
 export const dealService = baseApi.injectEndpoints({
@@ -50,7 +24,7 @@ export const dealService = baseApi.injectEndpoints({
         url: "deals/my-deals",
         method: "GET",
       }),
-      transformResponse: unwrapArrayResponse,
+      transformResponse: unwrapDealList,
       providesTags: ["Deal"],
     }),
 
@@ -59,7 +33,7 @@ export const dealService = baseApi.injectEndpoints({
         url: `deals/${dealId}`,
         method: "GET",
       }),
-      transformResponse: unwrapApiResponse,
+      transformResponse: unwrapDeal,
       providesTags: ["Deal"],
     }),
 
@@ -77,7 +51,7 @@ export const dealService = baseApi.injectEndpoints({
           marketing_proof_url,
         },
       }),
-      transformResponse: unwrapApiResponse,
+      transformResponse: unwrapDeal,
       invalidatesTags: ["Deal"],
     }),
 
@@ -95,7 +69,7 @@ export const dealService = baseApi.injectEndpoints({
           market_launch_proof_url,
         },
       }),
-      transformResponse: unwrapApiResponse,
+      transformResponse: unwrapDeal,
       invalidatesTags: ["Deal"],
     }),
 
@@ -104,7 +78,7 @@ export const dealService = baseApi.injectEndpoints({
         url: `deals/${dealId}/proceed-to-closing`,
         method: "POST",
       }),
-      transformResponse: unwrapApiResponse,
+      transformResponse: unwrapDeal,
       invalidatesTags: ["Deal"],
     }),
 
@@ -113,7 +87,7 @@ export const dealService = baseApi.injectEndpoints({
         url: `deals/${dealId}/cancel`,
         method: "POST",
       }),
-      transformResponse: unwrapApiResponse,
+      transformResponse: unwrapDeal,
       invalidatesTags: ["Deal"],
     }),
 
@@ -122,7 +96,7 @@ export const dealService = baseApi.injectEndpoints({
         url: `deals/${dealId}/close`,
         method: "POST",
       }),
-      transformResponse: unwrapApiResponse,
+      transformResponse: unwrapDeal,
       invalidatesTags: ["Deal"],
     }),
   }),

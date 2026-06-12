@@ -1,38 +1,20 @@
 import { baseApi } from "./baseApi";
 
-function unwrapApiResponse(response: any) {
-  let payload = response;
+type ApiEnvelope<T> = {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: T;
+};
 
-  if (
-    payload &&
-    typeof payload === "object" &&
-    "data" in payload &&
-    ("success" in payload || "statusCode" in payload || "message" in payload)
-  ) {
-    payload = payload.data;
-  }
-
-  if (payload?._doc) {
-    payload = payload._doc;
-  }
-
-  return payload;
+function unwrapChatItem(response: ApiEnvelope<any>) {
+  return response.data;
 }
 
-function unwrapArrayResponse(response: any) {
-  const payload = unwrapApiResponse(response);
+function unwrapChatList(response: ApiEnvelope<Record<string, any> | null>) {
+  if (!response.data) return [];
 
-  if (!payload) return [];
-
-  if (Array.isArray(payload)) {
-    return payload.map((item) => item?._doc ?? item);
-  }
-
-  if (typeof payload === "object") {
-    return Object.values(payload).map((item: any) => item?._doc ?? item);
-  }
-
-  return [];
+  return Object.values(response.data);
 }
 
 export const chatService = baseApi.injectEndpoints({
@@ -42,7 +24,7 @@ export const chatService = baseApi.injectEndpoints({
         url: "chat/rooms",
         method: "GET",
       }),
-      transformResponse: unwrapArrayResponse,
+      transformResponse: unwrapChatList,
       providesTags: ["Chat"],
     }),
 
@@ -51,7 +33,7 @@ export const chatService = baseApi.injectEndpoints({
         url: `chat/rooms/${roomId}`,
         method: "GET",
       }),
-      transformResponse: unwrapApiResponse,
+      transformResponse: unwrapChatItem,
       providesTags: ["Chat"],
     }),
 
@@ -60,7 +42,7 @@ export const chatService = baseApi.injectEndpoints({
         url: `chat/rooms/${roomId}/messages`,
         method: "GET",
       }),
-      transformResponse: unwrapArrayResponse,
+      transformResponse: unwrapChatList,
       providesTags: ["Chat"],
     }),
 
@@ -69,7 +51,7 @@ export const chatService = baseApi.injectEndpoints({
         url: `chat/rooms/${roomId}/read`,
         method: "POST",
       }),
-      transformResponse: unwrapApiResponse,
+      transformResponse: unwrapChatItem,
       invalidatesTags: ["Chat"],
     }),
   }),

@@ -1,5 +1,26 @@
 import { baseApi } from "./baseApi";
 
+type ApiEnvelope<T> = {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: T;
+};
+
+function unwrapData(response: ApiEnvelope<any>) {
+  return response.data;
+}
+
+function unwrapBidList(response: ApiEnvelope<Record<string, any> | null>) {
+  if (!response.data) return [];
+
+  return Object.values(response.data);
+}
+
+function unwrapMongooseDoc(response: ApiEnvelope<{ _doc: any }>) {
+  return response.data._doc;
+}
+
 export const listingService = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     createListing: builder.mutation<any, any>({
@@ -8,6 +29,8 @@ export const listingService = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
+      transformResponse: unwrapData,
+      invalidatesTags: ["Property"],
     }),
 
     getListings: builder.query<any, any>({
@@ -16,6 +39,8 @@ export const listingService = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
+      transformResponse: unwrapData,
+      providesTags: ["Property"],
     }),
 
     getListingsDashboard: builder.query<any, void>({
@@ -23,6 +48,8 @@ export const listingService = baseApi.injectEndpoints({
         url: "listings/dashboard",
         method: "GET",
       }),
+      transformResponse: unwrapData,
+      providesTags: ["Property"],
     }),
 
     getListingById: builder.query<any, string>({
@@ -30,6 +57,8 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${id}`,
         method: "GET",
       }),
+      transformResponse: unwrapData,
+      providesTags: ["Property"],
     }),
 
     updateListing: builder.mutation<any, { id: string; body: any }>({
@@ -38,6 +67,8 @@ export const listingService = baseApi.injectEndpoints({
         method: "PATCH",
         body,
       }),
+      transformResponse: unwrapData,
+      invalidatesTags: ["Property"],
     }),
 
     deleteListing: builder.mutation<any, string>({
@@ -45,6 +76,8 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${id}`,
         method: "DELETE",
       }),
+      transformResponse: unwrapData,
+      invalidatesTags: ["Property"],
     }),
 
     submitListing: builder.mutation<any, string>({
@@ -52,6 +85,8 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${id}/submit`,
         method: "POST",
       }),
+      transformResponse: unwrapData,
+      invalidatesTags: ["Property"],
     }),
 
     uploadListingDocuments: builder.mutation<
@@ -79,6 +114,8 @@ export const listingService = baseApi.injectEndpoints({
           body: formData,
         };
       },
+      transformResponse: unwrapData,
+      invalidatesTags: ["Property"],
     }),
 
     getListingDocuments: builder.query<any, string>({
@@ -86,11 +123,9 @@ export const listingService = baseApi.injectEndpoints({
         url: `listings/${listingId}/documents`,
         method: "GET",
       }),
+      transformResponse: unwrapData,
+      providesTags: ["Property"],
     }),
-
-    // ─────────────────────────────────────────────
-    // Bids APIs
-    // ─────────────────────────────────────────────
 
     submitBid: builder.mutation<any, { listingId: string; body: any }>({
       query: ({ listingId, body }) => ({
@@ -98,101 +133,43 @@ export const listingService = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
+      transformResponse: unwrapData,
+      invalidatesTags: ["Bid", "Property"],
     }),
 
-getListingBids: builder.query<any[], string>({
-  query: (listingId) => ({
-    url: `listings/${listingId}/bids`,
-    method: "GET",
-  }),
-
-  transformResponse: (response: any) => {
-    function unwrapBid(item: any): any {
-      if (!item) return null;
-
-      if (item?._doc) return unwrapBid(item._doc);
-      if (item?.bid?._doc) return unwrapBid(item.bid._doc);
-      if (item?.bid) return unwrapBid(item.bid);
-      if (item?.data?._doc) return unwrapBid(item.data._doc);
-      if (item?.data) return unwrapBid(item.data);
-
-      return item;
-    }
-
-    function isRealBid(item: any) {
-      const bid = unwrapBid(item);
-
-      return Boolean(
-        bid &&
-          typeof bid === "object" &&
-          (bid._id || bid.id) &&
-          (
-            bid.bid_price !== undefined ||
-            bid.property_id !== undefined ||
-            bid.bidder_id !== undefined ||
-            bid.status !== undefined
-          )
-      );
-    }
-
-    const payload = response?.data ?? response;
-
-    if (!payload) return [];
-
-    if (Array.isArray(payload)) {
-      return payload.map(unwrapBid).filter(isRealBid);
-    }
-
-    if (Array.isArray(payload?.bids)) {
-      return payload.bids.map(unwrapBid).filter(isRealBid);
-    }
-
-    if (Array.isArray(payload?.data)) {
-      return payload.data.map(unwrapBid).filter(isRealBid);
-    }
-
-    const single = unwrapBid(payload);
-
-    if (isRealBid(single)) {
-      return [single];
-    }
-
-    if (typeof payload === "object") {
-      return Object.values(payload).map(unwrapBid).filter(isRealBid);
-    }
-
-    return [];
-  },
-}),
-// getListingBids: builder.query<any[], string>({
-//   query: (listingId) => ({
-//     url: `listings/${listingId}/bids`,
-//     method: "GET",
-//   }),
-//   transformResponse: (response: any) => {
-//     return response.data ?? [];
-//   },
-// }),
+    getListingBids: builder.query<any[], string>({
+      query: (listingId) => ({
+        url: `listings/${listingId}/bids`,
+        method: "GET",
+      }),
+      transformResponse: unwrapBidList,
+      providesTags: ["Bid"],
+    }),
 
     getMyBids: builder.query<any, void>({
       query: () => ({
         url: "bids/my-bids",
         method: "GET",
       }),
+      transformResponse: unwrapData,
+      providesTags: ["Bid"],
     }),
 
-    getBidById: builder.query<any, string>({
-      query: (bidId) => ({
-        url: `bids/${bidId}`,
-        method: "GET",
-      }),
-    }),
-
+   getBidById: builder.query<any, string>({
+  query: (bidId) => ({
+    url: `bids/${bidId}`,
+    method: "GET",
+  }),
+  transformResponse: unwrapMongooseDoc,
+  providesTags: ["Bid"],
+}),
     deleteOwnBid: builder.mutation<any, string>({
       query: (bidId) => ({
         url: `bids/${bidId}`,
         method: "DELETE",
       }),
+      transformResponse: unwrapData,
+      invalidatesTags: ["Bid", "Property"],
     }),
 
     selectBid: builder.mutation<
@@ -210,6 +187,8 @@ getListingBids: builder.query<any[], string>({
           selection,
         },
       }),
+      transformResponse: unwrapData,
+      invalidatesTags: ["Bid", "Property", "Contract", "Deal"],
     }),
 
     rejectBid: builder.mutation<
@@ -223,6 +202,8 @@ getListingBids: builder.query<any[], string>({
         url: `listings/${listingId}/bids/${bidId}`,
         method: "DELETE",
       }),
+      transformResponse: unwrapData,
+      invalidatesTags: ["Bid", "Property"],
     }),
   }),
 });

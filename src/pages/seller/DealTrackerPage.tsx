@@ -385,13 +385,12 @@ function TrackerStep({
   return (
     <div className="relative flex gap-4 rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
       <div
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
-          done
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${done
             ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
             : current
               ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]"
               : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
-        }`}
+          }`}
       >
         {done ? (
           <CheckCircle2 className="h-5 w-5" />
@@ -445,48 +444,48 @@ export default function DealTrackerPage() {
     listings.find((listing: any) => getId(listing) === activeListingId) ||
     selectedListing;
 
-const {
-  data: bidsData = [],
-  currentData: bidsCurrentData = [],
-  isLoading: isLoadingBids,
-  isFetching: isFetchingBids,
-  refetch: refetchBids,
-} = useGetListingBidsQuery(activeListingId, {
-  skip: !activeListingId,
-});
+  const {
+    data: bidsData = [],
+    currentData: bidsCurrentData = [],
+    isLoading: isLoadingBids,
+    isFetching: isFetchingBids,
+    refetch: refetchBids,
+  } = useGetListingBidsQuery(activeListingId, {
+    skip: !activeListingId,
+  });
 
-const safeBidsData = activeListingId
-  ? bidsCurrentData ?? bidsData
-  : [];
-
-const {
-  data: fetchedContractData,
-  currentData: fetchedContractCurrentData,
-  isLoading: isLoadingContract,
-  isFetching: isFetchingContract,
-  refetch: refetchContract,
-} = useGetContractByIdQuery(contractIdFromUrl, {
-  skip: !contractIdFromUrl,
-});
-
-const fetchedContract = contractIdFromUrl
-  ? fetchedContractCurrentData ?? fetchedContractData
-  : null;
+  const safeBidsData = activeListingId
+    ? bidsCurrentData ?? bidsData
+    : [];
 
   const {
-  data: contractsByListingData = [],
-  currentData: contractsByListingCurrentData = [],
-  isLoading: isLoadingContractsByListing,
-  isFetching: isFetchingContractsByListing,
-  refetch: refetchContractsByListing,
-} = useGetContractsByListingQuery(activeListingId, {
-  skip: !activeListingId || Boolean(contractIdFromUrl),
-});
+    data: fetchedContractData,
+    currentData: fetchedContractCurrentData,
+    isLoading: isLoadingContract,
+    isFetching: isFetchingContract,
+    refetch: refetchContract,
+  } = useGetContractByIdQuery(contractIdFromUrl, {
+    skip: !contractIdFromUrl,
+  });
 
-const safeContractsByListingData =
-  !activeListingId || contractIdFromUrl
-    ? []
-    : contractsByListingCurrentData ?? contractsByListingData;
+  const fetchedContract = contractIdFromUrl
+    ? fetchedContractCurrentData ?? fetchedContractData
+    : null;
+
+  const {
+    data: contractsByListingData = [],
+    currentData: contractsByListingCurrentData = [],
+    isLoading: isLoadingContractsByListing,
+    isFetching: isFetchingContractsByListing,
+    refetch: refetchContractsByListing,
+  } = useGetContractsByListingQuery(activeListingId, {
+    skip: !activeListingId || Boolean(contractIdFromUrl),
+  });
+
+  const safeContractsByListingData =
+    !activeListingId || contractIdFromUrl
+      ? []
+      : contractsByListingCurrentData ?? contractsByListingData;
 
   const {
     data: myDealsData = [],
@@ -495,11 +494,11 @@ const safeContractsByListingData =
     refetch: refetchDeals,
   } = useGetMyDealsQuery();
 
-const latestContractByListing =
-  Array.isArray(safeContractsByListingData) &&
-  safeContractsByListingData.length > 0
-    ? safeContractsByListingData[0]
-    : null;
+  const latestContractByListing =
+    Array.isArray(safeContractsByListingData) &&
+      safeContractsByListingData.length > 0
+      ? safeContractsByListingData[0]
+      : null;
   const [createContract, { isLoading: isCreatingContract }] =
     useCreateContractMutation();
 
@@ -513,16 +512,16 @@ const latestContractByListing =
   const selectedBid = getSelectedBid(bids);
 
   const contract =
-  localContract ||
-  (contractIdFromUrl ? fetchedContract : null) ||
-  latestContractByListing;
+    localContract ||
+    (contractIdFromUrl ? fetchedContract : null) ||
+    latestContractByListing;
   const contractId = getId(contract);
 
   const deals = getArrayPayload(myDealsData);
 
- const activeDeal =
-  contractId && activeListingId && deals.length > 0
-    ? deals.find((deal: any) => {
+  const activeDeal =
+    contractId && activeListingId && deals.length > 0
+      ? deals.find((deal: any) => {
         const dealContractId = getDealContractId(deal);
         const dealListingId = getId(deal?.listing_id) || deal?.listing_id || "";
         const contractListingId =
@@ -536,7 +535,7 @@ const latestContractByListing =
             contractListingId === activeListingId)
         );
       })
-    : null;
+      : null;
 
   const activeDealId = getId(activeDeal);
 
@@ -652,29 +651,29 @@ const latestContractByListing =
         description: marketingDeadline
           ? marketingProofUrl
             ? `Marketing proof uploaded. Deadline was ${formatDateTime(
-                marketingDeadline
-              )}.`
+              marketingDeadline
+            )}.`
             : `72-hour marketing tracking is active. ${activeCountdown.compact}. Deadline: ${formatDateTime(
-                marketingDeadline
-              )}.`
+              marketingDeadline
+            )}.`
           : marketLaunchDeadline
             ? marketLaunchProofUrl
               ? `Market launch proof uploaded. Deadline was ${formatDateTime(
-                  marketLaunchDeadline
-                )}.`
+                marketLaunchDeadline
+              )}.`
               : `Market launch tracking is active. ${activeCountdown.compact}. Deadline: ${formatDateTime(
-                  marketLaunchDeadline
-                )}.`
+                marketLaunchDeadline
+              )}.`
             : isSigned
               ? "Deal is signed, but deadline is not loaded yet. Refresh after backend creates deal."
               : "This starts after both parties sign and the deal is created.",
         done: hasProofUploaded,
         current: Boolean(
           isSigned &&
-            activeDeal &&
-            hasMarketingTracking &&
-            !hasProofUploaded &&
-            !proceedToClosingAt
+          activeDeal &&
+          hasMarketingTracking &&
+          !hasProofUploaded &&
+          !proceedToClosingAt
         ),
         locked: !activeDeal,
       },
@@ -762,19 +761,19 @@ const latestContractByListing =
     await refetchDeals();
   }
 
- function handleListingChange(listingId: string) {
-  setLocalContract(null);
-  setApiError(null);
+  function handleListingChange(listingId: string) {
+    setLocalContract(null);
+    setApiError(null);
 
-  setSearchParams(
-    {
-      listingId,
-    },
-    {
-      replace: true,
-    }
-  );
-}
+    setSearchParams(
+      {
+        listingId,
+      },
+      {
+        replace: true,
+      }
+    );
+  }
 
   async function handleCreateOrLoadContract() {
     if (!activeListingId || !selectedBid) return;
@@ -782,14 +781,20 @@ const latestContractByListing =
     try {
       setApiError(null);
 
+      // const created = await createContract({
+      //   listingId: activeListingId,
+      //   body: {
+      //     bid_id: getId(selectedBid),
+      //     pdf_url: "https://example.com/dummy-contract.pdf",
+      //   },
+      // }).unwrap();
+
       const created = await createContract({
         listingId: activeListingId,
         body: {
           bid_id: getId(selectedBid),
-          pdf_url: "https://example.com/dummy-contract.pdf",
         },
       }).unwrap();
-
       setLocalContract(created);
 
       const createdContractId = getId(created);
@@ -958,9 +963,8 @@ const latestContractByListing =
       <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
         <StatCard
           title="Signatures"
-          value={`${sellerSigned ? "Seller ✓" : "Seller -"} / ${
-            buyerSigned ? "Buyer ✓" : "Buyer -"
-          }`}
+          value={`${sellerSigned ? "Seller ✓" : "Seller -"} / ${buyerSigned ? "Buyer ✓" : "Buyer -"
+            }`}
           icon={FileSignature}
         />
 
@@ -993,8 +997,8 @@ const latestContractByListing =
             <p className="mt-1 text-sm text-[var(--color-text-muted)]">
               {selectedBid
                 ? `Selected partner: ${partnerName} · Bid: ${formatMoney(
-                    selectedBid?.bid_price
-                  )} · Net: ${formatMoney(selectedBid?.net_to_seller)}`
+                  selectedBid?.bid_price
+                )} · Net: ${formatMoney(selectedBid?.net_to_seller)}`
                 : contract
                   ? "Contract loaded from backend."
                   : "Select a primary bid before creating a contract."}

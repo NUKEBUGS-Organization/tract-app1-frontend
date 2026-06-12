@@ -26,9 +26,9 @@ import ListingDetailsPage from "../pages/seller/ListingDetailsPage";
 import EditListingPage from "../pages/seller/EditListingPage";
 import ContractsPage from "../pages/seller/ContractsPage";
 
-import ProfilePage from "../pages/profile/ProfilePage";
+import ProfilePage from "../pages/profile";
 
-import ChatRoomsPage from "../pages/chat/ChatRoomsPage";
+import ChatRoomsPage from "../pages/chat";
 import ChatRoomPage from "../pages/chat/ChatRoomPage";
 
 import {
