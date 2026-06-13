@@ -4,6 +4,7 @@ import {
   BarChart3,
   Building2,
   ClipboardList,
+  FileCheck,
   FolderLock,
   Gavel,
   Handshake,
@@ -47,6 +48,8 @@ function getNavIcon(label: string) {
   if (lowerLabel.includes("kyc") || lowerLabel.includes("identity") || lowerLabel.includes("verification")) return ShieldCheck;
   if (lowerLabel.includes("chat")) return MessageSquareWarning;
   if (lowerLabel.includes("setting")) return Settings;
+  if (lowerLabel.includes("proof")) return FileCheck;
+  if (lowerLabel.includes("property")) return Building2;
 
   return ClipboardList;
 }

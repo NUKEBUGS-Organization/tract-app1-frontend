@@ -32,7 +32,7 @@ import ActiveDealsPage from "../pages/partner/ActiveDealsPage";
 import ScorePage from "../pages/partner/ScorePage";
 import PropertyDetailPage from "../pages/partner/PropertyDetailPage";
 import SubmitBidPage from "../pages/partner/submit-bid";
-
+import ProofOfActivityPage from "../pages/partner/ProofOfActivityPage";
 import ProfilePage from "../pages/profile";
 
 import ChatRoomsPage from "../pages/chat";
@@ -100,34 +100,43 @@ function AppRoutes() {
             }
           />
           <Route
-  path="/chat"
-  element={
-    <RoleRoute
-      allowedRoles={[
-        ...SELLER_ROLES,
-        ...PARTNER_ROLES,
-        ...REALTOR_ROLES,
-      ]}
-    >
-      <ChatRoomsPage />
-    </RoleRoute>
-  }
-/>
+            path="/chat"
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  ...SELLER_ROLES,
+                  ...PARTNER_ROLES,
+                  ...REALTOR_ROLES,
+                ]}
+              >
+                <ChatRoomsPage />
+              </RoleRoute>
+            }
+          />
 
-<Route
-  path="/chat/:roomId"
-  element={
-    <RoleRoute
-      allowedRoles={[
-        ...SELLER_ROLES,
-        ...PARTNER_ROLES,
-        ...REALTOR_ROLES,
-      ]}
-    >
-      <ChatRoomPage />
-    </RoleRoute>
-  }
-/>
+          <Route
+            path="/chat/:roomId"
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  ...SELLER_ROLES,
+                  ...PARTNER_ROLES,
+                  ...REALTOR_ROLES,
+                ]}
+              >
+                <ChatRoomPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/proof-of-activity"
+            element={
+              <RoleRoute allowedRoles={PARTNER_ROLES}>
+                <ProofOfActivityPage />
+              </RoleRoute>
+            }
+          />
+
 
           {/* Seller-only routes */}
           <Route
