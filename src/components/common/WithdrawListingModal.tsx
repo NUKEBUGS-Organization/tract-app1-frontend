@@ -1,4 +1,4 @@
-import { AlertTriangle, Trash2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 import ConfirmModal from "./ConfirmModal";
 
@@ -21,22 +21,20 @@ function WithdrawListingModal({
     <ConfirmModal
       isOpen={isOpen}
       variant="danger"
-      badgeLabel="Requires Confirmation"
       title="Withdraw listing?"
-      description="This will withdraw the selected listing from the seller flow. This action should only be used before bids are placed."
-      icon={<AlertTriangle className="h-6 w-6" />}
-      confirmIcon={<Trash2 className="h-4 w-4" />}
-      confirmLabel="Withdraw Listing"
-      loadingLabel="Withdrawing..."
+      description="This listing will be removed from the active seller flow. This action should only be used before bids are placed."
+      icon={<AlertTriangle className="h-5 w-5" />}
+      confirmLabel="Withdraw"
       cancelLabel="Cancel"
+      loadingLabel="Withdrawing..."
       isLoading={isLoading}
       onCancel={onCancel}
       onConfirm={onConfirm}
     >
       {listingTitle && (
-        <div className="rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-            Selected Listing
+        <div className="rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3">
+          <p className="text-xs font-semibold text-[var(--color-text-muted)]">
+            Selected listing
           </p>
 
           <p className="mt-1 text-sm font-bold text-[var(--color-primary)]">

@@ -1,4 +1,4 @@
-import { FileImage, UploadCloud } from "lucide-react";
+import { FileImage, Trash2, UploadCloud } from "lucide-react";
 import { MAX_IMAGES } from "../constants";
 
 interface PictureUploadStepProps {
@@ -7,6 +7,7 @@ interface PictureUploadStepProps {
   isUploadingPictures: boolean;
   onBack: () => void;
   onSelectPictures: (files: FileList | null) => void;
+  onRemovePicture: (file: File) => void;
   onUploadPictures: () => void;
 }
 
@@ -16,8 +17,14 @@ export default function PictureUploadStep({
   isUploadingPictures,
   onBack,
   onSelectPictures,
+  onRemovePicture,
   onUploadPictures,
 }: PictureUploadStepProps) {
+  const canUpload =
+    propertyPictures.length >= 1 &&
+    propertyPictures.length <= MAX_IMAGES &&
+    !isUploadingPictures;
+
   return (
     <div className="space-y-8">
       <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
@@ -48,12 +55,15 @@ export default function PictureUploadStep({
 
           <label className="mx-auto inline-flex cursor-pointer items-center gap-2 bg-[var(--color-primary)] px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white transition hover:scale-[1.02]">
             <FileImage className="h-4 w-4" />
-            Select Images
+            Add Images
             <input
               type="file"
               accept="image/*"
               multiple
-              onChange={(event) => onSelectPictures(event.target.files)}
+              onChange={(event) => {
+                onSelectPictures(event.target.files);
+                event.target.value = "";
+              }}
               className="hidden"
             />
           </label>
@@ -61,22 +71,45 @@ export default function PictureUploadStep({
           <p className="mt-4 text-xs text-[var(--color-text-muted)]">
             Selected pictures: {propertyPictures.length} / {MAX_IMAGES}
           </p>
+
+          <p className="mt-1 text-[11px] text-[var(--color-text-muted)]/70">
+            You can select multiple images at once, or add more images again
+            before uploading.
+          </p>
         </div>
 
         {propertyPictures.length > 0 && (
-          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {propertyPictures.map((file) => (
-              <div
-                key={`${file.name}-${file.size}`}
-                className="rounded-xl border border-[var(--color-border-light)] bg-white p-3 text-xs font-semibold text-[var(--color-text-muted)]"
-              >
-                <p className="truncate">{file.name}</p>
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {propertyPictures.map((file) => {
+              const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
 
-                <p className="mt-1">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
-            ))}
+              return (
+                <div
+                  key={fileKey}
+                  className="rounded-xl border border-[var(--color-border-light)] bg-white p-3 text-xs font-semibold text-[var(--color-text-muted)] shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-black text-[var(--color-primary)]">
+                        {file.name}
+                      </p>
+
+                      <p className="mt-1">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => onRemovePicture(file)}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -92,7 +125,7 @@ export default function PictureUploadStep({
           <button
             type="button"
             onClick={onUploadPictures}
-            disabled={isUploadingPictures}
+            disabled={!canUpload}
             className="bg-[var(--color-primary)] px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[var(--shadow-card)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isUploadingPictures ? "Uploading..." : "Upload Pictures"}

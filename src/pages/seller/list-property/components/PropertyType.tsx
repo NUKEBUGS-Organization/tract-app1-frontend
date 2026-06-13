@@ -1,14 +1,21 @@
 import { MapPin } from "lucide-react";
 import { PROPERTY_TYPES, STATES } from "../constants";
 import type { FormState } from "../types";
-import { Inp, Lbl, inputCls } from "./FormPrimitives";
+import { ErrorText, Inp, Lbl, inputCls, inputErrorCls, inputNormalCls } from "./FormPrimitives";
 
 interface StepProps {
   form: FormState;
   set: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
+  fieldErrors?: Record<string, string>;
 }
 
-export default function Step1PropertyType({ form, set }: StepProps) {
+export default function Step1PropertyType({
+  form,
+  set,
+  fieldErrors = {},
+}: StepProps) {
+  const propertyTypeError = fieldErrors.propertyType;
+
   return (
     <div className="space-y-6">
       <div>
@@ -21,49 +28,65 @@ export default function Step1PropertyType({ form, set }: StepProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {PROPERTY_TYPES.map(({ id, label, icon: Icon, desc }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => set("propertyType", id)}
-            className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all ${
-              form.propertyType === id
-                ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5"
-                : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-primary)]/40"
-            }`}
-          >
-            <div
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+      <div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {PROPERTY_TYPES.map(({ id, label, icon: Icon, desc }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => set("propertyType", id)}
+              className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all ${
                 form.propertyType === id
-                  ? "bg-[var(--color-primary)] text-[var(--color-secondary)]"
-                  : "bg-[var(--color-bg-soft)] text-[var(--color-primary)]"
+                  ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5"
+                  : propertyTypeError
+                    ? "border-red-400 bg-red-50"
+                    : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-primary)]/40"
               }`}
             >
-              <Icon className="h-4 w-4" />
-            </div>
-
-            <div>
-              <p
-                className={`text-sm font-black ${
+              <div
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
                   form.propertyType === id
-                    ? "text-[var(--color-primary)]"
-                    : "text-[var(--color-text-main)]"
+                    ? "bg-[var(--color-primary)] text-[var(--color-secondary)]"
+                    : propertyTypeError
+                      ? "bg-red-100 text-red-600"
+                      : "bg-[var(--color-bg-soft)] text-[var(--color-primary)]"
                 }`}
               >
-                {label}
-              </p>
+                <Icon className="h-4 w-4" />
+              </div>
 
-              <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-                {desc}
-              </p>
-            </div>
-          </button>
-        ))}
+              <div>
+                <p
+                  className={`text-sm font-black ${
+                    form.propertyType === id
+                      ? "text-[var(--color-primary)]"
+                      : propertyTypeError
+                        ? "text-red-600"
+                        : "text-[var(--color-text-main)]"
+                  }`}
+                >
+                  {label}
+                </p>
+
+                <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+                  {desc}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <ErrorText message={propertyTypeError} />
       </div>
 
       {form.propertyType === "multi_family" && (
-        <div className="rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-5">
+        <div
+          className={`rounded-xl border p-5 ${
+            fieldErrors.unitCount
+              ? "border-red-400 bg-red-50"
+              : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+          }`}
+        >
           <Lbl label="Number of Units" />
 
           <Inp
@@ -71,6 +94,7 @@ export default function Step1PropertyType({ form, set }: StepProps) {
             onChange={(value) => set("unitCount", value)}
             placeholder="e.g. 4"
             type="number"
+            error={fieldErrors.unitCount}
           />
         </div>
       )}
@@ -89,6 +113,7 @@ export default function Step1PropertyType({ form, set }: StepProps) {
               value={form.address}
               onChange={(value) => set("address", value)}
               placeholder="123 Main St, Newark"
+              error={fieldErrors.address}
             />
           </div>
 
@@ -98,7 +123,9 @@ export default function Step1PropertyType({ form, set }: StepProps) {
             <select
               value={form.state}
               onChange={(event) => set("state", event.target.value)}
-              className={inputCls}
+              className={`${inputCls} ${
+                fieldErrors.state ? inputErrorCls : inputNormalCls
+              }`}
             >
               <option value="">Select state</option>
               {STATES.map((state) => (
@@ -107,6 +134,8 @@ export default function Step1PropertyType({ form, set }: StepProps) {
                 </option>
               ))}
             </select>
+
+            <ErrorText message={fieldErrors.state} />
           </div>
 
           <div>
@@ -116,6 +145,7 @@ export default function Step1PropertyType({ form, set }: StepProps) {
               value={form.zip}
               onChange={(value) => set("zip", value)}
               placeholder="07101"
+              error={fieldErrors.zip}
             />
           </div>
         </div>

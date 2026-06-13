@@ -4,9 +4,14 @@ import { Inp, Lbl, Tarea, ToggleCard } from "./FormPrimitives";
 interface StepProps {
   form: FormState;
   set: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
+  fieldErrors?: Record<string, string>;
 }
 
-export default function Step2HardData({ form, set }: StepProps) {
+export default function Step2HardData({
+  form,
+  set,
+  fieldErrors = {},
+}: StepProps) {
   return (
     <div className="space-y-6">
       <div>
@@ -27,6 +32,7 @@ export default function Step2HardData({ form, set }: StepProps) {
             value={form.zoning}
             onChange={(value) => set("zoning", value)}
             placeholder="Residential"
+            error={fieldErrors.zoning}
           />
         </div>
 
@@ -38,6 +44,7 @@ export default function Step2HardData({ form, set }: StepProps) {
             onChange={(value) => set("yearBuilt", value)}
             placeholder="1995"
             type="number"
+            error={fieldErrors.yearBuilt}
           />
         </div>
 
@@ -49,6 +56,7 @@ export default function Step2HardData({ form, set }: StepProps) {
             onChange={(value) => set("marketPrice", value)}
             placeholder="250000"
             type="number"
+            error={fieldErrors.marketPrice}
           />
         </div>
 
@@ -60,6 +68,7 @@ export default function Step2HardData({ form, set }: StepProps) {
             onChange={(value) => set("hiddenReserve", value)}
             placeholder="200000"
             type="number"
+            error={fieldErrors.hiddenReserve}
           />
         </div>
       </div>
@@ -74,6 +83,7 @@ export default function Step2HardData({ form, set }: StepProps) {
           onToggle={() => set("hasLiens", !form.hasLiens)}
           label="Active Liens or Mortgages"
           sub="Any outstanding financial claims against the property"
+          error={fieldErrors.hasLiens}
         />
 
         {form.hasLiens && (
@@ -82,6 +92,7 @@ export default function Step2HardData({ form, set }: StepProps) {
               value={form.lienDetails}
               onChange={(value) => set("lienDetails", value)}
               placeholder="Describe lien amounts, lender names, or mortgage details."
+              error={fieldErrors.lienDetails}
             />
           </div>
         )}
@@ -89,11 +100,10 @@ export default function Step2HardData({ form, set }: StepProps) {
         <div className="border-t border-[var(--color-border-light)] pt-4">
           <ToggleCard
             checked={form.isPreforeclosure}
-            onToggle={() =>
-              set("isPreforeclosure", !form.isPreforeclosure)
-            }
+            onToggle={() => set("isPreforeclosure", !form.isPreforeclosure)}
             label="Pre-Foreclosure"
             sub="Property is in pre-foreclosure or foreclosure risk"
+            error={fieldErrors.isPreforeclosure}
           />
         </div>
 
@@ -105,6 +115,7 @@ export default function Step2HardData({ form, set }: StepProps) {
             onChange={(value) => set("mortgageAmount", value)}
             placeholder="0"
             type="number"
+            error={fieldErrors.mortgageAmount}
           />
         </div>
       </div>

@@ -1,14 +1,19 @@
 import { Clock, Info } from "lucide-react";
 import { SELL_REASONS, TIMELINES } from "../constants";
 import type { FormState } from "../types";
-import { Inp, Lbl, ToggleCard } from "./FormPrimitives";
+import { ErrorText, Inp, Lbl, ToggleCard } from "./FormPrimitives";
 
 interface StepProps {
   form: FormState;
   set: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
+  fieldErrors?: Record<string, string>;
 }
 
-export default function Step4Motivation({ form, set }: StepProps) {
+export default function Step4Motivation({
+  form,
+  set,
+  fieldErrors = {},
+}: StepProps) {
   return (
     <div className="space-y-6">
       <div>
@@ -34,14 +39,18 @@ export default function Step4Motivation({ form, set }: StepProps) {
                 className={`flex items-center gap-3 rounded-xl border-2 px-5 py-4 text-left transition-all ${
                   form.timeline === timeline
                     ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5"
-                    : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-primary)]/50"
+                    : fieldErrors.timeline
+                      ? "border-red-400 bg-red-50"
+                      : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-primary)]/50"
                 }`}
               >
                 <Clock
                   className={`h-5 w-5 ${
                     form.timeline === timeline
                       ? "text-[var(--color-primary)]"
-                      : "text-[var(--color-text-muted)]"
+                      : fieldErrors.timeline
+                        ? "text-red-600"
+                        : "text-[var(--color-text-muted)]"
                   }`}
                 />
 
@@ -49,7 +58,9 @@ export default function Step4Motivation({ form, set }: StepProps) {
                   className={`text-sm font-bold ${
                     form.timeline === timeline
                       ? "text-[var(--color-primary)]"
-                      : "text-[var(--color-text-main)]"
+                      : fieldErrors.timeline
+                        ? "text-red-600"
+                        : "text-[var(--color-text-main)]"
                   }`}
                 >
                   {timeline}
@@ -57,6 +68,8 @@ export default function Step4Motivation({ form, set }: StepProps) {
               </button>
             ))}
           </div>
+
+          <ErrorText message={fieldErrors.timeline} />
         </div>
 
         <div className="border-t border-[var(--color-border-light)] pt-5">
@@ -71,13 +84,17 @@ export default function Step4Motivation({ form, set }: StepProps) {
                 className={`px-4 py-2 text-[11px] font-black uppercase tracking-wider transition ${
                   form.reason === reason
                     ? "bg-[var(--color-secondary)] text-[var(--color-primary-dark)]"
-                    : "border border-[var(--color-border-light)] bg-white text-[var(--color-text-muted)] hover:border-[var(--color-secondary)]"
+                    : fieldErrors.reason
+                      ? "border border-red-400 bg-red-50 text-red-600"
+                      : "border border-[var(--color-border-light)] bg-white text-[var(--color-text-muted)] hover:border-[var(--color-secondary)]"
                 }`}
               >
                 {reason}
               </button>
             ))}
           </div>
+
+          <ErrorText message={fieldErrors.reason} />
         </div>
 
         <div className="grid grid-cols-1 gap-5 border-t border-[var(--color-border-light)] pt-5 sm:grid-cols-2">
@@ -89,6 +106,7 @@ export default function Step4Motivation({ form, set }: StepProps) {
               onChange={(value) => set("realtorCommission", value)}
               placeholder="2.5"
               type="number"
+              error={fieldErrors.realtorCommission}
             />
           </div>
 
@@ -101,6 +119,7 @@ export default function Step4Motivation({ form, set }: StepProps) {
                 }
                 label="Proof of Funds Required"
                 sub="Require buyers to prove funds before bidding"
+                error={fieldErrors.proofOfFundsRequired}
               />
             </div>
           </div>

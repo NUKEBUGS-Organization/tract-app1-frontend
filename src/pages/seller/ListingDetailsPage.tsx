@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
@@ -9,12 +9,18 @@ import {
   FileText,
   Gavel,
   Home,
-  ImageIcon,
+  
   Loader2,
   RefreshCw,
   Trash2,
+  ChevronLeft,
+ChevronRight,
+Image as ImageIcon,
+Maximize2,
+X,
+Camera,
 } from "lucide-react";
-
+import { createPortal } from "react-dom";
 import StatusBadge from "../../components/common/StatusBadge";
 import WithdrawListingModal from "../../components/common/WithdrawListingModal";
 import {
@@ -438,7 +444,241 @@ function PropertyImagesSection({
     </div>
   );
 }
+function getImageUrls(listing: any) {
+  const urls =
+    listing?.picture_urls ||
+    listing?.property_picture_urls ||
+    listing?.images ||
+    [];
 
+  if (!Array.isArray(urls)) return [];
+
+  return urls.filter(Boolean);
+}
+
+function PropertyImageGallery({ listing }: { listing: any }) {
+  const images = getImageUrls(listing);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [previewOpen, setPreviewOpen] = useState(false);
+ useEffect(() => {
+  if (!previewOpen) return;
+
+  const originalOverflow = document.body.style.overflow;
+  document.body.style.overflow = "hidden";
+
+  return () => {
+    document.body.style.overflow = originalOverflow;
+  };
+}, [previewOpen]);
+
+  const hasImages = images.length > 0;
+  const activeImage = hasImages ? images[activeIndex] : null;
+
+  function goPrevious() {
+    if (!hasImages) return;
+
+    setActiveIndex((current) =>
+      current === 0 ? images.length - 1 : current - 1
+    );
+  }
+
+  function goNext() {
+    if (!hasImages) return;
+
+    setActiveIndex((current) =>
+      current === images.length - 1 ? 0 : current + 1
+    );
+  }
+
+  return (
+    <>
+      <section className="overflow-hidden rounded-3xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
+        <div className="flex flex-col gap-3 border-b border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--color-text-muted)]">
+              Media Gallery
+            </p>
+
+            <h2 className="mt-1 flex items-center gap-2 font-serif text-2xl font-black text-[var(--color-primary)]">
+              <Camera className="h-5 w-5 text-[var(--color-secondary)]" />
+              Property Photos
+            </h2>
+
+            
+          </div>
+
+          <div className="rounded-full bg-white px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)] shadow-sm">
+            {images.length} {images.length === 1 ? "Photo" : "Photos"}
+          </div>
+        </div>
+
+        {!hasImages ? (
+          <div className="flex min-h-[320px] flex-col items-center justify-center bg-gradient-to-br from-[var(--color-bg-soft)] to-white px-6 py-12 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10">
+              <ImageIcon className="h-8 w-8 text-[var(--color-primary)]" />
+            </div>
+
+            <h3 className="mt-4 font-serif text-xl font-black text-[var(--color-primary)]">
+              No property photos uploaded yet
+            </h3>
+
+            <p className="mt-2 max-w-md text-sm leading-6 text-[var(--color-text-muted)]">
+              Once property images are uploaded from the Document Vault, they
+              will appear here as a professional gallery.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-0 lg:grid-cols-[1fr_280px]">
+            <div className="relative bg-black">
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(true)}
+                className="group block h-[420px] w-full overflow-hidden"
+              >
+                <img
+                  src={activeImage}
+                  alt="Selected property view"
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                />
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/5 to-transparent" />
+
+                <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/70">
+                      Featured View
+                    </p>
+
+                    <h3 className="mt-1 font-serif text-2xl font-black text-white">
+                      Photo {activeIndex + 1} of {images.length}
+                    </h3>
+                  </div>
+
+                  <div className="hidden items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white backdrop-blur-md sm:flex">
+                    <Maximize2 className="h-4 w-4" />
+                    View Large
+                  </div>
+                </div>
+              </button>
+
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={goPrevious}
+                    className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[var(--color-primary)] shadow-lg transition hover:scale-105 hover:bg-white"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[var(--color-primary)] shadow-lg transition hover:scale-105 hover:bg-white"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="border-t border-[var(--color-border-light)] bg-white p-4 lg:border-l lg:border-t-0">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                  Gallery
+                </p>
+
+                <p className="text-[10px] font-bold text-[var(--color-text-muted)]">
+                  Click to preview
+                </p>
+              </div>
+
+              <div className="grid max-h-[370px] grid-cols-3 gap-3 overflow-y-auto pr-1 lg:grid-cols-2">
+                {images.map((imageUrl: string, index: number) => {
+                  const active = index === activeIndex;
+
+                  return (
+                    <button
+                      key={`${imageUrl}-${index}`}
+                      type="button"
+                      onClick={() => setActiveIndex(index)}
+                      className={`relative aspect-square overflow-hidden rounded-2xl border transition ${
+                        active
+                          ? "border-[var(--color-secondary)] ring-2 ring-[var(--color-secondary)]/40"
+                          : "border-[var(--color-border-light)] hover:border-[var(--color-primary)]"
+                      }`}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`Property thumbnail ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+
+                      {active && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+                          <span className="rounded-full bg-white px-3 py-1 text-[9px] font-black uppercase tracking-wider text-[var(--color-primary)]">
+                            Selected
+                          </span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+{previewOpen &&
+  activeImage &&
+  createPortal(
+    <div className="fixed inset-0 z-[99999] flex h-screen w-screen items-center justify-center overflow-hidden bg-black/80 p-6 backdrop-blur-md">
+      <button
+        type="button"
+        onClick={() => setPreviewOpen(false)}
+        className="absolute right-6 top-6 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--color-primary)] shadow-xl transition hover:scale-105"
+      >
+        <X className="h-5 w-5" />
+      </button>
+
+      {images.length > 1 && (
+        <button
+          type="button"
+          onClick={goPrevious}
+          className="absolute left-6 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[var(--color-primary)] shadow-xl transition hover:scale-105"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+      )}
+
+      <div className="relative flex max-h-[88vh] max-w-[88vw] items-center justify-center rounded-3xl bg-white p-3 shadow-2xl">
+        <img
+          src={activeImage}
+          alt="Large property preview"
+          className="max-h-[82vh] max-w-[84vw] rounded-2xl object-contain"
+        />
+
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-5 py-2 text-sm font-bold text-white shadow-lg">
+          {activeIndex + 1} / {images.length}
+        </div>
+      </div>
+
+      {images.length > 1 && (
+        <button
+          type="button"
+          onClick={goNext}
+          className="absolute right-6 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[var(--color-primary)] shadow-xl transition hover:scale-105"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      )}
+    </div>,
+    document.body
+  )}
+    </>
+  );
+}
 export default function ListingDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -460,7 +700,7 @@ export default function ListingDetailsPage() {
   }
 
   const listing = getListingFromResponse(data);
-  const listingImages = getListingImages(listing);
+ 
   const bidCount = getBidCount(listing);
   const canEdit = isDraftListing(listing);
   const canWithdraw = canWithdrawListing(listing);
@@ -638,10 +878,7 @@ export default function ListingDetailsPage() {
 
       <section className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
-          <PropertyImagesSection
-            listingId={id}
-            listingImages={listingImages}
-          />
+          <PropertyImageGallery listing={listing} />
 
           <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
             <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">

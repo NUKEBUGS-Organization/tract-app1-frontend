@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Link,
   Outlet,
-  useLocation,
+  // useLocation,
   useSearchParams,
 } from "react-router";
 import {
@@ -180,9 +180,23 @@ function DashboardLayout({
   children,
 }: DashboardLayoutProps) {
   const { user } = useAuthContext();
-  const { data: profile } = useGetMeQuery(undefined, { skip: !user });
+const authUser = user as any;
 
-  const location = useLocation();
+const {
+  data: profile,
+  refetch: refetchProfile,
+} = useGetMeQuery(undefined, {
+  skip: !authUser,
+  refetchOnMountOrArgChange: true,
+});
+
+useEffect(() => {
+  if (authUser) {
+    refetchProfile();
+  }
+}, [authUser?._id, authUser?.email, refetchProfile]);
+
+  // const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -191,16 +205,31 @@ function DashboardLayout({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const isDark = mode === "dark";
-  const displayName = getUserName(profile?.data || profile || user);
-  const initials = getInitials(displayName) || "A";
+  const profileUser = (profile as any)?.data ?? profile;
+
+const profileMatchesCurrentUser =
+  !profileUser ||
+  !authUser ||
+  (authUser?._id && profileUser?._id && authUser._id === profileUser._id) ||
+  (authUser?.email &&
+    profileUser?.email &&
+    authUser.email === profileUser.email);
+
+const displayUser = profileMatchesCurrentUser
+  ? profileUser || authUser
+  : authUser;
+
+const displayName = getUserName(displayUser);
+const initials = getInitials(displayName) || "A";
+
   const primaryAction = getPrimaryAction(title);
 
   const searchValue = searchParams.get("search") || "";
 
-  const isSellerPortal = title.toLowerCase().includes("seller");
-  const isDashboardPage = location.pathname === "/dashboard";
+  // const isSellerPortal = title.toLowerCase().includes("seller");
+  // const isDashboardPage = location.pathname === "/dashboard";
 
-  const showPropertySearch = isSellerPortal && isDashboardPage;
+  const showPropertySearch = false;
 
   const { data: dashboardData, isFetching: isFetchingListings } =
     useGetListingsDashboardQuery(undefined, {

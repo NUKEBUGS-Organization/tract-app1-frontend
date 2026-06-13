@@ -5,9 +5,14 @@ import { Chips, Lbl, Tarea, ToggleCard } from "./FormPrimitives";
 interface StepProps {
   form: FormState;
   set: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
+  fieldErrors?: Record<string, string>;
 }
 
-export default function Step3Condition({ form, set }: StepProps) {
+export default function Step3Condition({
+  form,
+  set,
+  fieldErrors = {},
+}: StepProps) {
   return (
     <div className="space-y-6">
       <div>
@@ -28,6 +33,7 @@ export default function Step3Condition({ form, set }: StepProps) {
             options={CONDITIONS}
             value={form.roofCondition}
             onChange={(value) => set("roofCondition", value)}
+            error={fieldErrors.roofCondition}
           />
         </div>
 
@@ -38,6 +44,7 @@ export default function Step3Condition({ form, set }: StepProps) {
             options={CONDITIONS}
             value={form.hvacCondition}
             onChange={(value) => set("hvacCondition", value)}
+            error={fieldErrors.hvacCondition}
           />
         </div>
 
@@ -48,6 +55,7 @@ export default function Step3Condition({ form, set }: StepProps) {
             options={CONDITIONS}
             value={form.overallCondition}
             onChange={(value) => set("overallCondition", value)}
+            error={fieldErrors.overallCondition}
           />
         </div>
 
@@ -59,6 +67,7 @@ export default function Step3Condition({ form, set }: StepProps) {
             onChange={(value) => set("conditionNotes", value)}
             placeholder="Roof age, HVAC service date, repairs, known issues, or general notes."
             rows={4}
+            error={fieldErrors.conditionNotes}
           />
         </div>
       </div>
@@ -73,6 +82,7 @@ export default function Step3Condition({ form, set }: StepProps) {
           onToggle={() => set("hasWetlands", !form.hasWetlands)}
           label="Wetlands on Property"
           sub="Proximity to protected zones or flood plains"
+          error={fieldErrors.hasWetlands}
         />
 
         <div className="border-t border-[var(--color-border-light)] pt-4">
@@ -81,6 +91,7 @@ export default function Step3Condition({ form, set }: StepProps) {
             onToggle={() => set("isVacant", !form.isVacant)}
             label="Property is Currently Vacant"
             sub="Unoccupied / no tenants or owner"
+            error={fieldErrors.isVacant}
           />
         </div>
 
@@ -90,6 +101,7 @@ export default function Step3Condition({ form, set }: StepProps) {
             onToggle={() => set("isOffMarket", !form.isOffMarket)}
             label="Off-Market Property"
             sub="Property is not currently listed publicly"
+            error={fieldErrors.isOffMarket}
           />
         </div>
       </div>
