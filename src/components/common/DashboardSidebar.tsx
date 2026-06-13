@@ -44,7 +44,7 @@ function getNavIcon(label: string) {
   if (lowerLabel.includes("profile")) return UserRound;
   if (lowerLabel.includes("state")) return MapPinned;
   if (lowerLabel.includes("user")) return Users;
-  if (lowerLabel.includes("verification")) return ShieldCheck;
+  if (lowerLabel.includes("kyc") || lowerLabel.includes("identity") || lowerLabel.includes("verification")) return ShieldCheck;
   if (lowerLabel.includes("chat")) return MessageSquareWarning;
   if (lowerLabel.includes("setting")) return Settings;
 

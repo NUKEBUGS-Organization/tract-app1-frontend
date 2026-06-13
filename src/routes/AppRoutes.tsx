@@ -26,6 +26,13 @@ import ListingDetailsPage from "../pages/seller/ListingDetailsPage";
 import EditListingPage from "../pages/seller/EditListingPage";
 import ContractsPage from "../pages/seller/ContractsPage";
 
+// Partner pages
+import PropertyStreamPage from "../pages/partner/PropertyStreamPage";
+import ActiveDealsPage from "../pages/partner/ActiveDealsPage";
+import ScorePage from "../pages/partner/ScorePage";
+import PropertyDetailPage from "../pages/partner/PropertyDetailPage";
+import SubmitBidPage from "../pages/partner/submit-bid";
+
 import ProfilePage from "../pages/profile";
 
 import ChatRoomsPage from "../pages/chat";
@@ -197,10 +204,31 @@ function AppRoutes() {
                   ...ADMIN_ROLES,
                 ]}
               >
-                <PlaceholderPage
-                  title="Properties"
-                  description="Role-based property view will render here."
-                />
+                <PropertyStreamPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/properties/:id"
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  ...PARTNER_ROLES,
+                  ...REALTOR_ROLES,
+                  ...ADMIN_ROLES,
+                ]}
+              >
+                <PropertyDetailPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/properties/:id/bid"
+            element={
+              <RoleRoute allowedRoles={PARTNER_ROLES}>
+                <SubmitBidPage />
               </RoleRoute>
             }
           />
@@ -215,10 +243,7 @@ function AppRoutes() {
                   ...ADMIN_ROLES,
                 ]}
               >
-                <PlaceholderPage
-                  title="Deals"
-                  description="Role-based deals view will render here."
-                />
+                <ActiveDealsPage />
               </RoleRoute>
             }
           />
@@ -228,10 +253,7 @@ function AppRoutes() {
             path="/score"
             element={
               <RoleRoute allowedRoles={PARTNER_ROLES}>
-                <PlaceholderPage
-                  title="Score"
-                  description="Wholesaler score and performance metrics."
-                />
+                <ScorePage />
               </RoleRoute>
             }
           />

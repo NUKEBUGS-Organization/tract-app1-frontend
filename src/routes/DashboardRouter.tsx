@@ -27,10 +27,12 @@ const sellerNav = [
 
 const partnerNav = [
   { label: "Dashboard", path: "/dashboard" },
+  { label: "KYC Verification", path: "/kyc" },
   { label: "Property Stream", path: "/properties" },
   { label: "Active Deals", path: "/deals" },
   { label: "Chat", path: "/chat" },
   { label: "Score", path: "/score" },
+
 ];
 
 const realtorNav = [
