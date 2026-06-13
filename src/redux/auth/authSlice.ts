@@ -34,6 +34,7 @@ interface AuthState {
 }
 
 const storedAccessToken = tokenStorage.getAccessToken();
+const storedRefreshToken = tokenStorage.getRefreshToken();
 const decodedStoredToken = decodeAccessToken(storedAccessToken);
 
 const initialState: AuthState = {
@@ -49,9 +50,9 @@ const initialState: AuthState = {
       }
     : null,
   accessToken: storedAccessToken,
-  refreshToken: tokenStorage.getRefreshToken(),
+  refreshToken: storedRefreshToken,
   role: getRoleFromToken(storedAccessToken),
-  isAuthenticated: Boolean(storedAccessToken),
+  isAuthenticated: Boolean(storedAccessToken || storedRefreshToken),
 };
 
 interface SetCredentialsPayload {

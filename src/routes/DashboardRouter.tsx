@@ -17,27 +17,27 @@ import {
 
 const sellerNav = [
   { label: "Dashboard", path: "/dashboard" },
-  { label: "KYC Verification", path: "/kyc" },
   { label: "List Property", path: "/list-property" },
   { label: "Document Vault", path: "/document-vault" },
   { label: "View Bids", path: "/bids" },
+  { label: "Contracts", path: "/contracts" },
   { label: "Deal Tracker", path: "/deal-tracker" },
+  { label: "Chat", path: "/chat" },
 ];
 
 const partnerNav = [
   { label: "Dashboard", path: "/dashboard" },
-  { label: "KYC Verification", path: "/kyc" },
   { label: "Property Stream", path: "/properties" },
   { label: "Active Deals", path: "/deals" },
+  { label: "Chat", path: "/chat" },
   { label: "Score", path: "/score" },
 ];
 
 const realtorNav = [
   { label: "Dashboard", path: "/dashboard" },
-  { label: "KYC Verification", path: "/kyc" },
-  { label: "Profile Setup", path: "/profile" },
   { label: "Properties", path: "/properties" },
   { label: "Deals", path: "/deals" },
+  { label: "Chat", path: "/chat" },
 ];
 
 const adminNav = [

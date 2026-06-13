@@ -3,12 +3,8 @@ const REFRESH_TOKEN_KEY = "tract_refresh_token";
 
 const isProduction = import.meta.env.PROD;
 
-function setCookie(name: string, value: string, days = 7) {
-  const expires = new Date();
-
-  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-
-  let cookie = `${name}=${encodeURIComponent(value)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
+function setCookie(name: string, value: string) {
+  let cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
 
   if (isProduction) {
     cookie += "; Secure";
@@ -33,7 +29,7 @@ function getCookie(name: string) {
 }
 
 function deleteCookie(name: string) {
-  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax`;
+  document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax`;
 }
 
 export const tokenStorage = {
@@ -47,11 +43,11 @@ export const tokenStorage = {
 
   setTokens: (accessToken?: string | null, refreshToken?: string | null) => {
     if (accessToken) {
-      setCookie(ACCESS_TOKEN_KEY, accessToken, 1);
+      setCookie(ACCESS_TOKEN_KEY, accessToken);
     }
 
     if (refreshToken) {
-      setCookie(REFRESH_TOKEN_KEY, refreshToken, 7);
+      setCookie(REFRESH_TOKEN_KEY, refreshToken);
     }
   },
 

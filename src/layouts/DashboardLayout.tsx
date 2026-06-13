@@ -1,10 +1,27 @@
 import type { ReactNode } from "react";
-import { useState } from "react";
-import { Link, Outlet } from "react-router";
-import { Bell, Menu, Plus, Search, X } from "lucide-react";
+
+import { useEffect, useState } from "react";
+import {
+  Link,
+  Outlet,
+  // useLocation,
+  useSearchParams,
+} from "react-router";
+import {
+  Bell,
+  ChevronDown,
+  Menu,
+  Plus,
+  Search,
+  ShieldCheck,
+  UserCircle,
+  X,
+} from "lucide-react";
 
 import { useAuthContext } from "../contexts/AuthContext";
 import DashboardSidebar from "../components/common/DashboardSidebar";
+import { useGetMeQuery } from "../services/userService";
+import { useGetListingsDashboardQuery } from "../services/listingService";
 
 interface NavItem {
   label: string;
@@ -21,11 +38,11 @@ interface DashboardLayoutProps {
 function getUserName(user: unknown) {
   const authUser = user as
     | {
-        full_name?: string;
-        fullName?: string;
-        name?: string;
-        email?: string;
-      }
+      full_name?: string;
+      fullName?: string;
+      name?: string;
+      email?: string;
+    }
     | null
     | undefined;
 
@@ -77,6 +94,85 @@ function getPrimaryAction(title: string) {
   };
 }
 
+function getApiPayload(response: any) {
+  return response?.data?.data ?? response?.data ?? response;
+}
+
+function getListingsFromResponse(response: any) {
+  const payload = getApiPayload(response);
+
+  if (Array.isArray(payload?.listings)) {
+    return payload.listings;
+  }
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return [];
+}
+
+function getListingLabel(listing: any) {
+  const address = listing?.address || "Untitled Listing";
+  const state = listing?.state_code ? `, ${listing.state_code}` : "";
+  const zip = listing?.zip_code ? ` ${listing.zip_code}` : "";
+
+  return `${address}${state}${zip}`;
+}
+
+function formatMoney(value: any) {
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return "-";
+  }
+
+  return numberValue.toLocaleString(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatStatus(status?: string) {
+  if (!status) return "Draft";
+
+  return status
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getListingSearchText(listing: any) {
+  return [
+    listing?.address,
+    listing?.state_code,
+    listing?.zip_code,
+    listing?.property_type,
+    listing?.status,
+    listing?.zoning,
+    listing?.market_price,
+    listing?.condition_report?.overall,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function filterListings(listings: any[], searchValue: string) {
+  const normalizedSearch = searchValue.trim().toLowerCase();
+
+  if (!normalizedSearch) {
+    return [];
+  }
+
+  return listings
+    .filter((listing) =>
+      getListingSearchText(listing).includes(normalizedSearch)
+    )
+    .slice(0, 6);
+}
+
 function DashboardLayout({
   title,
   navItems,
@@ -84,13 +180,89 @@ function DashboardLayout({
   children,
 }: DashboardLayoutProps) {
   const { user } = useAuthContext();
+const authUser = user as any;
+
+const {
+  data: profile,
+  refetch: refetchProfile,
+} = useGetMeQuery(undefined, {
+  skip: !authUser,
+  refetchOnMountOrArgChange: true,
+});
+
+useEffect(() => {
+  if (authUser) {
+    refetchProfile();
+  }
+}, [authUser?._id, authUser?.email, refetchProfile]);
+
+  // const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const isDark = mode === "dark";
-  const displayName = getUserName(user);
-  const initials = getInitials(displayName) || "A";
+  const profileUser = (profile as any)?.data ?? profile;
+
+const profileMatchesCurrentUser =
+  !profileUser ||
+  !authUser ||
+  (authUser?._id && profileUser?._id && authUser._id === profileUser._id) ||
+  (authUser?.email &&
+    profileUser?.email &&
+    authUser.email === profileUser.email);
+
+const displayUser = profileMatchesCurrentUser
+  ? profileUser || authUser
+  : authUser;
+
+const displayName = getUserName(displayUser);
+const initials = getInitials(displayName) || "A";
+
   const primaryAction = getPrimaryAction(title);
+
+  const searchValue = searchParams.get("search") || "";
+
+  // const isSellerPortal = title.toLowerCase().includes("seller");
+  // const isDashboardPage = location.pathname === "/dashboard";
+
+  const showPropertySearch = false;
+
+  const { data: dashboardData, isFetching: isFetchingListings } =
+    useGetListingsDashboardQuery(undefined, {
+      skip: !showPropertySearch,
+    });
+
+  const listings = getListingsFromResponse(dashboardData);
+  const searchResults = filterListings(listings, searchValue);
+
+  const shouldShowDropdown =
+    showPropertySearch && isSearchFocused && searchValue.trim().length > 0;
+
+  const handleSearchChange = (value: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+
+    if (value.trim()) {
+      nextParams.set("search", value);
+    } else {
+      nextParams.delete("search");
+    }
+
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const handleClearSearch = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("search");
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const closeSearchDropdown = () => {
+    setIsSearchFocused(false);
+  };
 
   return (
     <div
@@ -101,12 +273,10 @@ function DashboardLayout({
       }
     >
       <div className="flex min-h-screen">
-        {/* Left Sidebar Navbar - Desktop */}
         <aside className="sticky top-0 hidden h-screen w-[270px] shrink-0 flex-col bg-[var(--color-primary-dark)] text-white shadow-2xl lg:flex">
           <DashboardSidebar navItems={navItems} />
         </aside>
 
-        {/* Mobile Sidebar Navbar */}
         {isMobileMenuOpen && (
           <div className="fixed inset-0 z-40 lg:hidden">
             <button
@@ -126,23 +296,20 @@ function DashboardLayout({
         )}
 
         <div className="min-w-0 flex-1">
-          {/* Top Navbar */}
           <nav
-            className={`sticky top-0 z-30 flex h-[86px] items-center justify-between border-b px-5 backdrop-blur-xl lg:px-10 ${
-              isDark
+            className={`sticky top-0 z-30 flex h-[86px] items-center justify-between border-b px-5 backdrop-blur-xl lg:px-10 ${isDark
                 ? "border-white/10 bg-[var(--color-dark-main)]/90"
                 : "border-[var(--color-border-light)] bg-[var(--color-bg-main)]/90"
-            }`}
+              }`}
           >
-            <div className="flex min-w-0 flex-1 items-center gap-4 lg:gap-6">
+            <div className="flex min-w-0 items-center gap-4 lg:gap-6">
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
-                className={`flex h-11 w-11 items-center justify-center rounded-full border lg:hidden ${
-                  isDark
+                className={`flex h-11 w-11 items-center justify-center rounded-full border lg:hidden ${isDark
                     ? "border-white/10 bg-white/10 text-white"
                     : "border-[var(--color-border-light)] bg-white text-[var(--color-primary)]"
-                }`}
+                  }`}
                 aria-label="Open menu"
               >
                 {isMobileMenuOpen ? (
@@ -152,42 +319,156 @@ function DashboardLayout({
                 )}
               </button>
 
-              <div
-                className={`hidden h-11 w-full max-w-[280px] items-center gap-3 rounded-none px-4 xl:flex ${
-                  isDark ? "bg-white/10" : "bg-white/70"
-                }`}
-              >
-                <Search className="h-4 w-4 text-[var(--color-text-muted)]" />
+              {!isMobileMenuOpen && (
+                <div className="flex shrink-0 items-center gap-2 lg:hidden">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--color-secondary)]/30 bg-white/90 shadow-sm">
+                    <img
+                      src="/tract-logo.png"
+                      alt="TRACT logo"
+                      className="h-6 w-6 object-contain"
+                    />
+                  </div>
 
-                <input
-                  type="text"
-                  placeholder="Search properties..."
-                  className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${
-                    isDark ? "text-white" : "text-[var(--color-text-main)]"
-                  }`}
-                />
-              </div>
+                  <span
+                    className={`text-base font-extrabold tracking-tight ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                      }`}
+                  >
+                    TRACT
+                  </span>
+                </div>
+              )}
 
-              <div className="min-w-0">
+              <div className="hidden min-w-0 lg:block">
                 <p
-                  className={`text-[10px] font-semibold uppercase tracking-[0.25em] sm:text-xs ${
-                    isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
-                  }`}
+                  className={`text-[10px] font-semibold uppercase tracking-[0.25em] sm:text-xs ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+                    }`}
                 >
                   {title}
                 </p>
 
                 <h2
-                  className={`mt-1 truncate font-serif text-xl font-black leading-tight sm:text-2xl lg:text-3xl ${
-                    isDark ? "text-white" : "text-[var(--color-primary)]"
-                  }`}
+                  className={`mt-1 truncate font-serif text-xl font-black leading-tight sm:text-2xl lg:text-3xl ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                    }`}
                 >
                   Welcome back, {displayName}
                 </h2>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 lg:gap-4">
+            <div className="flex-grow" />
+
+            <div className="flex shrink-0 items-center gap-4 lg:gap-6">
+              {showPropertySearch && (
+                <div className="relative hidden w-[280px] md:block xl:w-[320px]">
+                  <div
+                    className={`flex h-11 items-center gap-3 rounded-none px-4 ${isDark ? "bg-white/10" : "bg-white/70"
+                      }`}
+                  >
+                    <Search className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
+
+                    <input
+                      type="text"
+                      value={searchValue}
+                      onChange={(event) =>
+                        handleSearchChange(event.target.value)
+                      }
+                      onFocus={() => setIsSearchFocused(true)}
+                      onBlur={() => {
+                        window.setTimeout(() => {
+                          setIsSearchFocused(false);
+                        }, 150);
+                      }}
+                      placeholder="Search properties..."
+                      aria-label="Search properties"
+                      className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${isDark
+                          ? "text-white"
+                          : "text-[var(--color-text-main)]"
+                        }`}
+                    />
+
+                    {searchValue && (
+                      <button
+                        type="button"
+                        onClick={handleClearSearch}
+                        className="shrink-0 rounded-full p-1 text-[var(--color-text-muted)] transition hover:bg-black/5 hover:text-[var(--color-primary)]"
+                        aria-label="Clear search"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {shouldShowDropdown && (
+                    <div className="absolute left-0 top-[52px] z-50 w-full overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-2xl">
+                      <div className="border-b border-[var(--color-border-light)] px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                          Matching Listings
+                        </p>
+                      </div>
+
+                      {isFetchingListings ? (
+                        <div className="px-4 py-5 text-center text-xs font-semibold text-[var(--color-text-muted)]">
+                          Searching listings...
+                        </div>
+                      ) : searchResults.length === 0 ? (
+                        <div className="px-4 py-5 text-center">
+                          <p className="text-sm font-bold text-[var(--color-text-main)]">
+                            No matching listing found.
+                          </p>
+
+                          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                            Try address, state, ZIP code, property type, or
+                            status.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="max-h-[360px] overflow-y-auto py-2">
+                          {searchResults.map((listing: any) => {
+                            const id = String(listing?._id || "");
+                            const title = getListingLabel(listing);
+
+                            return (
+                              <Link
+                                key={id}
+                                to={`/listings/${id}`}
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={closeSearchDropdown}
+                                className="block px-4 py-3 transition hover:bg-[var(--color-bg-soft)]"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-black text-[var(--color-primary)]">
+                                      {title}
+                                    </p>
+
+                                    <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">
+                                      {listing?.property_type || "Property"} ·{" "}
+                                      {formatMoney(listing?.market_price)}
+                                    </p>
+                                  </div>
+
+                                  <span className="shrink-0 rounded-full border border-[var(--color-border-light)] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">
+                                    {formatStatus(listing?.status)}
+                                  </span>
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {searchResults.length > 0 && (
+                        <div className="border-t border-[var(--color-border-light)] px-4 py-3">
+                          <p className="text-[10px] font-semibold text-[var(--color-text-muted)]">
+                            Click a listing to open its details page.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Link
                 to={primaryAction.path}
                 className="hidden items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-[var(--shadow-premium)] transition hover:scale-[1.02] md:flex"
@@ -198,11 +479,10 @@ function DashboardLayout({
 
               <button
                 type="button"
-                className={`relative flex h-11 w-11 items-center justify-center rounded-full border transition ${
-                  isDark
+                className={`relative flex h-11 w-11 items-center justify-center rounded-full border transition ${isDark
                     ? "border-white/10 bg-white/10 hover:bg-white/15"
                     : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]"
-                }`}
+                  }`}
               >
                 <Bell
                   className={
@@ -215,8 +495,79 @@ function DashboardLayout({
                 <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[var(--color-danger)] ring-2 ring-white" />
               </button>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-black text-[var(--color-secondary)] ring-2 ring-[var(--color-secondary)]/30">
-                {initials}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileMenuOpen((value) => !value)}
+                  className="flex items-center gap-2 rounded-full"
+                  aria-label="Open profile menu"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-black text-[var(--color-secondary)] ring-2 ring-[var(--color-secondary)]/30">
+                    {initials}
+                  </div>
+
+                  <ChevronDown
+                    className={`hidden h-4 w-4 transition md:block ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"
+                      } ${isProfileMenuOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {isProfileMenuOpen && (
+                  <div className="absolute right-0 top-[56px] z-50 w-72 overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-2xl">
+                    <div className="border-b border-[var(--color-border-light)] px-5 py-4">
+                      <p className="truncate text-sm font-black text-[var(--color-primary)]">
+                        {displayName}
+                      </p>
+
+                      <p className="mt-0.5 truncate text-xs text-[var(--color-text-muted)]">
+                        Profile & account settings
+                      </p>
+                    </div>
+
+                    <div className="py-2">
+                      <Link
+                        to="/profile"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="flex items-center gap-3 px-5 py-3 text-sm font-bold text-[var(--color-text-main)] transition hover:bg-[var(--color-bg-soft)]"
+                      >
+                        <UserCircle className="h-4 w-4 text-[var(--color-primary)]" />
+                        Profile & Settings
+                      </Link>
+
+                      <Link
+                        to="/kyc"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="flex items-center gap-3 px-5 py-3 text-sm font-bold text-[var(--color-text-main)] transition hover:bg-[var(--color-bg-soft)]"
+                      >
+                        <ShieldCheck className="h-4 w-4 text-[var(--color-primary)]" />
+                        KYC Verification
+                      </Link>
+
+                      {/* <Link
+                        to="/profile"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="flex items-center gap-3 px-5 py-3 text-sm font-bold text-[var(--color-text-main)] transition hover:bg-[var(--color-bg-soft)]"
+                      >
+                        <Settings className="h-4 w-4 text-[var(--color-primary)]" />
+                        Account Settings
+                      </Link> */}
+                    </div>
+
+                    {/* <div className="border-t border-[var(--color-border-light)] p-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setIsProfileMenuOpen(false);
+                          await logoutAuth();
+                        }}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-bold text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                      </button>
+                    </div> */}
+                  </div>
+                )}
               </div>
             </div>
           </nav>

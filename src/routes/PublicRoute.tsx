@@ -2,19 +2,19 @@ import { Navigate, Outlet } from "react-router";
 
 import { useAuthContext } from "../contexts/AuthContext";
 import { tokenStorage } from "../redux/auth/tokenStorage";
-import { isTokenExpired } from "../redux/auth/jwtUtils";
 
 function PublicRoute() {
-  const { accessToken } = useAuthContext();
+  const { accessToken, refreshToken } = useAuthContext();
 
   const storedAccessToken = tokenStorage.getAccessToken();
-  const activeAccessToken = accessToken || storedAccessToken || null;
+  const storedRefreshToken = tokenStorage.getRefreshToken();
 
-  const isLoggedIn = Boolean(
-    activeAccessToken && !isTokenExpired(activeAccessToken)
-  );
+  const activeAccessToken = accessToken || storedAccessToken;
+  const activeRefreshToken = refreshToken || storedRefreshToken;
 
-  if (isLoggedIn) {
+  const hasSession = Boolean(activeAccessToken || activeRefreshToken);
+
+  if (hasSession) {
     return <Navigate to="/dashboard" replace />;
   }
 

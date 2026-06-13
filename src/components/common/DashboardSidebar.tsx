@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import {
   BarChart3,
@@ -18,6 +19,8 @@ import {
 } from "lucide-react";
 
 import { useAuthContext } from "../../contexts/AuthContext";
+import tractLogoSidebar from "../../assets/tract-logo-sidebar.png";
+import LogoutModal from "./LogoutModal";
 
 interface NavItem {
   label: string;
@@ -54,17 +57,28 @@ export default function DashboardSidebar({
 }: DashboardSidebarProps) {
   const location = useLocation();
   const { logoutAuth } = useAuthContext();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   return (
     <>
-      <div className="border-b border-white/10 px-8 py-8">
-        <h1 className="font-serif text-4xl font-black tracking-wide text-[var(--color-secondary)]">
-          TRACT
-        </h1>
+      <div className="border-b border-white/10 px-6 py-5 flex items-center gap-3">
+        <img
+          src={tractLogoSidebar}
+          alt="TRACT logo"
+          className="h-12 w-auto object-contain"
 
-        <p className="mt-1 text-[10px] uppercase tracking-[0.35em] text-white/35">
-          Luxury Real Estate
-        </p>
+        />
+
+
+        <div>
+          <div className="text-3xl font-normal tracking-tight text-white" style={{ fontFamily: '"Cinzel", serif' }}>
+            TRACT
+          </div>
+
+          <p className="mt-0.6 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
+            Luxury Real Estate
+          </p>
+        </div>
       </div>
 
       <nav className="flex-1 space-y-1 px-5 py-6">
@@ -81,18 +95,16 @@ export default function DashboardSidebar({
               key={item.path}
               to={item.path}
               onClick={onNavigate}
-              className={`group flex items-center gap-4 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${
-                active
-                  ? "bg-[var(--color-primary)] text-[var(--color-secondary)] shadow-lg"
-                  : "text-white/40 hover:bg-white/10 hover:text-white"
-              }`}
+              className={`group flex items-center gap-4 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${active
+                ? "bg-[var(--color-primary)] text-[var(--color-secondary)] shadow-lg"
+                : "text-white/40 hover:bg-white/10 hover:text-white"
+                }`}
             >
               <Icon
-                className={`h-5 w-5 ${
-                  active
-                    ? "text-[var(--color-secondary)]"
-                    : "text-white/30 group-hover:text-white"
-                }`}
+                className={`h-5 w-5 ${active
+                  ? "text-[var(--color-secondary)]"
+                  : "text-white/30 group-hover:text-white"
+                  }`}
               />
 
               <span>{item.label}</span>
@@ -112,13 +124,19 @@ export default function DashboardSidebar({
 
         <button
           type="button"
-          onClick={logoutAuth}
+          onClick={() => setIsLogoutModalOpen(true)}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-white/75 transition hover:bg-[var(--color-danger)] hover:text-white"
         >
           <LogOut className="h-4 w-4" />
           Logout
         </button>
       </div>
+
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onCancel={() => setIsLogoutModalOpen(false)}
+        onConfirm={logoutAuth}
+      />
     </>
   );
 }

@@ -1,4 +1,6 @@
-type StatusBadgeVariant =
+// src/components/common/StatusBadge.tsx
+
+export type StatusBadgeVariant =
   | "success"
   | "warning"
   | "danger"
@@ -20,8 +22,7 @@ const variantClasses: Record<StatusBadgeVariant, string> = {
     "bg-[var(--color-danger)]/10 text-[var(--color-danger)] border-[var(--color-danger)]/20",
   gold:
     "bg-[var(--color-secondary)]/15 text-[#8a6a00] border-[var(--color-secondary)]/30",
-  neutral:
-    "bg-gray-100 text-gray-700 border-gray-200",
+  neutral: "bg-gray-100 text-gray-700 border-gray-200",
   dark:
     "bg-[var(--color-dark-card)] text-white border-[var(--color-dark-border)]",
 };

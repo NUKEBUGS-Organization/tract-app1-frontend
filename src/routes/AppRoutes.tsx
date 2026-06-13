@@ -17,6 +17,20 @@ import KycPage from "../pages/kyc";
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
 
+// Seller pages
+import ListPropertyPage from "../pages/seller/ListPropertyPage";
+import DocumentVaultPage from "../pages/seller/DocumentVaultPage";
+import ViewBidsPage from "../pages/seller/ViewBidsPage";
+import DealTrackerPage from "../pages/seller/DealTrackerPage";
+import ListingDetailsPage from "../pages/seller/ListingDetailsPage";
+import EditListingPage from "../pages/seller/EditListingPage";
+import ContractsPage from "../pages/seller/ContractsPage";
+
+import ProfilePage from "../pages/profile";
+
+import ChatRoomsPage from "../pages/chat";
+import ChatRoomPage from "../pages/chat/ChatRoomPage";
+
 import {
   ADMIN_ROLES,
   ALL_APP_ROLES,
@@ -54,6 +68,14 @@ function AppRoutes() {
             }
           />
 
+          <Route
+            path="/profile"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <ProfilePage />
+              </RoleRoute>
+            }
+          />
           {/* KYC route for app users */}
           <Route
             path="/kyc"
@@ -70,16 +92,59 @@ function AppRoutes() {
               </RoleRoute>
             }
           />
+          <Route
+  path="/chat"
+  element={
+    <RoleRoute
+      allowedRoles={[
+        ...SELLER_ROLES,
+        ...PARTNER_ROLES,
+        ...REALTOR_ROLES,
+      ]}
+    >
+      <ChatRoomsPage />
+    </RoleRoute>
+  }
+/>
+
+<Route
+  path="/chat/:roomId"
+  element={
+    <RoleRoute
+      allowedRoles={[
+        ...SELLER_ROLES,
+        ...PARTNER_ROLES,
+        ...REALTOR_ROLES,
+      ]}
+    >
+      <ChatRoomPage />
+    </RoleRoute>
+  }
+/>
 
           {/* Seller-only routes */}
           <Route
             path="/list-property"
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
-                <PlaceholderPage
-                  title="List Property"
-                  description="Seller can list and manage property submissions here."
-                />
+                <ListPropertyPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/listings/:id"
+            element={
+              <RoleRoute allowedRoles={SELLER_ROLES}>
+                <ListingDetailsPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/listings/:id/edit"
+            element={
+              <RoleRoute allowedRoles={SELLER_ROLES}>
+                <EditListingPage />
               </RoleRoute>
             }
           />
@@ -88,10 +153,7 @@ function AppRoutes() {
             path="/document-vault"
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
-                <PlaceholderPage
-                  title="Document Vault"
-                  description="Seller document upload and verification area."
-                />
+                <DocumentVaultPage />
               </RoleRoute>
             }
           />
@@ -100,10 +162,16 @@ function AppRoutes() {
             path="/bids"
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
-                <PlaceholderPage
-                  title="View Bids"
-                  description="Seller can view incoming bids here."
-                />
+                <ViewBidsPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/contracts"
+            element={
+              <RoleRoute allowedRoles={SELLER_ROLES}>
+                <ContractsPage />
               </RoleRoute>
             }
           />
@@ -112,13 +180,11 @@ function AppRoutes() {
             path="/deal-tracker"
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
-                <PlaceholderPage
-                  title="Deal Tracker"
-                  description="Seller deal progress and status tracking."
-                />
+                <DealTrackerPage />
               </RoleRoute>
             }
           />
+
 
           {/* Partner/Realtor/Admin shared routes */}
           <Route
@@ -171,7 +237,7 @@ function AppRoutes() {
           />
 
           {/* Realtor-only routes */}
-          <Route
+          {/* <Route
             path="/profile"
             element={
               <RoleRoute allowedRoles={REALTOR_ROLES}>
@@ -181,7 +247,7 @@ function AppRoutes() {
                 />
               </RoleRoute>
             }
-          />
+          /> */}
 
           {/* Admin-only routes */}
           <Route

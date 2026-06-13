@@ -3,7 +3,7 @@ import { Navigate } from "react-router";
 
 import { useAuthContext } from "../contexts/AuthContext";
 import { tokenStorage } from "../redux/auth/tokenStorage";
-import { getRoleFromToken, isTokenExpired } from "../redux/auth/jwtUtils";
+import { getRoleFromToken } from "../redux/auth/jwtUtils";
 import { isAllowedRole, normalizeRole } from "../constants/roles";
 
 interface RoleRouteProps {
@@ -12,19 +12,35 @@ interface RoleRouteProps {
 }
 
 export default function RoleRoute({ allowedRoles, children }: RoleRouteProps) {
-  const { role, accessToken } = useAuthContext();
+  const { role, accessToken, refreshToken } = useAuthContext();
 
   const storedAccessToken = tokenStorage.getAccessToken();
-  const activeAccessToken = accessToken || storedAccessToken;
+  const storedRefreshToken = tokenStorage.getRefreshToken();
 
-  if (!activeAccessToken || isTokenExpired(activeAccessToken)) {
+  const activeAccessToken = accessToken || storedAccessToken;
+  const activeRefreshToken = refreshToken || storedRefreshToken;
+
+  const hasSession = Boolean(activeAccessToken || activeRefreshToken);
+
+  if (!hasSession) {
     return <Navigate to="/auth/signin" replace />;
   }
 
   const userRole = normalizeRole(role || getRoleFromToken(activeAccessToken));
 
   if (!userRole) {
-    return <Navigate to="/auth/signin" replace />;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-main)]">
+        <div className="rounded-2xl border border-[var(--color-border-light)] bg-white px-6 py-5 text-center shadow-[var(--shadow-card)]">
+          <p className="text-sm font-semibold text-[var(--color-primary)]">
+            Restoring your session...
+          </p>
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+            Please wait while we verify your access.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (!isAllowedRole(userRole, allowedRoles)) {
