@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Building2,
   Clock,
-  Filter,
   Flame,
   Loader2,
   MapPin,

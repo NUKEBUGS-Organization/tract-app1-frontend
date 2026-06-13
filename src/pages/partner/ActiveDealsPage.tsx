@@ -25,14 +25,18 @@ function formatMoney(value: any) {
   });
 }
 
-function normalizeBids(data: any): any[] {
-  const payload = data?.data ?? data;
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.bids)) return payload.bids;
-  return [];
+function normalizeBids(bidsData: any): any[] {
+  const allBids: any[] = (() => {
+    const raw: any = bidsData;
+    const payload = raw?.data ?? raw;
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.bids)) return payload.bids;
+    return [];
+  })();
+  return allBids;
 }
 
-function normalizeDeals(data: any[]): any[] {
+function normalizeDeals(data: any[] | undefined): any[] {
   return Array.isArray(data) ? data : [];
 }
 
@@ -134,7 +138,6 @@ function BidCard({ bid }: { bid: any }) {
   const listingAddress =
     bid?.listing?.address || bid?.property_address || "Property";
   const listingId = bid?.listing?._id || bid?.listing_id || bid?.property_id;
-  const bidId = bid?._id || bid?.id;
 
   return (
     <div

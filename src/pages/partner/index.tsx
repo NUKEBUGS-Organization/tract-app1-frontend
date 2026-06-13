@@ -24,33 +24,6 @@ import { useGetMyDealsQuery } from "../../services/dealService";
 import { useGetMeQuery } from "../../services/userService";
 
 
-/* ─── Static stat data (replace with API) ───────────────────────────── */
-const stats = [
-  {
-    label: "Available Deals",
-    value: 18,
-    note: "Fresh off-market stream",
-    icon: Building2,
-  },
-  {
-    label: "Bids Submitted",
-    value: 9,
-    note: "+3 this week",
-    icon: Gavel,
-  },
-  {
-    label: "Active Deals",
-    value: 4,
-    note: "2 nearing contract",
-    icon: Handshake,
-  },
-  {
-    label: "Partner Score",
-    value: 94,
-    note: "Trusted Buyer status",
-    icon: ShieldCheck,
-  },
-];
 
 const recentActivity = [
   {
@@ -79,38 +52,6 @@ const recentActivity = [
   },
 ];
 
-const hotDeals = [
-  {
-    id: "1",
-    property: "782 Willow Ridge Blvd",
-    price: 420000,
-    margin: 12,
-    hoursLeft: 18,
-    bidCount: 7,
-    maxBids: 10,
-    status: "hot",
-  },
-  {
-    id: "2",
-    property: "90 Lakeview Oaks Dr",
-    price: 610000,
-    margin: 9,
-    hoursLeft: 36,
-    bidCount: 4,
-    maxBids: 10,
-    status: "review",
-  },
-  {
-    id: "3",
-    property: "233 Cedar Heights Ave",
-    price: 355000,
-    margin: 15,
-    hoursLeft: 52,
-    bidCount: 1,
-    maxBids: 10,
-    status: "new",
-  },
-];
 
 /* ─── Journey steps for wholesaler ─────────────────────────────────── */
 const journeySteps = [
@@ -161,14 +102,6 @@ const journeySteps = [
   },
 ];
 
-/* ─── Helpers ────────────────────────────────────────────────────────── */
-function formatMoney(value: number) {
-  return value.toLocaleString(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
-}
 
 /* ─── Sub-components ─────────────────────────────────────────────────── */
 interface StatCardProps {
