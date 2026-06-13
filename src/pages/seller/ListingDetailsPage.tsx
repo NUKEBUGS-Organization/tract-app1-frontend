@@ -167,72 +167,72 @@ function formatCondition(value?: string) {
     .join(" ");
 }
 
-function normalizeImageUrl(rawUrl: any) {
-  if (!rawUrl) return "";
+// function normalizeImageUrl(rawUrl: any) {
+//   if (!rawUrl) return "";
 
-  const url = String(rawUrl).trim();
+//   const url = String(rawUrl).trim();
 
-  if (!url) return "";
+//   if (!url) return "";
 
-  const apiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || "").replace(
-    /\/$/,
-    ""
-  );
+//   const apiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || "").replace(
+//     /\/$/,
+//     ""
+//   );
 
-  const apiOrigin = apiBaseUrl.replace(/\/api\/v1$/, "");
+//   const apiOrigin = apiBaseUrl.replace(/\/api\/v1$/, "");
 
-  /*
-    Important:
-    Do not replace %5C or backslashes here.
-    %5C may be part of the backend file key.
-    Frontend should only fix the missing /api/v1 prefix.
-  */
+//   /*
+//     Important:
+//     Do not replace %5C or backslashes here.
+//     %5C may be part of the backend file key.
+//     Frontend should only fix the missing /api/v1 prefix.
+//   */
 
-  // Relative URL missing /v1:
-  // /api/listings/documents/view/...
-  if (url.startsWith("/api/listings/")) {
-    return `${apiOrigin}${url.replace(
-      "/api/listings/",
-      "/api/v1/listings/"
-    )}`;
-  }
+//   // Relative URL missing /v1:
+//   // /api/listings/documents/view/...
+//   if (url.startsWith("/api/listings/")) {
+//     return `${apiOrigin}${url.replace(
+//       "/api/listings/",
+//       "/api/v1/listings/"
+//     )}`;
+//   }
 
-  // Relative URL already has /api/v1:
-  // /api/v1/listings/documents/view/...
-  if (url.startsWith("/api/v1/")) {
-    return `${apiOrigin}${url}`;
-  }
+//   // Relative URL already has /api/v1:
+//   // /api/v1/listings/documents/view/...
+//   if (url.startsWith("/api/v1/")) {
+//     return `${apiOrigin}${url}`;
+//   }
 
-  // Relative URL without leading slash and missing /v1:
-  // api/listings/documents/view/...
-  if (url.startsWith("api/listings/")) {
-    return `${apiOrigin}/${url.replace(
-      "api/listings/",
-      "api/v1/listings/"
-    )}`;
-  }
+//   // Relative URL without leading slash and missing /v1:
+//   // api/listings/documents/view/...
+//   if (url.startsWith("api/listings/")) {
+//     return `${apiOrigin}/${url.replace(
+//       "api/listings/",
+//       "api/v1/listings/"
+//     )}`;
+//   }
 
-  // Relative URL without leading slash but already has /api/v1:
-  // api/v1/listings/documents/view/...
-  if (url.startsWith("api/v1/")) {
-    return `${apiOrigin}/${url}`;
-  }
+//   // Relative URL without leading slash but already has /api/v1:
+//   // api/v1/listings/documents/view/...
+//   if (url.startsWith("api/v1/")) {
+//     return `${apiOrigin}/${url}`;
+//   }
 
-  // Backend route only:
-  // listings/documents/view/...
-  if (url.startsWith("listings/")) {
-    return `${apiBaseUrl}/${url}`;
-  }
+//   // Backend route only:
+//   // listings/documents/view/...
+//   if (url.startsWith("listings/")) {
+//     return `${apiBaseUrl}/${url}`;
+//   }
 
-  // Full URL but missing /v1:
-  // http://localhost:3000/api/listings/documents/view/...
-  if (url.includes("/api/listings/")) {
-    return url.replace("/api/listings/", "/api/v1/listings/");
-  }
+//   // Full URL but missing /v1:
+//   // http://localhost:3000/api/listings/documents/view/...
+//   if (url.includes("/api/listings/")) {
+//     return url.replace("/api/listings/", "/api/v1/listings/");
+//   }
 
-  // S3 signed URL, public URL, or already valid full URL
-  return url;
-}
+//   // S3 signed URL, public URL, or already valid full URL
+//   return url;
+// }
 
 function getListingLabel(listing: any) {
   const address = listing?.address || "Untitled Listing";
@@ -261,38 +261,38 @@ function canWithdrawListing(listing: any) {
   return bidCount === 0 && !["under_contract", "closed"].includes(status);
 }
 
-function getListingImages(listing: any) {
-  if (!Array.isArray(listing?.picture_urls)) {
-    return [];
-  }
+// function getListingImages(listing: any) {
+//   if (!Array.isArray(listing?.picture_urls)) {
+//     return [];
+//   }
 
-  return listing.picture_urls
-    .map((item: any, index: number) => {
-      const rawUrl =
-        typeof item === "string"
-          ? item
-          : item?.url || item?.signed_url || item?.file_url || item?.src;
+//   return listing.picture_urls
+//     .map((item: any, index: number) => {
+//       const rawUrl =
+//         typeof item === "string"
+//           ? item
+//           : item?.url || item?.signed_url || item?.file_url || item?.src;
 
-      const url = normalizeImageUrl(rawUrl);
+//       const url = normalizeImageUrl(rawUrl);
 
-      return {
-        id:
-          typeof item === "string"
-            ? `picture-${index}`
-            : item?._id || item?.id || `picture-${index}`,
-        url,
-        name:
-          typeof item === "string"
-            ? `Property Image ${index + 1}`
-            : item?.file_name || item?.name || `Property Image ${index + 1}`,
-      };
-    })
-    .filter((image: any) => Boolean(image.url))
-    .filter(
-      (image: any, index: number, array: any[]) =>
-        array.findIndex((item) => item.url === image.url) === index
-    );
-}
+//       return {
+//         id:
+//           typeof item === "string"
+//             ? `picture-${index}`
+//             : item?._id || item?.id || `picture-${index}`,
+//         url,
+//         name:
+//           typeof item === "string"
+//             ? `Property Image ${index + 1}`
+//             : item?.file_name || item?.name || `Property Image ${index + 1}`,
+//       };
+//     })
+//     .filter((image: any) => Boolean(image.url))
+//     .filter(
+//       (image: any, index: number, array: any[]) =>
+//         array.findIndex((item) => item.url === image.url) === index
+//     );
+// }
 
 function InfoCard({
   label,
@@ -352,98 +352,98 @@ function NotesBox({ label, value }: { label: string; value: any }) {
   );
 }
 
-function ImageCard({ image }: { image: any }) {
-  const [hasError, setHasError] = useState(false);
+// function ImageCard({ image }: { image: any }) {
+//   const [hasError, setHasError] = useState(false);
 
-  return (
-    <a
-      href={image.url}
-      target="_blank"
-      rel="noreferrer"
-      className="group overflow-hidden rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
-    >
-      {!hasError ? (
-        <img
-          src={image.url}
-          alt={image.name}
-          className="h-52 w-full object-cover transition duration-300 group-hover:scale-105"
-          onError={() => setHasError(true)}
-        />
-      ) : (
-        <div className="flex h-52 flex-col items-center justify-center gap-2 bg-[var(--color-bg-soft)] px-4 text-center">
-          <ImageIcon className="h-8 w-8 text-[var(--color-text-muted)]" />
+//   return (
+//     <a
+//       href={image.url}
+//       target="_blank"
+//       rel="noreferrer"
+//       className="group overflow-hidden rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+//     >
+//       {!hasError ? (
+//         <img
+//           src={image.url}
+//           alt={image.name}
+//           className="h-52 w-full object-cover transition duration-300 group-hover:scale-105"
+//           onError={() => setHasError(true)}
+//         />
+//       ) : (
+//         <div className="flex h-52 flex-col items-center justify-center gap-2 bg-[var(--color-bg-soft)] px-4 text-center">
+//           <ImageIcon className="h-8 w-8 text-[var(--color-text-muted)]" />
 
-          <p className="text-sm font-bold text-[var(--color-text-main)]">
-            Image preview unavailable
-          </p>
+//           <p className="text-sm font-bold text-[var(--color-text-main)]">
+//             Image preview unavailable
+//           </p>
 
-          <p className="text-xs leading-5 text-[var(--color-text-muted)]">
-            The image URL was returned, but it could not be loaded.
-          </p>
-        </div>
-      )}
+//           <p className="text-xs leading-5 text-[var(--color-text-muted)]">
+//             The image URL was returned, but it could not be loaded.
+//           </p>
+//         </div>
+//       )}
 
-      <div className="border-t border-[var(--color-border-light)] bg-white px-4 py-3">
-        <p className="truncate text-xs font-bold text-[var(--color-primary)]">
-          {image.name}
-        </p>
-      </div>
-    </a>
-  );
-}
+//       <div className="border-t border-[var(--color-border-light)] bg-white px-4 py-3">
+//         <p className="truncate text-xs font-bold text-[var(--color-primary)]">
+//           {image.name}
+//         </p>
+//       </div>
+//     </a>
+//   );
+// }
 
-function PropertyImagesSection({
-  listingId,
-  listingImages,
-}: {
-  listingId: string;
-  listingImages: any[];
-}) {
-  return (
-    <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">
-            Property Images
-          </h2>
+// function PropertyImagesSection({
+//   listingId,
+//   listingImages,
+// }: {
+//   listingId: string;
+//   listingImages: any[];
+// }) {
+//   return (
+//     <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
+//       <div className="mb-5 flex items-center justify-between gap-4">
+//         <div>
+//           <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">
+//             Property Images
+//           </h2>
 
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            Uploaded property pictures for this listing.
-          </p>
-        </div>
+//           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+//             Uploaded property pictures for this listing.
+//           </p>
+//         </div>
 
-        <ImageIcon className="h-5 w-5 text-[var(--color-primary)]" />
-      </div>
+//         <ImageIcon className="h-5 w-5 text-[var(--color-primary)]" />
+//       </div>
 
-      {listingImages.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-8 text-center">
-          <ImageIcon className="mx-auto h-8 w-8 text-[var(--color-text-muted)]" />
+//       {listingImages.length === 0 ? (
+//         <div className="rounded-xl border border-dashed border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-8 text-center">
+//           <ImageIcon className="mx-auto h-8 w-8 text-[var(--color-text-muted)]" />
 
-          <p className="mt-3 text-sm font-bold text-[var(--color-text-main)]">
-            No property images uploaded yet.
-          </p>
+//           <p className="mt-3 text-sm font-bold text-[var(--color-text-main)]">
+//             No property images uploaded yet.
+//           </p>
 
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            Upload property pictures from the Document Vault.
-          </p>
+//           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+//             Upload property pictures from the Document Vault.
+//           </p>
 
-          <Link
-            to={`/document-vault?listingId=${listingId}`}
-            className="mt-4 inline-flex bg-[var(--color-primary)] px-5 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-white"
-          >
-            Upload Images
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {listingImages.map((image: any) => (
-            <ImageCard key={image.id} image={image} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+//           <Link
+//             to={`/document-vault?listingId=${listingId}`}
+//             className="mt-4 inline-flex bg-[var(--color-primary)] px-5 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-white"
+//           >
+//             Upload Images
+//           </Link>
+//         </div>
+//       ) : (
+//         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+//           {listingImages.map((image: any) => (
+//             <ImageCard key={image.id} image={image} />
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
 function getImageUrls(listing: any) {
   const urls =
     listing?.picture_urls ||

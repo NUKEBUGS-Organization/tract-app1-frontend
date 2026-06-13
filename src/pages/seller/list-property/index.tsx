@@ -29,7 +29,7 @@ import Step3Condition from "./components/Condition";
 import Step4Motivation from "./components/Motivation";
 import StepIndicator from "./components/StepIndicator";
 import SuccessState from "./components/SubmitListing";
-import type { ZodNull } from "zod";
+
 
 type ToastState = {
   type: "error" | "success";
