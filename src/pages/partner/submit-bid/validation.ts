@@ -6,57 +6,39 @@ interface ValidationResult {
   step: number;
 }
 
+// Step 1: bid_price only
 export function validateStep1(form: BidFormState): ValidationResult | null {
   const errors: Record<string, string> = {};
 
-  if (!form.offerAmount || Number(form.offerAmount) <= 0) {
-    errors.offerAmount = "A valid offer amount is required.";
-  }
-
-  if (!form.earnestMoney || Number(form.earnestMoney) < 0) {
-    errors.earnestMoney = "Earnest money deposit amount is required.";
-  }
-
-  if (!form.buyerType) {
-    errors.buyerType = "Please select your buyer type.";
+  if (!form.bid_price || Number(form.bid_price) <= 0) {
+    errors.bid_price = "A valid bid price is required.";
   }
 
   if (Object.keys(errors).length > 0) {
-    return {
-      error: "Please fill in all required bid fields.",
-      fieldErrors: errors,
-      step: 1,
-    };
+    return { error: "Please enter a valid bid price.", fieldErrors: errors, step: 1 };
   }
-
   return null;
 }
 
+// Step 2: inspection_period and due_diligence_period
 export function validateStep2(form: BidFormState): ValidationResult | null {
   const errors: Record<string, string> = {};
 
-  if (!form.closingTimeline) {
-    errors.closingTimeline = "Please select a closing timeline.";
+  if (form.inspection_period === null) {
+    errors.inspection_period = "Select an inspection period: 3, 7, or 10 days.";
   }
 
-  if (!form.inspectionPeriodDays || Number(form.inspectionPeriodDays) < 0) {
-    errors.inspectionPeriodDays = "Inspection period in days is required.";
+  if (form.due_diligence_period === null) {
+    errors.due_diligence_period = "Select a due diligence period: 5, 10, or 15 business days.";
   }
 
   if (Object.keys(errors).length > 0) {
-    return {
-      error: "Please complete all due diligence fields.",
-      fieldErrors: errors,
-      step: 2,
-    };
+    return { error: "Please complete all required terms.", fieldErrors: errors, step: 2 };
   }
-
   return null;
 }
 
-export function validateBidForm(
-  form: BidFormState
-): ValidationResult | null {
+export function validateBidForm(form: BidFormState): ValidationResult | null {
   return validateStep1(form) || validateStep2(form);
 }
 

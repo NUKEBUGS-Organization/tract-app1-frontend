@@ -30,6 +30,7 @@ const partnerNav = [
   { label: "KYC Verification", path: "/kyc" },
   { label: "Proof of Activity", path: "/proof-of-activity" },
   { label: "Property Stream", path: "/properties" },
+  { label: "My Bids", path: "/my-bids" },
   { label: "Active Deals", path: "/deals" },
   { label: "Chat", path: "/chat" },
   { label: "Score", path: "/score" },

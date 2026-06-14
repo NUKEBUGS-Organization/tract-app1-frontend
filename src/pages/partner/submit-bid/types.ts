@@ -1,24 +1,18 @@
 export interface BidFormState {
-  // Step 1 – Bid Details
-  offerAmount: string;
-  earnestMoney: string;
-  buyerType: string;
-  contingencies: string[];
 
-  // Step 2 – Due Diligence
-  inspectionPeriodDays: string;
-  closingTimeline: string;
-  proofOfFundsNote: string;
-  additionalNotes: string;
+  bid_price: string; // sent as number to API
+
+  inspection_period: 3 | 7 | 10 | null;     // InspectionPeriod enum
+  due_diligence_period: 5 | 10 | 15 | null; // DueDiligencePeriod enum
+
+  loi_url: string;
+  proof_of_funds_url: string;
 }
 
 export const DEFAULT_BID_FORM: BidFormState = {
-  offerAmount: "",
-  earnestMoney: "",
-  buyerType: "",
-  contingencies: [],
-  inspectionPeriodDays: "",
-  closingTimeline: "",
-  proofOfFundsNote: "",
-  additionalNotes: "",
+  bid_price: "",
+  inspection_period: null,
+  due_diligence_period: null,
+  loi_url: "",
+  proof_of_funds_url: "",
 };

@@ -8,14 +8,11 @@ import {
   CheckCircle2,
   Circle,
   Clock,
-  DollarSign,
   Flame,
   Gavel,
   Handshake,
   RefreshCw,
   ShieldCheck,
-  TrendingUp,
-  UserCheck,
   type LucideIcon,
 } from "lucide-react";
 import { useGetListingsQuery } from "../../services/listingService";
@@ -24,40 +21,11 @@ import { useGetMyDealsQuery } from "../../services/dealService";
 import { useGetMeQuery } from "../../services/userService";
 
 
-
-const recentActivity = [
-  {
-    icon: TrendingUp,
-    title: "Reliability score increased by 4 points",
-    time: "Today",
-    type: "positive",
-  },
-  {
-    icon: DollarSign,
-    title: "New high-margin deal added to stream",
-    time: "3 hours ago",
-    type: "positive",
-  },
-  {
-    icon: Clock,
-    title: 'Offer deadline approaching — "782 Willow Ridge"',
-    time: "6 hours ago",
-    type: "urgent",
-  },
-  {
-    icon: BadgeCheck,
-    title: "Seller accepted document review on Lakeview Oaks",
-    time: "Yesterday",
-    type: "positive",
-  },
-];
-
-
 /* ─── Journey steps for wholesaler ─────────────────────────────────── */
 const journeySteps = [
   {
     id: "kyc",
-    icon: UserCheck,
+    icon: ShieldCheck,
     label: "Identity Verified",
     desc: "Complete KYC to unlock full deal access.",
     done: true,
@@ -230,9 +198,8 @@ export default function PartnerDashboard() {
 
   return (
     <div className="space-y-10">
-      {/* Hero banner */}
+
       <section className="relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.03] p-8 shadow-2xl">
-        {/* Decorative rings */}
         <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border border-[var(--color-secondary)]/8" />
         <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border border-[var(--color-secondary)]/6" />
 
@@ -276,6 +243,39 @@ export default function PartnerDashboard() {
         </div>
       </section>
 
+
+      <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/5 to-transparent p-6 shadow-2xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10">
+              <BarChart3 className="h-7 w-7 text-[var(--color-secondary)]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-serif text-3xl font-black text-[var(--color-secondary)]">
+                  94
+                </p>
+                <span className="flex items-center gap-1 rounded-full border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]">
+                  <BadgeCheck className="h-3 w-3" />
+                  Trusted Buyer
+                </span>
+              </div>
+              <p className="mt-1 text-sm font-semibold text-white/50">
+                Your Reliability Score · Top 8% of partners
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/score"
+            className="inline-flex items-center gap-2 border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] transition hover:bg-[var(--color-secondary)]/10"
+          >
+            View Full Report
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </section>
+
       {/* Stats */}
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {liveStats.map((stat) => (
@@ -283,141 +283,101 @@ export default function PartnerDashboard() {
         ))}
       </section>
 
-      {/* Journey tracker + Activity */}
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Journey */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl">
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <div>
-              <h2 className="font-serif text-xl font-black text-white">
-                Partner Journey
-              </h2>
-              <p className="mt-0.5 text-xs text-white/35">
-                {completedSteps} of {journeySteps.length} milestones complete
-              </p>
-            </div>
-
-            <div className="hidden w-36 sm:block">
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[var(--color-secondary)] to-[#f0d060] transition-all duration-700"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              <p className="mt-1 text-right text-[10px] font-bold text-white/35">
-                {progressPct}% done
-              </p>
-            </div>
+      {/* Journey tracker */}
+      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="font-serif text-xl font-black text-white">
+              Partner Journey
+            </h2>
+            <p className="mt-0.5 text-xs text-white/35">
+              {completedSteps} of {journeySteps.length} milestones complete
+            </p>
           </div>
 
-          <div className="relative space-y-0">
-            <div className="absolute left-[19px] top-5 h-[calc(100%-40px)] w-0.5 bg-white/8" />
-
-            {journeySteps.map((step, index) => {
-              const Icon = step.icon;
-              const isNext =
-                !step.done &&
-                journeySteps.slice(0, index).every((item) => item.done);
-
-              return (
-                <div
-                  key={step.id}
-                  className={`group relative flex items-start gap-4 py-4 ${
-                    index < journeySteps.length - 1 ? "border-b border-white/6" : ""
-                  }`}
-                >
-                  <div
-                    className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
-                      step.done
-                        ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]"
-                        : isNext
-                          ? "border-[var(--color-secondary)] bg-white/5 shadow-[0_0_0_4px_rgba(212,175,55,0.12)]"
-                          : "border-white/15 bg-white/5"
-                    }`}
-                  >
-                    {step.done ? (
-                      <CheckCircle2 className="h-5 w-5 text-[var(--color-dark-main)]" />
-                    ) : isNext ? (
-                      <Icon className="h-4 w-4 text-[var(--color-secondary)]" />
-                    ) : (
-                      <Circle className="h-4 w-4 text-white/20" />
-                    )}
-                  </div>
-
-                  <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p
-                        className={`text-sm font-black ${
-                          step.done
-                            ? "text-[var(--color-secondary)]"
-                            : isNext
-                              ? "text-white"
-                              : "text-white/40"
-                        }`}
-                      >
-                        {step.label}
-                        {step.done && (
-                          <span className="ml-2 inline-flex items-center rounded-full bg-[var(--color-secondary)]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]">
-                            Done
-                          </span>
-                        )}
-                        {isNext && (
-                          <span className="ml-2 inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white/50">
-                            Next
-                          </span>
-                        )}
-                      </p>
-                      <p className="mt-0.5 text-xs text-white/30">{step.desc}</p>
-                    </div>
-
-                    {(step.done || isNext) && (
-                      <Link
-                        to={step.link}
-                        className="shrink-0 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)] hover:underline"
-                      >
-                        {step.linkLabel} →
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="hidden w-36 sm:block">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[var(--color-secondary)] to-[#f0d060] transition-all duration-700"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <p className="mt-1 text-right text-[10px] font-bold text-white/35">
+              {progressPct}% done
+            </p>
           </div>
         </div>
 
-        {/* Activity Feed */}
-        <aside>
-          <h2 className="mb-5 font-serif text-xl font-black text-white">
-            Recent Activity
-          </h2>
+        <div className="relative space-y-0">
+          <div className="absolute left-[19px] top-5 h-[calc(100%-40px)] w-0.5 bg-white/8" />
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl">
-            <div className="space-y-6">
-              {recentActivity.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div key={item.title} className="flex gap-4">
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                        item.type === "urgent"
-                          ? "bg-[var(--color-danger)]/15 text-[var(--color-danger)]"
-                          : "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)]"
-                      }`}
+          {journeySteps.map((step, index) => {
+            const Icon = step.icon;
+            const isNext =
+              !step.done &&
+              journeySteps.slice(0, index).every((item) => item.done);
+
+            return (
+              <div
+                key={step.id}
+                className={`group relative flex items-start gap-4 py-4 ${index < journeySteps.length - 1 ? "border-b border-white/6" : ""
+                  }`}
+              >
+                <div
+                  className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition-all ${step.done
+                    ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]"
+                    : isNext
+                      ? "border-[var(--color-secondary)] bg-white/5 shadow-[0_0_0_4px_rgba(212,175,55,0.12)]"
+                      : "border-white/15 bg-white/5"
+                    }`}
+                >
+                  {step.done ? (
+                    <CheckCircle2 className="h-5 w-5 text-[var(--color-dark-main)]" />
+                  ) : isNext ? (
+                    <Icon className="h-4 w-4 text-[var(--color-secondary)]" />
+                  ) : (
+                    <Circle className="h-4 w-4 text-white/20" />
+                  )}
+                </div>
+
+                <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p
+                      className={`text-sm font-black ${step.done
+                        ? "text-[var(--color-secondary)]"
+                        : isNext
+                          ? "text-white"
+                          : "text-white/40"
+                        }`}
                     >
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold leading-6 text-white">
-                        {item.title}
-                      </p>
-                      <p className="mt-0.5 text-xs text-white/35">{item.time}</p>
-                    </div>
+                      {step.label}
+                      {step.done && (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-[var(--color-secondary)]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]">
+                          Done
+                        </span>
+                      )}
+                      {isNext && (
+                        <span className="ml-2 inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white/50">
+                          Next
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-0.5 text-xs text-white/30">{step.desc}</p>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </aside>
+
+                  {(step.done || isNext) && (
+                    <Link
+                      to={step.link}
+                      className="shrink-0 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)] hover:underline"
+                    >
+                      {step.linkLabel} →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       {/* Hot Deals table */}
@@ -516,9 +476,8 @@ export default function PartnerDashboard() {
                         </td>
 
                         <td
-                          className={`px-6 py-6 text-sm font-black ${
-                            isUrgent ? "text-[var(--color-danger)]" : "text-white/50"
-                          }`}
+                          className={`px-6 py-6 text-sm font-black ${isUrgent ? "text-[var(--color-danger)]" : "text-white/50"
+                            }`}
                         >
                           {hoursLeft !== null ? (
                             <div className="flex items-center gap-1.5">
@@ -534,13 +493,12 @@ export default function PartnerDashboard() {
                           <div className="w-24">
                             <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                               <div
-                                className={`h-full rounded-full ${
-                                  isFull
-                                    ? "bg-[var(--color-danger)]"
-                                    : spotsLeft <= 2
-                                      ? "bg-[var(--color-warning)]"
-                                      : "bg-[var(--color-secondary)]"
-                                }`}
+                                className={`h-full rounded-full ${isFull
+                                  ? "bg-[var(--color-danger)]"
+                                  : spotsLeft <= 2
+                                    ? "bg-[var(--color-warning)]"
+                                    : "bg-[var(--color-secondary)]"
+                                  }`}
                                 style={{ width: `${(bidCount / maxBids) * 100}%` }}
                               />
                             </div>
@@ -582,39 +540,6 @@ export default function PartnerDashboard() {
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* Score card */}
-      <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/5 to-transparent p-6 shadow-2xl">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10">
-              <BarChart3 className="h-7 w-7 text-[var(--color-secondary)]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-serif text-3xl font-black text-[var(--color-secondary)]">
-                  94
-                </p>
-                <span className="flex items-center gap-1 rounded-full border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]">
-                  <BadgeCheck className="h-3 w-3" />
-                  Trusted Buyer
-                </span>
-              </div>
-              <p className="mt-1 text-sm font-semibold text-white/50">
-                Your Reliability Score · Top 8% of partners
-              </p>
-            </div>
-          </div>
-
-          <Link
-            to="/score"
-            className="inline-flex items-center gap-2 border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] transition hover:bg-[var(--color-secondary)]/10"
-          >
-            View Full Report
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
         </div>
       </section>
     </div>

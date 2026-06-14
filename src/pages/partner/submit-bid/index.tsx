@@ -43,11 +43,10 @@ function ToastPopup({
     <div className="fixed right-6 top-24 z-[9999] w-[calc(100%-3rem)] max-w-md rounded-2xl border border-white/10 bg-[var(--color-dark-main)] p-5 shadow-2xl">
       <div className="flex items-start gap-4">
         <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-            isSuccess
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${isSuccess
               ? "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)]"
               : "bg-[var(--color-danger)]/15 text-[var(--color-danger)]"
-          }`}
+            }`}
         >
           {isSuccess ? (
             <CheckCircle2 className="h-5 w-5" />
@@ -58,11 +57,10 @@ function ToastPopup({
 
         <div className="min-w-0 flex-1">
           <p
-            className={`text-[10px] font-black uppercase tracking-[0.2em] ${
-              isSuccess
+            className={`text-[10px] font-black uppercase tracking-[0.2em] ${isSuccess
                 ? "text-[var(--color-secondary)]"
                 : "text-[var(--color-danger)]"
-            }`}
+              }`}
           >
             {isSuccess ? "Success" : "Action Required"}
           </p>
@@ -164,9 +162,8 @@ export default function SubmitBidPage() {
   const listingData =
     listingRaw?.data?.data ?? listingRaw?.data ?? listingRaw ?? null;
   const propertyLabel = listingData?.address
-    ? `${listingData.address}${
-        listingData.state_code ? `, ${listingData.state_code}` : ""
-      }`
+    ? `${listingData.address}${listingData.state_code ? `, ${listingData.state_code}` : ""
+    }`
     : `Property #${propertyId ?? "Unknown"}`;
 
   const [step, setStep] = useState(1);
@@ -223,19 +220,16 @@ export default function SubmitBidPage() {
 
     setIsSubmitting(true);
     try {
-      // Build the API payload from form fields
-      const payload = {
-        bid_price: Number(form.offerAmount),
-        earnest_money: Number(form.earnestMoney),
-        buyer_type: form.buyerType,
-        contingencies: form.contingencies,
-        inspection_period_days: Number(form.inspectionPeriodDays) || 0,
-        closing_timeline: form.closingTimeline,
-        ...(form.proofOfFundsNote && {
-          proof_of_funds_note: form.proofOfFundsNote,
-        }),
-        ...(form.additionalNotes && { notes: form.additionalNotes }),
+      const payload: Record<string, unknown> = {
+        bid_price: Number(form.bid_price),
+        inspection_period: form.inspection_period,       // 3 | 7 | 10
+        due_diligence_period: form.due_diligence_period, // 5 | 10 | 15
       };
+
+      // Optional fields — only include if user provided them
+      if (form.loi_url.trim()) payload.loi_url = form.loi_url.trim();
+      if (form.proof_of_funds_url.trim())
+        payload.proof_of_funds_url = form.proof_of_funds_url.trim();
 
       await submitBid({ listingId: propertyId, body: payload }).unwrap();
       setSubmitted(true);
@@ -254,6 +248,7 @@ export default function SubmitBidPage() {
       setIsSubmitting(false);
     }
   };
+
 
   if (submitted && propertyId) {
     return (
@@ -334,13 +329,12 @@ export default function SubmitBidPage() {
             {BID_STEPS.map((s) => (
               <div
                 key={s.id}
-                className={`h-1.5 rounded-full transition-all ${
-                  s.id === step
+                className={`h-1.5 rounded-full transition-all ${s.id === step
                     ? "w-8 bg-[var(--color-secondary)]"
                     : s.id < step
                       ? "w-4 bg-[var(--color-secondary)]/40"
                       : "w-4 bg-white/10"
-                }`}
+                  }`}
               />
             ))}
           </div>

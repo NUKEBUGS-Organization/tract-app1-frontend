@@ -10,6 +10,13 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+/* ─── Spec-defined penalty table ───────────────────────────────────── */
+const PENALTY_TABLE = [
+  { violation: "Ghosting Seller", penalty: -10, icon: ShieldCheck },
+  { violation: "Inspection Cancellation", penalty: -20, icon: Clock },
+  { violation: "Missed Deadline", penalty: -15, icon: AlertTriangle },
+];
+
 /* ─── Score breakdown ──────────────────────────────────────────────── */
 const SCORE_BREAKDOWN = [
   {
@@ -335,44 +342,59 @@ export default function ScorePage() {
 
           {/* Tier ladder */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl">
-            <h2 className="mb-4 font-serif text-lg font-black text-white">
+            <h2 className="mb-1 font-serif text-lg font-black text-white">
               Score Tiers
             </h2>
+            <p className="mb-4 text-[11px] text-white/35">
+              Score starts at 100. Violations deduct points.
+            </p>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[
                 {
                   range: "90–100",
                   label: "Trusted Buyer",
+                  note: "Priority stream access + verified badge",
                   color: "text-[var(--color-secondary)]",
+                  borderColor: "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/8",
                   active: true,
                 },
                 {
                   range: "75–89",
                   label: "Verified Partner",
+                  note: "Standard access, bidding enabled",
                   color: "text-white/70",
+                  borderColor: "border-white/6 bg-white/[0.02]",
                   active: false,
                 },
                 {
-                  range: "60–74",
+                  range: "50–74",
                   label: "Standard Access",
+                  note: "Bidding enabled, no priority",
                   color: "text-white/50",
+                  borderColor: "border-white/6 bg-white/[0.02]",
                   active: false,
                 },
                 {
-                  range: "< 60",
-                  label: "Restricted",
+                  range: "30–49",
+                  label: "Restricted — 48h Delay",
+                  note: "Live stream disabled for 48 hours",
+                  color: "text-[var(--color-warning)]",
+                  borderColor: "border-[var(--color-warning)]/20 bg-[var(--color-warning)]/5",
+                  active: false,
+                },
+                {
+                  range: "< 30",
+                  label: "Permanent Ban",
+                  note: "Account flagged — no future access",
                   color: "text-[var(--color-danger)]",
+                  borderColor: "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5",
                   active: false,
                 },
               ].map((tier) => (
                 <div
                   key={tier.range}
-                  className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
-                    tier.active
-                      ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/8"
-                      : "border-white/6 bg-white/[0.02]"
-                  }`}
+                  className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${tier.borderColor}`}
                 >
                   <div className="flex items-center gap-3">
                     {tier.active && (
@@ -381,28 +403,59 @@ export default function ScorePage() {
                     {!tier.active && (
                       <div className="h-4 w-4 rounded-full border border-white/15" />
                     )}
-                    <span className={`text-[12px] font-black ${tier.color}`}>
-                      {tier.label}
-                    </span>
+                    <div>
+                      <span className={`text-[12px] font-black ${tier.color}`}>
+                        {tier.label}
+                      </span>
+                      <p className="text-[10px] text-white/25">{tier.note}</p>
+                    </div>
                   </div>
-                  <span className="text-[11px] text-white/30">{tier.range}</span>
+                  <span className="shrink-0 text-[11px] text-white/30">{tier.range}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Warning box */}
+          {/* Penalty Table */}
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl">
+            <h2 className="mb-4 font-serif text-lg font-black text-white">
+              Penalty Table
+            </h2>
+            <div className="space-y-2">
+              {PENALTY_TABLE.map((row) => {
+                const Icon = row.icon;
+                return (
+                  <div
+                    key={row.violation}
+                    className="flex items-center justify-between rounded-xl border border-[var(--color-danger)]/15 bg-[var(--color-danger)]/5 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Icon className="h-4 w-4 text-[var(--color-danger)]/70" />
+                      <span className="text-[12px] font-bold text-white/70">
+                        {row.violation}
+                      </span>
+                    </div>
+                    <span className="text-[13px] font-black text-[var(--color-danger)]">
+                      {row.penalty} pts
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 30-day activity rule */}
           <div className="rounded-xl border border-[var(--color-warning)]/25 bg-[var(--color-warning)]/5 px-5 py-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-warning)]" />
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.15em] text-[var(--color-warning)]">
-                  Ghosting Policy
+                  30-Day Activity Rule
                 </p>
                 <p className="mt-1 text-[11px] leading-5 text-[var(--color-warning)]/70">
-                  Failing to respond to an accepted offer or abandoning a
-                  signed contract will trigger a Ghost Penalty (-15 pts) and
-                  may restrict your deal access.
+                  You must secure at least <strong>1 contract every 30 days</strong>.
+                  Failure to meet this requirement triggers a{" "}
+                  <strong>14-day restriction</strong> on new deal access.
                 </p>
               </div>
             </div>

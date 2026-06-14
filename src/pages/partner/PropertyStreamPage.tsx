@@ -265,13 +265,15 @@ export default function PropertyStreamPage() {
   const [sortBy, setSortBy] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch all live listings visible to partners
+  // Fetch listings — backend supports: page, limit, state_code, property_type, min_price, max_price
+  // No status filter exists on backend — live/paused filtering done client-side
   const { data, isLoading, isFetching, refetch } = useGetListingsQuery(
-    { status: "live" },
+    {},
     { refetchOnMountOrArgChange: true }
   );
 
   const allListings = normalizeListings(data);
+
 
   // Client-side filter + sort
   const filtered = allListings

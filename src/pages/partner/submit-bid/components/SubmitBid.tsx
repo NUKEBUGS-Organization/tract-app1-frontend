@@ -1,6 +1,5 @@
-import { CheckCircle2, DollarSign, FileCheck2 } from "lucide-react";
+import { CheckCircle2, Clock, DollarSign, FileCheck2, FileText, Link } from "lucide-react";
 import type { BidFormState } from "../types";
-import { BUYER_TYPES, CONTINGENCY_OPTIONS } from "../constants";
 
 interface SubmitBidProps {
   form: BidFormState;
@@ -19,31 +18,31 @@ function formatMoney(value: string) {
   });
 }
 
-function getLabel<T extends { value: string; label: string }>(
-  list: T[],
-  value: string
-) {
-  return list.find((item) => item.value === value)?.label ?? value ?? "—";
-}
-
 function ReviewRow({
   icon: Icon,
   label,
   value,
+  highlight,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
+  highlight?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-white/8 py-3">
+    <div className="flex items-start justify-between gap-4 border-b border-white/8 py-3.5">
       <div className="flex items-center gap-2 text-white/50">
         <Icon className="h-4 w-4 shrink-0" />
         <span className="text-[11px] font-black uppercase tracking-[0.18em]">
           {label}
         </span>
       </div>
-      <span className="text-right text-sm font-bold text-white">{value}</span>
+      <span
+        className={`text-right text-sm font-bold ${highlight ? "text-[var(--color-secondary)]" : "text-white"
+          }`}
+      >
+        {value}
+      </span>
     </div>
   );
 }
@@ -54,13 +53,6 @@ export default function SubmitBid({
   isSubmitting,
   onSubmit,
 }: SubmitBidProps) {
-  const contingencyLabels =
-    form.contingencies.length > 0
-      ? form.contingencies
-          .map((c) => getLabel(CONTINGENCY_OPTIONS, c))
-          .join(", ")
-      : "None (Clean Offer)";
-
   return (
     <div className="space-y-8">
       <div>
@@ -71,12 +63,12 @@ export default function SubmitBid({
           Review & Submit
         </h2>
         <p className="mt-1 text-sm text-white/50">
-          Review your offer details before submission. Once submitted, the seller
-          will be notified.
+          Review your bid before submission. The seller will see your bid price,
+          inspection period, Reliability Score, and Net-to-Seller value.
         </p>
       </div>
 
-      {/* Property label */}
+      {/* Property */}
       {propertyLabel && (
         <div className="rounded-xl border border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/5 px-5 py-3">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)]">
@@ -91,70 +83,81 @@ export default function SubmitBid({
         <p className="mb-4 text-[10px] font-black uppercase tracking-[0.25em] text-white/40">
           Bid Summary
         </p>
-        <div className="space-y-0">
+        <div>
           <ReviewRow
             icon={DollarSign}
-            label="Offer Amount"
-            value={formatMoney(form.offerAmount)}
+            label="Bid Price"
+            value={formatMoney(form.bid_price)}
+            highlight
           />
           <ReviewRow
-            icon={DollarSign}
-            label="Earnest Money"
-            value={formatMoney(form.earnestMoney)}
-          />
-          <ReviewRow
-            icon={DollarSign}
-            label="Buyer Type"
-            value={getLabel(BUYER_TYPES, form.buyerType)}
-          />
-          <ReviewRow
-            icon={FileCheck2}
-            label="Contingencies"
-            value={contingencyLabels}
-          />
-          <ReviewRow
-            icon={FileCheck2}
-            label="Closing Timeline"
-            value={form.closingTimeline || "—"}
-          />
-          <ReviewRow
-            icon={FileCheck2}
+            icon={Clock}
             label="Inspection Period"
+            value={form.inspection_period ? `${form.inspection_period} Days` : "—"}
+          />
+          <ReviewRow
+            icon={FileCheck2}
+            label="Due Diligence Period"
             value={
-              form.inspectionPeriodDays
-                ? `${form.inspectionPeriodDays} days`
+              form.due_diligence_period
+                ? `${form.due_diligence_period} Business Days`
                 : "—"
             }
           />
-          {form.proofOfFundsNote && (
+          {form.loi_url && (
             <ReviewRow
-              icon={CheckCircle2}
+              icon={Link}
+              label="LOI Document"
+              value="Attached ✓"
+            />
+          )}
+          {form.proof_of_funds_url && (
+            <ReviewRow
+              icon={FileText}
               label="Proof of Funds"
-              value={form.proofOfFundsNote}
+              value="Attached ✓"
             />
           )}
         </div>
       </div>
 
-      {/* Notes */}
-      {form.additionalNotes && (
-        <div className="rounded-xl border border-white/8 bg-white/[0.03] px-5 py-4">
-          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-            Additional Notes
-          </p>
-          <p className="text-sm text-white/70 leading-6">{form.additionalNotes}</p>
-        </div>
-      )}
+      {/* What seller sees */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Bid Price", value: formatMoney(form.bid_price) },
+          {
+            label: "Inspection Period",
+            value: form.inspection_period ? `${form.inspection_period}d` : "—",
+          },
+          { label: "Reliability Score", value: "Shown to seller ✓" },
+          { label: "Net-to-Seller", value: "Auto-calculated ✓" },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="rounded-xl border border-[var(--color-secondary)]/15 bg-[var(--color-secondary)]/5 p-3 text-center"
+          >
+            <p className="text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]/60">
+              {item.label}
+            </p>
+            <p className="mt-1 text-[11px] font-bold text-white/70">
+              {item.value}
+            </p>
+          </div>
+        ))}
+      </div>
 
-      {/* Terms notice */}
+      {/* 72h warning */}
       <div className="rounded-xl border border-[var(--color-warning)]/20 bg-[var(--color-warning)]/5 px-5 py-4">
         <p className="text-[11px] leading-5 text-[var(--color-warning)]/80">
-          ⚠️ By submitting this bid, you agree to TRACT's offer terms. Failing
-          to close after a seller accepts may impact your Reliability Score.
+          ⚠️ By submitting this bid, you agree to TRACT's offer terms. If
+          selected, you have{" "}
+          <strong className="text-[var(--color-warning)]">72 hours</strong> to
+          upload active marketing proof. Failure to close after seller
+          acceptance will impact your Reliability Score.
         </p>
       </div>
 
-      {/* Submit Button */}
+      {/* Submit */}
       <button
         type="button"
         onClick={onSubmit}
@@ -168,7 +171,7 @@ export default function SubmitBid({
           </>
         ) : (
           <>
-            <DollarSign className="h-4 w-4" />
+            <CheckCircle2 className="h-4 w-4" />
             Submit Offer
           </>
         )}

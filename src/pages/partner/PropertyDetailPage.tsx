@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router";
 import {
   AlertTriangle,
@@ -6,10 +7,13 @@ import {
   Bath,
   Bed,
   Building2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   DollarSign,
   FileText,
   Flame,
+  Image as ImageIcon,
   Loader2,
   MapPin,
   Maximize2,
@@ -65,6 +69,93 @@ function normalizeDocuments(data: any): any[] {
   return [];
 }
 
+function normalizeImageUrl(rawUrl: any) {
+  if (!rawUrl) return "";
+
+  const url = String(rawUrl).trim();
+
+  if (!url) return "";
+
+  const apiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || "").replace(
+    /\/$/,
+    ""
+  );
+
+  const apiOrigin = apiBaseUrl.replace(/\/api\/v1$/, "");
+
+  // Relative URL missing /v1:
+  if (url.startsWith("/api/listings/")) {
+    return `${apiOrigin}${url.replace(
+      "/api/listings/",
+      "/api/v1/listings/"
+    )}`;
+  }
+
+  // Relative URL already has /api/v1:
+  if (url.startsWith("/api/v1/")) {
+    return `${apiOrigin}${url}`;
+  }
+
+  // Relative URL without leading slash and missing /v1:
+  if (url.startsWith("api/listings/")) {
+    return `${apiOrigin}/${url.replace(
+      "api/listings/",
+      "api/v1/listings/"
+    )}`;
+  }
+
+  // Relative URL without leading slash but already has /api/v1:
+  if (url.startsWith("api/v1/")) {
+    return `${apiOrigin}/${url}`;
+  }
+
+  // Backend route only:
+  if (url.startsWith("listings/")) {
+    return `${apiBaseUrl}/${url}`;
+  }
+
+  // Full URL but missing /v1:
+  if (url.includes("/api/listings/")) {
+    return url.replace("/api/listings/", "/api/v1/listings/");
+  }
+
+  // S3 signed URL, public URL, or already valid full URL
+  return url;
+}
+
+function getListingImages(listing: any) {
+  if (!Array.isArray(listing?.picture_urls)) {
+    return [];
+  }
+
+  return listing.picture_urls
+    .map((item: any, index: number) => {
+      const rawUrl =
+        typeof item === "string"
+          ? item
+          : item?.url || item?.signed_url || item?.file_url || item?.src;
+
+      const url = normalizeImageUrl(rawUrl);
+
+      return {
+        id:
+          typeof item === "string"
+            ? `picture-${index}`
+            : item?._id || item?.id || `picture-${index}`,
+        url,
+        name:
+          typeof item === "string"
+            ? `Property Image ${index + 1}`
+            : item?.file_name || item?.name || `Property Image ${index + 1}`,
+      };
+    })
+    .filter((image: any) => Boolean(image.url))
+    .filter(
+      (image: any, index: number, array: any[]) =>
+        array.findIndex((item) => item.url === image.url) === index
+    );
+}
+
 function StatPill({
   icon: Icon,
   label,
@@ -79,17 +170,15 @@ function StatPill({
   return (
     <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 text-center">
       <Icon
-        className={`h-5 w-5 ${
-          highlight ? "text-[var(--color-secondary)]" : "text-white/40"
-        }`}
+        className={`h-5 w-5 ${highlight ? "text-[var(--color-secondary)]" : "text-white/40"
+          }`}
       />
       <p className="text-[9px] font-black uppercase tracking-wider text-white/30">
         {label}
       </p>
       <p
-        className={`text-base font-black ${
-          highlight ? "text-[var(--color-secondary)]" : "text-white"
-        }`}
+        className={`text-base font-black ${highlight ? "text-[var(--color-secondary)]" : "text-white"
+          }`}
       >
         {value}
       </p>
@@ -110,8 +199,11 @@ export default function PropertyDetailPage() {
     skip: !propertyId,
   });
 
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
   const listing = normalizeListingData(rawData);
   const documents = normalizeDocuments(rawDocs);
+  const images = getListingImages(listing);
 
   if (isLoading) {
     return (
@@ -206,11 +298,10 @@ export default function PropertyDetailPage() {
           {/* Timer */}
           {hoursLeft !== null && (
             <div
-              className={`flex items-center gap-2 rounded-2xl border px-5 py-3 ${
-                isUrgent
+              className={`flex items-center gap-2 rounded-2xl border px-5 py-3 ${isUrgent
                   ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
                   : "border-white/10 bg-white/5 text-white/50"
-              }`}
+                }`}
             >
               <Clock className="h-5 w-5" />
               <div>
@@ -227,22 +318,102 @@ export default function PropertyDetailPage() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         {/* Left column */}
         <div className="space-y-6">
-          {/* Image placeholder */}
-          <div className="relative h-64 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] lg:h-80">
-            <div className="absolute inset-0 flex items-center justify-center text-6xl opacity-20">
-              🏡
+          {/* Image Gallery */}
+          <div className="space-y-3">
+            {/* Main Active Image Display */}
+            <div className="relative h-64 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] lg:h-80 flex items-center justify-center">
+              {images.length > 0 ? (
+                <>
+                  <img
+                    src={images[selectedImageIndex]?.url}
+                    alt={images[selectedImageIndex]?.name || "Property photo"}
+                    className="h-full w-full object-cover transition-all duration-300"
+                  />
+                  
+                  {/* Navigation Arrows if more than 1 image */}
+                  {images.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedImageIndex((prev) =>
+                            prev === 0 ? images.length - 1 : prev - 1
+                          )
+                        }
+                        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 hover:bg-black/75 text-white transition-all backdrop-blur"
+                        aria-label="Previous image"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedImageIndex((prev) =>
+                            prev === images.length - 1 ? 0 : prev + 1
+                          )
+                        }
+                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 hover:bg-black/75 text-white transition-all backdrop-blur"
+                        aria-label="Next image"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                /* Fallback UI when no images */
+                <div className="flex flex-col items-center justify-center text-center p-6 space-y-2">
+                  <ImageIcon className="h-10 w-10 text-white/20" />
+                  <span className="text-sm font-semibold text-white/30">No property photos uploaded yet</span>
+                </div>
+              )}
+
+              {/* Beds / Baths / Sqft Overlay */}
+              <div className="absolute bottom-4 left-4 right-4 flex justify-between pointer-events-none">
+                <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1.5 text-[10px] font-black text-white/60 backdrop-blur pointer-events-auto">
+                  {[
+                    listing?.beds_count && `${listing.beds_count} Beds`,
+                    listing?.baths_count && `${listing.baths_count} Baths`,
+                    listing?.square_footage && `${Number(listing.square_footage).toLocaleString()} sqft`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </span>
+                
+                {images.length > 1 && (
+                  <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1.5 text-[10px] font-black text-white/60 backdrop-blur">
+                    {selectedImageIndex + 1} / {images.length}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="absolute bottom-4 left-4 right-4 flex justify-between">
-              <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1.5 text-[10px] font-black text-white/60 backdrop-blur">
-                {[
-                  listing?.beds_count && `${listing.beds_count} Beds`,
-                  listing?.baths_count && `${listing.baths_count} Baths`,
-                  listing?.square_footage && `${Number(listing.square_footage).toLocaleString()} sqft`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
-            </div>
+
+            {/* Thumbnails Row if more than 1 image */}
+            {images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
+                {images.map((image, index) => {
+                  const isActive = index === selectedImageIndex;
+                  return (
+                    <button
+                      key={image.id}
+                      type="button"
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
+                        isActive
+                          ? "border-[var(--color-secondary)] scale-95"
+                          : "border-white/10 hover:border-white/30"
+                      }`}
+                    >
+                      <img
+                        src={image.url}
+                        alt={`Thumbnail ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Core stats grid */}
@@ -250,25 +421,25 @@ export default function PropertyDetailPage() {
             listing?.baths_count ||
             listing?.square_footage ||
             listing?.year_built) && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {listing?.beds_count > 0 && (
-                <StatPill icon={Bed} label="Bedrooms" value={String(listing.beds_count)} />
-              )}
-              {listing?.baths_count > 0 && (
-                <StatPill icon={Bath} label="Bathrooms" value={String(listing.baths_count)} />
-              )}
-              {listing?.square_footage && (
-                <StatPill
-                  icon={Maximize2}
-                  label="Sqft"
-                  value={Number(listing.square_footage).toLocaleString()}
-                />
-              )}
-              {listing?.year_built && (
-                <StatPill icon={Building2} label="Year Built" value={String(listing.year_built)} />
-              )}
-            </div>
-          )}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {listing?.beds_count > 0 && (
+                  <StatPill icon={Bed} label="Bedrooms" value={String(listing.beds_count)} />
+                )}
+                {listing?.baths_count > 0 && (
+                  <StatPill icon={Bath} label="Bathrooms" value={String(listing.baths_count)} />
+                )}
+                {listing?.square_footage && (
+                  <StatPill
+                    icon={Maximize2}
+                    label="Sqft"
+                    value={Number(listing.square_footage).toLocaleString()}
+                  />
+                )}
+                {listing?.year_built && (
+                  <StatPill icon={Building2} label="Year Built" value={String(listing.year_built)} />
+                )}
+              </div>
+            )}
 
           {/* Financial breakdown */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl">
@@ -286,45 +457,44 @@ export default function PropertyDetailPage() {
                 },
                 ...(arv
                   ? [
-                      {
-                        label: "Estimated ARV",
-                        value: formatMoney(arv),
-                        color: "text-[#6ee7b7]",
-                        highlight: true,
-                      },
-                    ]
+                    {
+                      label: "Estimated ARV",
+                      value: formatMoney(arv),
+                      color: "text-[#6ee7b7]",
+                      highlight: true,
+                    },
+                  ]
                   : []),
                 ...(repairEst
                   ? [
-                      {
-                        label: "Repair Estimate",
-                        value: formatMoney(repairEst),
-                        color: "text-[var(--color-warning)]",
-                        highlight: false,
-                      },
-                    ]
+                    {
+                      label: "Repair Estimate",
+                      value: formatMoney(repairEst),
+                      color: "text-[var(--color-warning)]",
+                      highlight: false,
+                    },
+                  ]
                   : []),
                 ...(netProfit !== null
                   ? [
-                      {
-                        label: "Est. Net Profit",
-                        value: formatMoney(netProfit),
-                        color:
-                          netProfit >= 0
-                            ? "text-[var(--color-secondary)]"
-                            : "text-[var(--color-danger)]",
-                        highlight: true,
-                      },
-                    ]
+                    {
+                      label: "Est. Net Profit",
+                      value: formatMoney(netProfit),
+                      color:
+                        netProfit >= 0
+                          ? "text-[var(--color-secondary)]"
+                          : "text-[var(--color-danger)]",
+                      highlight: true,
+                    },
+                  ]
                   : []),
               ].map((row) => (
                 <div
                   key={row.label}
-                  className={`flex items-center justify-between rounded-xl border px-4 py-3 ${
-                    row.highlight
+                  className={`flex items-center justify-between rounded-xl border px-4 py-3 ${row.highlight
                       ? "border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/5"
                       : "border-white/6 bg-white/[0.02]"
-                  }`}
+                    }`}
                 >
                   <span className="text-[12px] font-semibold text-white/60">
                     {row.label}
@@ -446,26 +616,24 @@ export default function PropertyDetailPage() {
                   Offer Cap
                 </span>
                 <span
-                  className={`text-[11px] font-black ${
-                    isFull
+                  className={`text-[11px] font-black ${isFull
                       ? "text-[var(--color-danger)]"
                       : spotsLeft <= 2
                         ? "text-[var(--color-warning)]"
                         : "text-white/50"
-                  }`}
+                    }`}
                 >
                   {bidCount}/{maxBids} offers submitted
                 </span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-white/8">
                 <div
-                  className={`h-full rounded-full transition-all ${
-                    isFull
+                  className={`h-full rounded-full transition-all ${isFull
                       ? "bg-[var(--color-danger)]"
                       : spotsLeft <= 2
                         ? "bg-[var(--color-warning)]"
                         : "bg-[var(--color-secondary)]"
-                  }`}
+                    }`}
                   style={{ width: `${(bidCount / maxBids) * 100}%` }}
                 />
               </div>

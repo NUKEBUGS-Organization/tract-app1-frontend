@@ -1,5 +1,5 @@
+import { AlertCircle, DollarSign, Info, ShieldAlert } from "lucide-react";
 import type { BidFormState } from "../types";
-import { BUYER_TYPES, CONTINGENCY_OPTIONS } from "../constants";
 
 interface BidDetailsProps {
   form: BidFormState;
@@ -10,21 +10,16 @@ interface BidDetailsProps {
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p className="mt-1 text-[11px] font-semibold text-[var(--color-danger)]">
+    <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--color-danger)]">
+      <AlertCircle className="h-3 w-3 shrink-0" />
       {message}
     </p>
   );
 }
 
 export default function BidDetails({ form, fieldErrors, set }: BidDetailsProps) {
-  const toggleContingency = (value: string) => {
-    const current = form.contingencies;
-    if (current.includes(value)) {
-      set("contingencies", current.filter((c) => c !== value));
-    } else {
-      set("contingencies", [...current, value]);
-    }
-  };
+  const offerNum = Number(form.bid_price);
+  const hasAmount = form.bid_price !== "" && offerNum > 0;
 
   return (
     <div className="space-y-8">
@@ -33,111 +28,133 @@ export default function BidDetails({ form, fieldErrors, set }: BidDetailsProps) 
           Step 1 of 3
         </p>
         <h2 className="mt-1 font-serif text-2xl font-black text-white">
-          Your Offer
+          Your Bid Price
         </h2>
         <p className="mt-1 text-sm text-white/50">
-          Enter your bid amount and purchase terms. All figures are reviewed by
-          the seller.
+          Enter the price you are offering for this property. This is what the
+          seller will see alongside your Reliability Score.
         </p>
       </div>
 
-      {/* Offer Amount */}
-      <div className="grid gap-6 sm:grid-cols-2">
+      {/* Hidden Reserve Notice
+      <div className="flex items-start gap-3 rounded-2xl border border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/5 p-5">
+        <Info className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-secondary)]" />
         <div>
-          <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-white/60">
-            Offer Amount (USD) <span className="text-[var(--color-danger)]">*</span>
-          </label>
-          <div className="mt-2 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 focus-within:border-[var(--color-secondary)]">
-            <span className="text-sm font-black text-[var(--color-secondary)]">$</span>
-            <input
-              type="number"
-              min="0"
-              value={form.offerAmount}
-              onChange={(e) => set("offerAmount", e.target.value)}
-              placeholder="e.g. 420000"
-              className="w-full bg-transparent text-sm font-bold text-white placeholder-white/20 outline-none"
-            />
-          </div>
-          <FieldError message={fieldErrors.offerAmount} />
+          <p className="text-[11px] font-black uppercase tracking-[0.15em] text-[var(--color-secondary)]">
+            Hidden Reserve Price
+          </p>
+          <p className="mt-1.5 text-[12px] leading-5 text-white/60">
+            Each listing has a hidden reserve price set by the seller. Bids
+            below this threshold are{" "}
+            <span className="font-bold text-[var(--color-danger)]">
+              automatically rejected
+            </span>
+            . Bid with confidence.
+          </p>
         </div>
+      </div> */}
 
-        <div>
-          <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-white/60">
-            Earnest Money Deposit (USD) <span className="text-[var(--color-danger)]">*</span>
-          </label>
-          <div className="mt-2 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 focus-within:border-[var(--color-secondary)]">
-            <span className="text-sm font-black text-[var(--color-secondary)]">$</span>
-            <input
-              type="number"
-              min="0"
-              value={form.earnestMoney}
-              onChange={(e) => set("earnestMoney", e.target.value)}
-              placeholder="e.g. 5000"
-              className="w-full bg-transparent text-sm font-bold text-white placeholder-white/20 outline-none"
-            />
-          </div>
-          <FieldError message={fieldErrors.earnestMoney} />
-        </div>
-      </div>
-
-      {/* Buyer Type */}
+      {/* Bid Price */}
       <div>
         <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-white/60">
-          Buyer Type <span className="text-[var(--color-danger)]">*</span>
+          Bid Price (USD) <span className="text-[var(--color-danger)]">*</span>
         </label>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {BUYER_TYPES.map((type) => (
-            <button
-              key={type.value}
-              type="button"
-              onClick={() => set("buyerType", type.value)}
-              className={`rounded-xl border px-4 py-3 text-[11px] font-black uppercase tracking-[0.15em] transition-all ${
-                form.buyerType === type.value
-                  ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]"
-                  : "border-white/10 bg-white/5 text-white/50 hover:border-white/25 hover:text-white/80"
+
+        <div
+          className={`mt-3 flex items-center gap-4 rounded-2xl border-2 bg-white/[0.04] px-6 py-5 transition-all ${fieldErrors.bid_price
+            ? "border-[var(--color-danger)]/60"
+            : hasAmount
+              ? "border-[var(--color-secondary)] shadow-[0_0_0_4px_rgba(212,175,55,0.08)]"
+              : "border-white/10 focus-within:border-[var(--color-secondary)]"
+            }`}
+        >
+          <DollarSign
+            className={`h-7 w-7 shrink-0 ${hasAmount ? "text-[var(--color-secondary)]" : "text-white/25"
               }`}
+          />
+          <input
+            type="number"
+            min="1"
+            value={form.bid_price}
+            onChange={(e) => set("bid_price", e.target.value)}
+            placeholder="0"
+            className="w-full bg-transparent font-serif text-3xl font-black text-white placeholder-white/15 outline-none"
+          />
+          <span className="shrink-0 text-[12px] font-black uppercase tracking-wider text-white/30">
+            USD
+          </span>
+        </div>
+
+        {/* Live dollar preview */}
+        {hasAmount && (
+          <p className="mt-2 text-[12px] font-semibold text-white/40">
+            ={" "}
+            <span className="font-black text-[var(--color-secondary)]">
+              {offerNum.toLocaleString(undefined, {
+                style: "currency",
+                currency: "USD",
+                maximumFractionDigits: 0,
+              })}
+            </span>
+          </p>
+        )}
+
+        <FieldError message={fieldErrors.bid_price} />
+      </div>
+
+      {/* What seller will see */}
+      <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+        <p className="mb-4 text-[10px] font-black uppercase tracking-[0.22em] text-white/35">
+          What the Seller Will See
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            {
+              label: "Bid Price",
+              value: hasAmount
+                ? offerNum.toLocaleString(undefined, {
+                  style: "currency",
+                  currency: "USD",
+                  maximumFractionDigits: 0,
+                })
+                : "Your amount",
+              highlight: true,
+            },
+            { label: "Inspection Period", value: "Set in step 2", highlight: false },
+            { label: "Reliability Score", value: "Your score", highlight: false },
+            { label: "Net-to-Seller", value: "Auto-calculated", highlight: false },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className={`rounded-xl border p-3 text-center ${item.highlight
+                ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/8"
+                : "border-white/6 bg-white/[0.02]"
+                }`}
             >
-              {type.label}
-            </button>
+              <p className="text-[9px] font-black uppercase tracking-wider text-white/30">
+                {item.label}
+              </p>
+              <p
+                className={`mt-1 text-[12px] font-black ${item.highlight
+                  ? "text-[var(--color-secondary)]"
+                  : "text-white/50"
+                  }`}
+              >
+                {item.value}
+              </p>
+            </div>
           ))}
         </div>
-        <FieldError message={fieldErrors.buyerType} />
       </div>
 
-      {/* Contingencies */}
-      <div>
-        <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-white/60">
-          Contingencies
-        </label>
-        <p className="mt-0.5 text-[11px] text-white/35">
-          Select all that apply. Clean offers (no contingencies) are more competitive.
+      {/* Anti-circumvention */}
+      <div className="flex items-start gap-3 rounded-xl border border-[var(--color-danger)]/15 bg-[var(--color-danger)]/5 px-4 py-3">
+        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-danger)]/70" />
+        <p className="text-[11px] leading-5 text-white/40">
+          No contact details are shared with the seller at this stage. Direct
+          communication is not permitted until a contract is signed by both
+          parties.
         </p>
-        <div className="mt-3 space-y-2">
-          {CONTINGENCY_OPTIONS.map((option) => {
-            const isSelected = form.contingencies.includes(option.value);
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => toggleContingency(option.value)}
-                className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
-                  isSelected
-                    ? "border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/8 text-white"
-                    : "border-white/8 bg-white/[0.03] text-white/50 hover:border-white/15 hover:text-white/70"
-                }`}
-              >
-                <div
-                  className={`h-4 w-4 flex-shrink-0 rounded border transition-all ${
-                    isSelected
-                      ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]"
-                      : "border-white/20"
-                  }`}
-                />
-                <span className="text-[12px] font-semibold">{option.label}</span>
-              </button>
-            );
-          })}
-        </div>
       </div>
     </div>
   );
