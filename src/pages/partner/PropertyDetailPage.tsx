@@ -391,7 +391,7 @@ export default function PropertyDetailPage() {
             {/* Thumbnails Row if more than 1 image */}
             {images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
-                {images.map((image, index) => {
+                {images.map((image: any, index: number) => {
                   const isActive = index === selectedImageIndex;
                   return (
                     <button

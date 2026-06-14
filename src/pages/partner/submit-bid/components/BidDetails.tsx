@@ -1,4 +1,4 @@
-import { AlertCircle, DollarSign, Info, ShieldAlert } from "lucide-react";
+import { AlertCircle, DollarSign, ShieldAlert } from "lucide-react";
 import type { BidFormState } from "../types";
 
 interface BidDetailsProps {
