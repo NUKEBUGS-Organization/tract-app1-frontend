@@ -6,11 +6,12 @@ import {
     FileText,
     Gavel,
     Loader2,
+    ShieldCheck,
     XCircle,
 } from "lucide-react";
 import { useGetMyBidsQuery } from "../../services/listingService";
 
-/* ─── Helpers ── */
+/* ─── Helpers ─────────────────────────────────────────────────────────── */
 function formatMoney(value: any) {
     const num = Number(value);
     if (!Number.isFinite(num) || num === 0) return "—";
@@ -27,34 +28,39 @@ function normalizeBids(bidsData: any): any[] {
         const payload = raw?.data ?? raw;
         if (Array.isArray(payload)) return payload;
         if (Array.isArray(payload?.bids)) return payload.bids;
+        if (typeof payload === "object" && payload !== null) {
+            return Object.values(payload);
+        }
         return [];
     })();
     return allBids;
 }
 
+// Exact BidStatus enum values from backend bid.schema.ts:
+// active | selected | backup | rejected | deleted
 function getBidStatus(bid: any): string {
-    return String(bid?.status || "pending").toLowerCase();
+    return String(bid?.status || "active").toLowerCase();
 }
 
-/* ─── Status config ─── */
+/* ─── Status config ──────────────────────────────────────────────────── */
 function getBidStatusConfig(status: string) {
     const map: Record<string, { label: string; className: string; icon: React.ElementType }> = {
-        pending: {
-            label: "Pending Review",
+        active: {
+            label: "Active Offer",
             className: "bg-white/10 text-white/60 border border-white/10",
             icon: Clock,
         },
-        accepted: {
-            label: "Accepted ✓",
+        selected: {
+            label: "Selected — Under Contract ✓",
             className:
                 "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)] border border-[var(--color-secondary)]/30",
             icon: CheckCircle2,
         },
-        selected: {
-            label: "Selected ✓",
+        backup: {
+            label: "Backup Buyer Queue",
             className:
-                "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)] border border-[var(--color-secondary)]/30",
-            icon: CheckCircle2,
+                "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border border-[var(--color-warning)]/25",
+            icon: ShieldCheck,
         },
         rejected: {
             label: "Rejected",
@@ -62,26 +68,38 @@ function getBidStatusConfig(status: string) {
                 "bg-[var(--color-danger)]/10 text-[var(--color-danger)] border border-[var(--color-danger)]/25",
             icon: XCircle,
         },
-        withdrawn: {
-            label: "Withdrawn",
+        deleted: {
+            label: "Removed",
             className: "bg-white/8 text-white/40 border border-white/8",
             icon: XCircle,
         },
     };
-    return map[status] ?? map.pending;
+    return map[status] ?? map.active;
 }
 
-/* ─── Bid card ─── */
+/* ─── Bid card ────────────────────────────────────────────────────────── */
 function BidCard({ bid }: { bid: any }) {
     const status = getBidStatus(bid);
     const config = getBidStatusConfig(status);
     const StatusIcon = config.icon;
 
-    const isActionRequired = status === "accepted" || status === "selected";
+    const isActionRequired = status === "selected" || status === "backup";
     const bidPrice = bid?.bid_price || bid?.amount;
     const listingAddress =
-        bid?.listing?.address || bid?.property_address || "Property";
-    const listingId = bid?.listing?._id || bid?.listing_id || bid?.property_id;
+        bid?.listing?.address ||
+        bid?.property_id?.address ||
+        bid?.property_address ||
+        "Property";
+    const listingId =
+        bid?.listing?._id ||
+        bid?.property_id?._id ||
+        bid?.listing_id ||
+        bid?.property_id;
+    const listingCity = bid?.listing?.city || bid?.property_id?.city;
+    const listingState = bid?.listing?.state_code || bid?.property_id?.state_code;
+
+    // backup_position from backend: 1 = Backup #1, 2 = Backup #2
+    const backupPosition = bid?.backup_position;
 
     return (
         <div
@@ -98,10 +116,10 @@ function BidCard({ bid }: { bid: any }) {
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                         <p className="truncate text-sm font-black text-white">{listingAddress}</p>
-                        {bid?.listing?.city && (
+                        {listingCity && (
                             <p className="mt-0.5 text-[11px] text-white/40">
-                                {bid.listing.city}
-                                {bid.listing.state_code ? `, ${bid.listing.state_code}` : ""}
+                                {listingCity}
+                                {listingState ? `, ${listingState}` : ""}
                             </p>
                         )}
                     </div>
@@ -113,6 +131,14 @@ function BidCard({ bid }: { bid: any }) {
                         {config.label}
                     </span>
                 </div>
+
+                {/* Backup position note */}
+                {status === "backup" && backupPosition && (
+                    <p className="mt-2 text-[11px] font-semibold text-[var(--color-warning)]">
+                        Backup Buyer #{backupPosition} — you'll be auto-promoted if the
+                        primary buyer falls through.
+                    </p>
+                )}
 
                 {/* Bid amount */}
                 <div className="mt-4 rounded-xl border border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/8 p-3">
@@ -151,13 +177,23 @@ function BidCard({ bid }: { bid: any }) {
                             <ArrowUpRight className="h-3.5 w-3.5" />
                         </Link>
                     )}
+
+                    {status === "selected" && (
+                        <Link
+                            to={`/deals?listingId=${listingId}`}
+                            className="flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-dark-main)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02]"
+                        >
+                            Go to Deal
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                        </Link>
+                    )}
                 </div>
 
                 {/* Bid created date */}
-                {bid?.created_at && (
+                {(bid?.submitted_at || bid?.created_at) && (
                     <p className="mt-3 text-[10px] text-white/25">
                         Submitted{" "}
-                        {new Date(bid.created_at).toLocaleDateString(undefined, {
+                        {new Date(bid.submitted_at || bid.created_at).toLocaleDateString(undefined, {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
@@ -169,16 +205,18 @@ function BidCard({ bid }: { bid: any }) {
     );
 }
 
-/* ─── Page ─── */
+/* ─── Page ───────────────────────────────────────────────────────────── */
 export default function MyBidsPage() {
     const { data: bidsData, isLoading } = useGetMyBidsQuery();
     const allBids = normalizeBids(bidsData);
 
+    // "active" and "backup" are still in-play (backup = Waiting Room per spec)
     const activeBids = allBids.filter((b) =>
-        ["pending", "accepted", "selected"].includes(getBidStatus(b))
+        ["active", "selected", "backup"].includes(getBidStatus(b))
     );
-    const rejectedBids = allBids.filter((b) =>
-        ["rejected", "withdrawn"].includes(getBidStatus(b))
+    // "rejected" and "deleted" are the 1-2-Delete Rule outcomes for non-selected bids
+    const pastBids = allBids.filter((b) =>
+        ["rejected", "deleted"].includes(getBidStatus(b))
     );
 
     return (
@@ -199,7 +237,7 @@ export default function MyBidsPage() {
                         </h1>
                         <p className="mt-2 max-w-xl text-sm leading-6 text-white/50">
                             Track every offer you've submitted across the Live Property
-                            Stream — pending, accepted, and past bids.
+                            Stream — active, backup, and past bids.
                         </p>
                     </div>
 
@@ -212,7 +250,7 @@ export default function MyBidsPage() {
                             },
                             {
                                 label: "Past Bids",
-                                value: isLoading ? "—" : rejectedBids.length,
+                                value: isLoading ? "—" : pastBids.length,
                                 color: "text-white/60",
                             },
                         ].map((stat) => (
@@ -232,7 +270,7 @@ export default function MyBidsPage() {
                 </div>
             </section>
 
-            {/* Loading  - may use loader from common folder*/}
+            {/* Loading */}
             {isLoading && (
                 <div className="flex min-h-[300px] items-center justify-center">
                     <div className="text-center">
@@ -245,7 +283,7 @@ export default function MyBidsPage() {
             )}
 
             {/* Empty state */}
-            {!isLoading && activeBids.length === 0 && rejectedBids.length === 0 && (
+            {!isLoading && activeBids.length === 0 && pastBids.length === 0 && (
                 <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-12 text-center">
                     <Gavel className="mx-auto h-8 w-8 text-white/20" />
                     <p className="mt-3 text-sm font-bold text-white/40">
@@ -275,13 +313,13 @@ export default function MyBidsPage() {
             )}
 
             {/* Past bids */}
-            {!isLoading && rejectedBids.length > 0 && (
+            {!isLoading && pastBids.length > 0 && (
                 <div className="mt-6">
                     <p className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-                        Past Bids ({rejectedBids.length})
+                        Past Bids ({pastBids.length})
                     </p>
                     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                        {rejectedBids.map((bid: any) => (
+                        {pastBids.map((bid: any) => (
                             <BidCard key={String(bid?._id || bid?.id)} bid={bid} />
                         ))}
                     </div>
