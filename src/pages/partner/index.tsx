@@ -7,12 +7,13 @@ import {
   Building2,
   CheckCircle2,
   Circle,
-  Clock,
   Flame,
   Gavel,
   Handshake,
   RefreshCw,
   ShieldCheck,
+  Loader2,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { useGetListingsQuery } from "../../services/listingService";
@@ -31,6 +32,15 @@ const journeySteps = [
     done: true,
     link: "/kyc",
     linkLabel: "View",
+  },
+  {
+    id: "proof_of_activity",
+    icon: FileText,
+    label: "Upload Proof of Activity",
+    desc: "Provide recent transaction history.",
+    done: false,
+    link: "/proof-of-activity",
+    linkLabel: "Upload",
   },
   {
     id: "stream",
@@ -58,15 +68,6 @@ const journeySteps = [
     done: false,
     link: "/deals",
     linkLabel: "Track Deals",
-  },
-  {
-    id: "score",
-    icon: BarChart3,
-    label: "Build Your Score",
-    desc: "Reach 90+ to unlock Trusted Buyer perks.",
-    done: false,
-    link: "/score",
-    linkLabel: "View Score",
   },
 ];
 
@@ -103,10 +104,9 @@ function StatCard({ label, value, note, icon: Icon }: StatCardProps) {
 
 export default function PartnerDashboard() {
   // ─── Real API data ───────────────────────────────────────────────
-  const { data: meData } = useGetMeQuery();
-  const userName = meData?.data?.full_name || meData?.full_name || "Partner";
+  const { isLoading: isLoadingMe } = useGetMeQuery();
 
-  const { data: listingsData, refetch: refetchListings } = useGetListingsQuery(
+  const { data: listingsData, refetch: refetchListings, isLoading: isLoadingListings } = useGetListingsQuery(
     { status: "live" },
     { refetchOnMountOrArgChange: true }
   );
@@ -117,7 +117,7 @@ export default function PartnerDashboard() {
     return [];
   })();
 
-  const { data: bidsData } = useGetMyBidsQuery();
+  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
   const allBids: any[] = (() => {
     const payload = bidsData?.data ?? bidsData;
     if (Array.isArray(payload)) return payload;
@@ -125,8 +125,10 @@ export default function PartnerDashboard() {
     return [];
   })();
 
-  const { data: dealsData } = useGetMyDealsQuery();
+  const { data: dealsData, isLoading: isLoadingDeals, refetch: refetchDeals } = useGetMyDealsQuery();
   const allDeals: any[] = Array.isArray(dealsData) ? dealsData : [];
+
+  const isLoading = isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals;
 
   // Derived stats
   const activeBids = allBids.filter((b) =>
@@ -136,34 +138,15 @@ export default function PartnerDashboard() {
     ["active", "under_contract", "closing"].includes(String(d?.status || "").toLowerCase())
   ).length;
 
-  // Hot deals = first 3 live listings
-  const hotListings = allListings.slice(0, 3);
 
-  function formatMoney(value: any) {
-    const num = Number(value);
-    if (!Number.isFinite(num) || num === 0) return "—";
-    return num.toLocaleString(undefined, {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    });
-  }
 
-  function getHoursLeft(listing: any): number | null {
-    const deadline = listing?.deadline || listing?.kill_switch_deadline;
-    if (!deadline) return null;
-    const diff = new Date(deadline).getTime() - Date.now();
-    if (diff <= 0) return 0;
-    return Math.floor(diff / (1000 * 60 * 60));
-  }
-
-  function getBidCount(listing: any): number {
-    return (
-      Number(listing?.bid_count) ||
-      Number(listing?.bids_summary?.total) ||
-      (Array.isArray(listing?.bids) ? listing.bids.length : 0)
-    );
-  }
+  // function getBidCount(listing: any): number {
+  //   return (
+  //     Number(listing?.bid_count) ||
+  //     Number(listing?.bids_summary?.total) ||
+  //     (Array.isArray(listing?.bids) ? listing.bids.length : 0)
+  //   );
+  // }
 
   // Live stats for cards
   const liveStats = [
@@ -196,6 +179,19 @@ export default function PartnerDashboard() {
   const completedSteps = journeySteps.filter((s) => s.done).length;
   const progressPct = Math.round((completedSteps / journeySteps.length) * 100);
 
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-8 py-6 text-center shadow-2xl backdrop-blur">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--color-secondary)]" />
+          <p className="mt-3 text-sm font-semibold text-white">
+            Loading Dashboard...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10">
 
@@ -213,7 +209,7 @@ export default function PartnerDashboard() {
             </div>
 
             <h1 className="font-serif text-3xl font-black text-white lg:text-4xl">
-              Welcome back, {userName.split(" ")[0]}
+              Your Wholesaler Dashboard
             </h1>
 
             <p className="mt-2 max-w-xl text-sm leading-6 text-white/50">
@@ -253,7 +249,7 @@ export default function PartnerDashboard() {
             <div>
               <div className="flex items-center gap-2">
                 <p className="font-serif text-3xl font-black text-[var(--color-secondary)]">
-                  94
+                  100
                 </p>
                 <span className="flex items-center gap-1 rounded-full border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]">
                   <BadgeCheck className="h-3 w-3" />
@@ -380,30 +376,30 @@ export default function PartnerDashboard() {
         </div>
       </section>
 
-      {/* Hot Deals table */}
+      {/* My Deals table */}
       <section className="w-full">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-serif text-2xl font-black text-white">
-            Hot Deals
+            My Deals
           </h2>
 
           <Link
-            to="/properties"
+            to="/deals"
             className="text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-secondary)] underline decoration-[var(--color-secondary)]/40 underline-offset-8"
           >
-            View All Stream →
+            View All Deals →
           </Link>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl">
-          {hotListings.length === 0 ? (
+          {allDeals.length === 0 ? (
             <div className="p-10 text-center">
               <Building2 className="mx-auto h-8 w-8 text-white/20" />
               <p className="mt-3 text-sm text-white/40">
-                No live listings right now.{" "}
+                No active deals right now.{" "}
                 <button
                   type="button"
-                  onClick={() => refetchListings()}
+                  onClick={() => refetchDeals()}
                   className="text-[var(--color-secondary)] hover:underline"
                 >
                   Refresh
@@ -415,7 +411,7 @@ export default function PartnerDashboard() {
               <table className="w-full min-w-[680px] text-left">
                 <thead className="bg-white/[0.04]">
                   <tr>
-                    {["Property", "Price", "Margin", "Deadline", "Bid Cap", "Action"].map(
+                    {["Property", "Status", "Contract", "Deadline", "Action"].map(
                       (heading) => (
                         <th
                           key={heading}
@@ -428,20 +424,13 @@ export default function PartnerDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {hotListings.map((listing: any) => {
-                    const id = String(listing?._id || listing?.id || "");
-                    const bidCount = getBidCount(listing);
-                    const maxBids = Number(listing?.max_bids) || 10;
-                    const isFull = bidCount >= maxBids;
-                    const spotsLeft = maxBids - bidCount;
-                    const hoursLeft = getHoursLeft(listing);
-                    const isUrgent = hoursLeft !== null && hoursLeft <= 24;
-                    const arv = Number(listing?.arv || listing?.estimated_arv);
-                    const price = Number(listing?.market_price);
-                    const marginPct =
-                      arv && price && arv > price
-                        ? Math.round(((arv - price) / arv) * 100)
-                        : null;
+                  {allDeals.slice(0, 3).map((deal: any) => {
+                    const listing = deal?.listing_id || {};
+                    const id = String(deal?._id || deal?.id || "");
+                    const listingId = String(listing?._id || listing?.id || "");
+
+                    let statusLabel = String(deal?.status || "").replace(/_/g, " ");
+                    statusLabel = statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1);
 
                     return (
                       <tr
@@ -451,11 +440,11 @@ export default function PartnerDashboard() {
                         <td className="px-6 py-6">
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/8 text-lg">
-                              🏡
+                              🤝
                             </div>
                             <div>
                               <Link
-                                to={`/properties/${id}`}
+                                to={`/deals?listingId=${listingId}`}
                                 className="text-sm font-black text-white hover:text-[var(--color-secondary)]"
                               >
                                 {listing?.address || "—"}
@@ -468,60 +457,25 @@ export default function PartnerDashboard() {
                         </td>
 
                         <td className="px-6 py-6 text-sm font-bold text-white/80">
-                          {formatMoney(listing?.market_price)}
+                          {statusLabel}
                         </td>
 
                         <td className="px-6 py-6 text-sm font-black text-[#6ee7b7]">
-                          {marginPct ? `${marginPct}%` : "—"}
+                          {deal?.contract_id ? "Created" : "Pending"}
                         </td>
 
-                        <td
-                          className={`px-6 py-6 text-sm font-black ${isUrgent ? "text-[var(--color-danger)]" : "text-white/50"
-                            }`}
-                        >
-                          {hoursLeft !== null ? (
-                            <div className="flex items-center gap-1.5">
-                              <Clock className="h-3.5 w-3.5" />
-                              {hoursLeft}h
-                            </div>
-                          ) : (
-                            "—"
-                          )}
+                        <td className="px-6 py-6 text-sm font-black text-white/50">
+                          {deal?.marketing_deadline ? new Date(deal.marketing_deadline).toLocaleDateString() : "—"}
                         </td>
 
                         <td className="px-6 py-6">
-                          <div className="w-24">
-                            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                              <div
-                                className={`h-full rounded-full ${isFull
-                                  ? "bg-[var(--color-danger)]"
-                                  : spotsLeft <= 2
-                                    ? "bg-[var(--color-warning)]"
-                                    : "bg-[var(--color-secondary)]"
-                                  }`}
-                                style={{ width: `${(bidCount / maxBids) * 100}%` }}
-                              />
-                            </div>
-                            <p className="mt-0.5 text-[10px] text-white/30">
-                              {bidCount}/{maxBids}
-                            </p>
-                          </div>
-                        </td>
-
-                        <td className="px-6 py-6">
-                          {isFull ? (
-                            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--color-danger)]">
-                              Cap Reached
-                            </span>
-                          ) : (
-                            <Link
-                              to={`/properties/${id}/bid`}
-                              className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)] hover:underline"
-                            >
-                              Submit Bid
-                              <ArrowUpRight className="h-3.5 w-3.5" />
-                            </Link>
-                          )}
+                          <Link
+                            to={`/deals?listingId=${listingId}`}
+                            className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)] hover:underline"
+                          >
+                            Track Deal
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                          </Link>
                         </td>
                       </tr>
                     );
@@ -533,10 +487,10 @@ export default function PartnerDashboard() {
 
           <div className="border-t border-white/8 bg-white/[0.03] px-6 py-4">
             <Link
-              to="/properties"
+              to="/deals"
               className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] hover:underline"
             >
-              Explore Full Stream
+              Go to Deal Tracker
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>

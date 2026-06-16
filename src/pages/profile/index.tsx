@@ -15,7 +15,14 @@ import {
   User,
   UserCog,
   X,
+  FileText,
 } from "lucide-react";
+
+import {
+  PARTNER_ROLES,
+  isAllowedRole,
+  normalizeRole,
+} from "../../constants/roles";
 
 import {
   useGetMeQuery,
@@ -191,6 +198,8 @@ export default function ProfilePage() {
   const displayName = profile?.full_name || profile?.email || "User";
   const kycStatus = profile?.kyc_status || "pending";
   const isKycVerified = String(kycStatus).toLowerCase() === "verified";
+  
+  const isPartner = isAllowedRole(normalizeRole(profile?.role), PARTNER_ROLES);
 
   useEffect(() => {
     if (!profile) return;
@@ -566,6 +575,29 @@ export default function ProfilePage() {
             </form>
           )}
         </div>
+
+        {isPartner && (
+          <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">
+                  Proof of Activity
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+                  Upload recent transaction history or proof of funds to unlock full deal access.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              to="/proof-of-activity"
+              className="inline-flex items-center gap-2 bg-[var(--color-primary)] px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white"
+            >
+              <FileText className="h-4 w-4" />
+              Upload Proof of Activity
+            </Link>
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">

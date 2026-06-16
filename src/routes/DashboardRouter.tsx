@@ -27,8 +27,6 @@ const sellerNav = [
 
 const partnerNav = [
   { label: "Dashboard", path: "/dashboard" },
-  { label: "KYC Verification", path: "/kyc" },
-  { label: "Proof of Activity", path: "/proof-of-activity" },
   { label: "Property Stream", path: "/properties" },
   { label: "My Bids", path: "/my-bids" },
   { label: "Active Deals", path: "/deals" },

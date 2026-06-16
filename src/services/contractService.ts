@@ -25,6 +25,13 @@ function unwrapContractList(response: ApiEnvelope<Record<string, any> | null>) {
   return Object.values(response.data);
 }
 
+function unwrapPaginatedContracts(response: ApiEnvelope<any>) {
+  if (!response?.data) return [];
+  if (Array.isArray(response.data.data)) return response.data.data;
+  if (Array.isArray(response.data)) return response.data;
+  return [];
+}
+
 export const contractService = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     createContract: builder.mutation<
@@ -46,14 +53,14 @@ export const contractService = baseApi.injectEndpoints({
       invalidatesTags: ["Contract", "Deal"],
     }),
 
-   getContractById: builder.query<any, string>({
-  query: (contractId) => ({
-    url: `contracts/${contractId}`,
-    method: "GET",
-  }),
-  transformResponse: unwrapContractDoc,
-  providesTags: ["Contract"],
-}),
+    getContractById: builder.query<any, string>({
+      query: (contractId) => ({
+        url: `contracts/${contractId}`,
+        method: "GET",
+      }),
+      transformResponse: unwrapContractDoc,
+      providesTags: ["Contract"],
+    }),
 
     getContractsByListing: builder.query<any[], string>({
       query: (listingId) => ({
@@ -90,6 +97,32 @@ export const contractService = baseApi.injectEndpoints({
       transformResponse: unwrapContractDoc,
       invalidatesTags: ["Contract", "Deal"],
     }),
+
+    // getMyContracts: builder.query<any[], void>({
+    //   query: () => ({
+    //     url: `contracts/my-contracts`,
+    //     method: "GET",
+    //   }),
+    //   transformResponse: unwrapPaginatedContracts,
+    //   providesTags: ["Contract"],
+    // }),
+    getMyContracts: builder.query<any[], void>({
+      query: () => ({
+        url: `contracts/my-contracts`,
+        method: "GET",
+      }),
+      transformResponse: (response: ApiEnvelope<any>) => {
+        const list = unwrapPaginatedContracts(response);
+        // Unwrap each Mongoose _doc if present
+        return list.map((item: any) => item?._doc ?? item);
+      },
+      providesTags: ["Contract"],
+    }),
+
+
+
+
+
   }),
 });
 
@@ -97,6 +130,7 @@ export const {
   useCreateContractMutation,
   useGetContractByIdQuery,
   useGetContractsByListingQuery,
+  useGetMyContractsQuery,
   useSignContractAsSellerMutation,
   useSignContractAsBuyerMutation,
   useCancelContractMutation,

@@ -17,6 +17,7 @@ import { useGetMyDealsQuery } from "../../services/dealService";
 import { useGetMyBidsQuery } from "../../services/listingService";
 import {
   useSignContractAsBuyerMutation,
+  useGetMyContractsQuery,
 } from "../../services/contractService";
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
@@ -336,7 +337,19 @@ export default function ActiveDealsPage() {
     return entries;
   }, [allDeals, allBids]);
 
-  // Determine active entry
+  // Determine active entry (computed after unifiedEntries so we can derive bidId)
+  const _tempActiveEntryKey =
+    listingIdFromUrl ||
+    (unifiedEntries.length > 0 ? unifiedEntries[0]._entryKey : "");
+  const _tempActiveEntry = unifiedEntries.find(
+    (e) => e._entryKey === _tempActiveEntryKey
+  );
+  const _pendingBidId =
+    _tempActiveEntry?._type === "pending_contract"
+      ? _tempActiveEntry.bidId || ""
+      : "";
+
+  // Determine active entry (needed to know the listing ID before fetching)
   const activeEntryKey =
     listingIdFromUrl ||
     (unifiedEntries.length > 0 ? unifiedEntries[0]._entryKey : "");
@@ -351,15 +364,62 @@ export default function ActiveDealsPage() {
     (e) => e._entryKey === activeEntryKey
   );
 
+  const isPendingContract = activeEntry?._type === "pending_contract";
+
+  // ─── Fetch my contracts ───
+  const {
+    data: myContractsData,
+    isFetching: isFetchingContractByBid,
+    refetch: refetchContractByBid,
+  } = useGetMyContractsQuery();
+
+  // Find the contract that matches the pending bid ID
+  const contractByBidData = useMemo(() => {
+    console.log("[DEBUG] myContractsData:", myContractsData);
+    console.log("[DEBUG] _pendingBidId:", _pendingBidId);
+
+    if (!myContractsData || !_pendingBidId) {
+      console.log("[DEBUG] Early return: no my contracts or no pendingBidId");
+      return null;
+    }
+
+    myContractsData.forEach((c: any, i: number) => {
+      console.log(`[DEBUG] Contract[${i}]:`, {
+        _id: c._id,
+        bid_id: c.bid_id,
+        status: c.status,
+      });
+    });
+
+    const found = myContractsData.find((c: any) => {
+      const bidId =
+        typeof c.bid_id === "object"
+          ? c.bid_id?._id || c.bid_id?.id
+          : c.bid_id;
+      console.log(`[DEBUG] Comparing bidId: "${bidId}" === "${_pendingBidId}" →`, bidId === _pendingBidId);
+      return bidId === _pendingBidId;
+    }) || null;
+
+    console.log("[DEBUG] contractByBidData (matched):", found);
+    return found;
+  }, [myContractsData, _pendingBidId]);
+
   // ─── Derive data from active entry ────────────────────────────────
   const entryStatus = activeEntry?.status || "not_started";
   const statusConfig = getDealStatusConfig(entryStatus);
   const isCancelled = entryStatus === "cancelled";
-  const isPendingContract = activeEntry?._type === "pending_contract";
 
-  // For real deals
-  const contract = activeEntry?.contractObj || null;
-  const contractId = activeEntry?.contractId || "";
+  // For pending contracts, use the contract fetched by listing ID
+  const pendingContractObj = isPendingContract ? contractByBidData : null;
+
+  // For real deals, use the populated contract from the deal
+  // For pending contracts, use the fetched contract from bid ID
+  const contract = isPendingContract
+    ? pendingContractObj
+    : activeEntry?.contractObj || null;
+  const contractId = isPendingContract
+    ? (contract?._id || contract?.id || "")
+    : activeEntry?.contractId || "";
   const sellerSigned = Boolean(contract?.seller_signed_at);
   const buyerSigned = Boolean(contract?.buyer_signed_at);
   const isSigned = sellerSigned && buyerSigned;
@@ -373,12 +433,11 @@ export default function ActiveDealsPage() {
   const dealTitle = activeEntry?.address || "No Deal Selected";
   const dealId = activeEntry?.dealId || "";
 
-  // For pending contracts: the bid was selected but no deal exists yet
-  // The contract may have been created by the seller but we don't have its ID
-  // from the bids data. The tracker shows the current pending state.
-
   async function handleRefresh() {
     await refetchDeals();
+    if (_pendingBidId) {
+      await refetchContractByBid();
+    }
   }
 
   async function handleBuyerSign() {
@@ -386,12 +445,21 @@ export default function ActiveDealsPage() {
     try {
       await signContractMutation(contractId).unwrap();
       await refetchDeals();
+      if (_pendingBidId) {
+        await refetchContractByBid();
+      }
     } catch {
       // silent
     }
   }
 
   // ─── Tracker Steps ────────────────────────────────────────────────
+  // For pending contracts, derive real state from the fetched contract
+  const pendingHasContract = isPendingContract && Boolean(contractId);
+  const pendingSellerSigned = isPendingContract && sellerSigned;
+  const pendingBuyerSigned = isPendingContract && buyerSigned;
+  const pendingIsSigned = isPendingContract && isSigned;
+
   const trackerSteps = isPendingContract
     ? [
         {
@@ -404,34 +472,43 @@ export default function ActiveDealsPage() {
         },
         {
           title: "Contract Created",
-          description:
-            "The seller has created a contract for your selected bid.",
-          done: true,
-          current: false,
+          description: pendingHasContract
+            ? `Contract ID: ${contractId}`
+            : "Waiting for the seller to create the contract.",
+          done: pendingHasContract,
+          current: !pendingHasContract,
           locked: false,
         },
         {
           title: "Seller Signature",
-          description:
-            "Waiting for seller to sign the contract. This step is handled on the seller's side.",
-          done: false,
-          current: true,
-          locked: false,
+          description: pendingSellerSigned
+            ? `Seller signed at ${formatDateTime(contract?.seller_signed_at)}.`
+            : pendingHasContract
+              ? "Waiting for seller to sign the contract."
+              : "Waiting for contract to be created first.",
+          done: pendingSellerSigned,
+          current: Boolean(pendingHasContract && !pendingSellerSigned),
+          locked: !pendingHasContract,
         },
         {
           title: "Your Signature",
-          description:
-            "Once the seller signs, you will be able to sign the contract here.",
-          done: false,
-          current: false,
-          locked: true,
+          description: pendingBuyerSigned
+            ? `You signed at ${formatDateTime(contract?.buyer_signed_at)}.`
+            : pendingSellerSigned
+              ? "Action required: Please sign the contract."
+              : "Waiting for seller signature first.",
+          done: pendingBuyerSigned,
+          current: Boolean(pendingSellerSigned && !pendingBuyerSigned),
+          locked: !pendingSellerSigned,
         },
         {
           title: "Partnership Secured",
-          description: "Both parties must sign to activate the deal.",
-          done: false,
+          description: pendingIsSigned
+            ? "Both parties signed. Deal is officially active."
+            : "Both parties must sign to activate the deal.",
+          done: pendingIsSigned,
           current: false,
-          locked: true,
+          locked: !pendingIsSigned,
         },
         {
           title: "Marketing & Buyer Matching",
@@ -439,7 +516,7 @@ export default function ActiveDealsPage() {
             "72-hour marketing window starts after both signatures.",
           done: false,
           current: false,
-          locked: true,
+          locked: !pendingIsSigned,
         },
         {
           title: "Inspection, Title & Escrow",
@@ -625,14 +702,16 @@ export default function ActiveDealsPage() {
           <StatCardDark
             title="Contract Status"
             value={
-              isPendingContract
-                ? "Pending Signature"
-                : contractId
-                  ? isSigned
-                    ? "Signed"
-                    : isPending
-                      ? "Pending"
-                      : "Created"
+              contractId
+                ? isSigned
+                  ? "Signed"
+                  : isPending
+                    ? "Pending"
+                    : "Created"
+                : isPendingContract
+                  ? isFetchingContractByBid
+                    ? "Loading..."
+                    : "Not Created"
                   : "Not Created"
             }
             icon={FileText}
@@ -640,11 +719,7 @@ export default function ActiveDealsPage() {
 
           <StatCardDark
             title="Signatures"
-            value={
-              isPendingContract
-                ? "Seller — / You —"
-                : `${sellerSigned ? "Seller ✓" : "Seller —"} / ${buyerSigned ? "You ✓" : "You —"}`
-            }
+            value={`${sellerSigned ? "Seller ✓" : "Seller —"} / ${buyerSigned ? "You ✓" : "You —"}`}
             icon={FileSignature}
           />
 
@@ -678,7 +753,7 @@ export default function ActiveDealsPage() {
               </h2>
               <p className="mt-1 text-sm text-white/55">
                 {isPendingContract
-                  ? `Bid ID: ${activeEntry.bidId || "-"} · Awaiting contract signatures`
+                  ? `${contractId ? `Contract: ${contractId}` : `Bid ID: ${activeEntry.bidId || "-"}`}${contractId ? " · Via selected bid" : " · Awaiting contract"}`
                   : `${contractId ? `Contract: ${contractId}` : "No contract yet"}${dealId ? ` · Deal: ${dealId}` : ""}`}
               </p>
             </div>
@@ -794,6 +869,62 @@ export default function ActiveDealsPage() {
                 {/* Pending contract info */}
                 {isPendingContract && (
                   <div className="mt-5 space-y-4 text-sm">
+                    {isFetchingContractByBid && (
+                      <div className="flex items-center gap-2 text-white/50">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading contract...
+                      </div>
+                    )}
+                    {contractId && (
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+                          Contract ID
+                        </p>
+                        <p className="mt-1 break-all font-bold text-white">
+                          {contractId}
+                        </p>
+                      </div>
+                    )}
+                    {contractId && (
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+                          Contract Status
+                        </p>
+                        <p className="mt-1 font-bold text-white">
+                          {String(contract?.status || "pending")
+                            .split("_")
+                            .map(
+                              (w: string) =>
+                                w.charAt(0).toUpperCase() + w.slice(1)
+                            )
+                            .join(" ")}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+                        Seller Signed
+                      </p>
+                      <p
+                        className={`mt-1 font-bold ${sellerSigned ? "text-[#6ee7b7]" : "text-white/60"}`}
+                      >
+                        {sellerSigned
+                          ? formatDateTime(contract?.seller_signed_at)
+                          : "Pending"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+                        You Signed
+                      </p>
+                      <p
+                        className={`mt-1 font-bold ${buyerSigned ? "text-[#6ee7b7]" : "text-white/60"}`}
+                      >
+                        {buyerSigned
+                          ? formatDateTime(contract?.buyer_signed_at)
+                          : "Pending"}
+                      </p>
+                    </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
                         Your Bid
@@ -810,14 +941,27 @@ export default function ActiveDealsPage() {
                         {formatMoney(activeEntry.marketPrice)}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-                        Status
-                      </p>
-                      <p className="mt-1 font-bold text-[var(--color-warning)]">
-                        Bid selected — contract pending signatures
-                      </p>
-                    </div>
+                    {contract?.pdf_url && (
+                      <a
+                        href={contract.pdf_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] hover:underline"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        View Contract PDF
+                      </a>
+                    )}
+                    {!contractId && !isFetchingContractByBid && (
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+                          Status
+                        </p>
+                        <p className="mt-1 font-bold text-[var(--color-warning)]">
+                          Bid selected — waiting for seller to create contract
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -908,10 +1052,38 @@ export default function ActiveDealsPage() {
                 </div>
               )}
 
-              {isPendingContract && (
+              {isPendingContract && !contractId && !isFetchingContractByBid && (
                 <div className="rounded-xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 p-4 text-center text-sm font-semibold text-[var(--color-warning)]">
                   Your bid is selected. The seller is creating the contract and
                   signing it. You'll be able to sign once they're done.
+                </div>
+              )}
+
+              {isPendingContract && contractId && sellerSigned && !buyerSigned && !isCancelled && (
+                <button
+                  type="button"
+                  onClick={handleBuyerSign}
+                  disabled={isSigningBuyer}
+                  className="flex w-full items-center justify-center gap-2 bg-[var(--color-danger)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[0_0_20px_rgba(220,38,38,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSigningBuyer ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileSignature className="h-4 w-4" />
+                  )}
+                  Sign As Buyer
+                </button>
+              )}
+
+              {isPendingContract && contractId && !sellerSigned && !isCancelled && (
+                <div className="rounded-xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 p-4 text-center text-sm font-semibold text-[var(--color-warning)]">
+                  Contract created. Waiting for seller to sign first.
+                </div>
+              )}
+
+              {isPendingContract && isSigned && !isCancelled && (
+                <div className="rounded-xl border border-[#6ee7b7]/30 bg-[#6ee7b7]/10 p-4 text-center text-sm font-semibold text-[#6ee7b7]">
+                  ✓ Both parties signed. Partnership is secured.
                 </div>
               )}
 
