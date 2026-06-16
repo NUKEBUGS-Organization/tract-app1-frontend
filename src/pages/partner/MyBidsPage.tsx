@@ -10,6 +10,7 @@ import {
     XCircle,
 } from "lucide-react";
 import { useGetMyBidsQuery } from "../../services/listingService";
+import { useAppSelector } from "../../redux/hooks";
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
 function formatMoney(value: any) {
@@ -206,9 +207,27 @@ function BidCard({ bid }: { bid: any }) {
 }
 
 /* ─── Page ───────────────────────────────────────────────────────────── */
+function getCurrentUserId(user: any): string {
+    return user?._id || user?.id || user?.user_id || user?.sub || "";
+}
+
 export default function MyBidsPage() {
     const { data: bidsData, isLoading } = useGetMyBidsQuery();
-    const allBids = normalizeBids(bidsData);
+    const user = useAppSelector((state) => state.auth.user);
+    const currentUserId = getCurrentUserId(user);
+
+    const rawBids = normalizeBids(bidsData);
+    // Filter to only show bids belonging to the logged-in user,
+    // since the backend my-bids endpoint currently returns all bids.
+    const allBids = currentUserId
+        ? rawBids.filter((b: any) => {
+            const bidderId =
+                typeof b?.bidder_id === "object"
+                    ? (b.bidder_id?._id || b.bidder_id?.id || "")
+                    : String(b?.bidder_id || "");
+            return bidderId === currentUserId;
+        })
+        : rawBids;
 
     // "active" and "backup" are still in-play (backup = Waiting Room per spec)
     const activeBids = allBids.filter((b) =>

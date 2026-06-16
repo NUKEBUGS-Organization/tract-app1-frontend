@@ -103,7 +103,7 @@ function BidSuccessState({
           Your offer on{" "}
           <span className="font-bold text-white">{propertyLabel}</span> has been
           submitted. The seller will be notified and you'll receive an update
-          within 72 hours.
+          soon.
         </p>
 
         <div className="mt-6 rounded-2xl border border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/5 p-5 text-left">
@@ -129,11 +129,11 @@ function BidSuccessState({
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
-            to="/deals"
+            to="/my-bids"
             className="inline-flex items-center justify-center gap-2 bg-[var(--color-secondary)] px-8 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-dark-main)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02]"
           >
             <Gavel className="h-4 w-4" />
-            View My Deals
+            View My Bids
           </Link>
 
           <Link
