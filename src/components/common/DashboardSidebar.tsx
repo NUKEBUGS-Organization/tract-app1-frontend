@@ -83,11 +83,22 @@ export default function DashboardSidebar({
 
       <nav className="flex-1 space-y-1 px-5 py-6">
         {navItems.map((item) => {
-          const active =
-            location.pathname === item.path ||
-            (item.path !== "/dashboard" &&
-              location.pathname.startsWith(item.path));
+         function isNavActive(currentPath: string, itemPath: string) {
+  if (!itemPath) return false;
 
+  const cleanItemPath =
+    itemPath !== "/" ? itemPath.replace(/\/+$/, "") : itemPath;
+
+  const cleanCurrentPath =
+    currentPath !== "/" ? currentPath.replace(/\/+$/, "") : currentPath;
+
+  return (
+    cleanCurrentPath === cleanItemPath ||
+    cleanCurrentPath.startsWith(`${cleanItemPath}/`)
+  );
+}
+
+const active = isNavActive(location.pathname, item.path);
           const Icon = getNavIcon(item.label);
 
           return (

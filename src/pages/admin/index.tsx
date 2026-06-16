@@ -2,83 +2,23 @@ import {
   AlertTriangle,
   ArrowUpRight,
   Building2,
+  FileText,
   Handshake,
   MessageSquareWarning,
   ShieldCheck,
   UserCheck,
   Users,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
+import { Link } from "react-router";
 
-const stats = [
-  {
-    label: "Total Users",
-    value: "248",
-    note: "+18 this month",
-    icon: Users,
-  },
-  {
-    label: "Pending Verifications",
-    value: "21",
-    note: "Needs review",
-    icon: ShieldCheck,
-  },
-  {
-    label: "Active Deals",
-    value: "39",
-    note: "Across all roles",
-    icon: Handshake,
-  },
-  {
-    label: "Chat Flags",
-    value: "6",
-    note: "Moderation queue",
-    icon: MessageSquareWarning,
-  },
-];
-
-const queues = [
-  {
-    item: "Seller identity verification",
-    owner: "Verification Queue",
-    priority: "High",
-    status: "Pending",
-  },
-  {
-    item: "State firewall update",
-    owner: "Compliance",
-    priority: "Medium",
-    status: "Review",
-  },
-  {
-    item: "Deal escalation",
-    owner: "Operations",
-    priority: "High",
-    status: "Open",
-  },
-];
-
-const activity = [
-  {
-    icon: UserCheck,
-    title: "New user approved",
-    time: "20 minutes ago",
-  },
-  {
-    icon: AlertTriangle,
-    title: "State restriction warning generated",
-    time: "2 hours ago",
-  },
-  {
-    icon: Building2,
-    title: "Property verification submitted",
-    time: "Yesterday",
-  },
-];
+import { useGetAdminDashboardQuery } from "../../services/adminService";
+import Loader from "../../components/common/Loader";
 
 interface StatCardProps {
   label: string;
-  value: string;
+  value: string | number;
   note: string;
   icon: LucideIcon;
 }
@@ -87,7 +27,7 @@ function StatCard({ label, value, note, icon: Icon }: StatCardProps) {
   return (
     <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)] transition hover:-translate-y-1 hover:shadow-xl">
       <div className="mb-5 flex items-start justify-between">
-        <p className="max-w-[130px] text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+        <p className="max-w-[150px] text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
           {label}
         </p>
 
@@ -95,7 +35,7 @@ function StatCard({ label, value, note, icon: Icon }: StatCardProps) {
       </div>
 
       <div className="font-serif text-4xl font-black text-[var(--color-primary)]">
-        {value}
+        {value ?? 0}
       </div>
 
       <p className="mt-2 text-xs font-semibold text-[var(--color-primary)]/75">
@@ -106,9 +46,104 @@ function StatCard({ label, value, note, icon: Icon }: StatCardProps) {
 }
 
 function AdminDashboard() {
+  const { data, isLoading, isError } = useGetAdminDashboardQuery();
+
+  if (isLoading) {
+    return <Loader label="Loading admin dashboard..." />;
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-2xl border border-[var(--color-danger)]/20 bg-white p-6 text-sm font-semibold text-[var(--color-danger)] shadow-[var(--shadow-card)]">
+        Failed to load admin dashboard.
+      </div>
+    );
+  }
+
+  const stats = [
+    {
+      label: "Total Users",
+      value: data?.users ?? 0,
+      note: "All platform users",
+      icon: Users,
+    },
+    {
+      label: "Pending Verifications",
+      value: data?.pendingKyc ?? 0,
+      note: "Needs review",
+      icon: ShieldCheck,
+    },
+    {
+      label: "Listings",
+      value: data?.listings ?? 0,
+      note: "Seller properties",
+      icon: FileText,
+    },
+    {
+      label: "Deals",
+      value: data?.deals ?? 0,
+      note: "All deal records",
+      icon: Handshake,
+    },
+    {
+      label: "Contracts",
+      value: data?.contracts ?? 0,
+      note: "Contract records",
+      icon: ScrollText,
+    },
+    {
+      label: "Chat Flags",
+      value: data?.flaggedMessages ?? 0,
+      note: "Moderation queue",
+      icon: MessageSquareWarning,
+    },
+  ];
+
+  const queues = [
+    {
+      item: "KYC verification queue",
+      owner: "Verification",
+      priority: "High",
+      status: `${data?.pendingKyc ?? 0} Pending`,
+      path: "/verifications",
+    },
+    {
+      item: "Listing approvals",
+      owner: "Listings",
+      priority: "High",
+      status: "Review",
+      path: "/properties",
+    },
+    {
+      item: "Flagged chat messages",
+      owner: "Moderation",
+      priority: "Medium",
+      status: `${data?.flaggedMessages ?? 0} Flags`,
+      path: "/chat-flags",
+    },
+  ];
+
+  const activity = [
+    {
+      icon: UserCheck,
+      title: "Admin dashboard loaded",
+      time: "Live backend stats",
+    },
+    {
+      icon: AlertTriangle,
+      title: "Review pending KYC and chat flags",
+      time: "Requires admin action",
+    },
+    {
+      icon: Building2,
+      title: "Monitor listings and deals",
+      time: "Operational overview",
+    },
+  ];
+
   return (
     <div className="space-y-10">
-      <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} />
         ))}
@@ -121,9 +156,12 @@ function AdminDashboard() {
               Admin Review Queue
             </h1>
 
-            <button className="text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-secondary)] underline decoration-[var(--color-secondary)]/40 underline-offset-8">
+            <Link
+              to="/verification"
+              className="text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-secondary)] underline decoration-[var(--color-secondary)]/40 underline-offset-8"
+            >
               View All
-            </button>
+            </Link>
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
@@ -145,7 +183,10 @@ function AdminDashboard() {
 
               <tbody>
                 {queues.map((queue) => (
-                  <tr key={queue.item} className="border-t border-[var(--color-border-light)]">
+                  <tr
+                    key={queue.item}
+                    className="border-t border-[var(--color-border-light)]"
+                  >
                     <td className="px-6 py-6 text-sm font-black text-[var(--color-primary)]">
                       {queue.item}
                     </td>
@@ -171,10 +212,13 @@ function AdminDashboard() {
                     </td>
 
                     <td className="px-6 py-6">
-                      <button className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6a00]">
+                      <Link
+                        to={queue.path}
+                        className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#8a6a00]"
+                      >
                         Open
                         <ArrowUpRight className="h-3.5 w-3.5" />
-                      </button>
+                      </Link>
                     </td>
                   </tr>
                 ))}

@@ -430,7 +430,7 @@ const initials = getInitials(displayName) || "A";
                             return (
                               <Link
                                 key={id}
-                                to={`/listings/${id}`}
+                                to={`/properties/${id}`}
                                 onMouseDown={(event) => event.preventDefault()}
                                 onClick={closeSearchDropdown}
                                 className="block px-4 py-3 transition hover:bg-[var(--color-bg-soft)]"
