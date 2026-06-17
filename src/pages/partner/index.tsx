@@ -7,22 +7,23 @@ import {
   Building2,
   CheckCircle2,
   Circle,
+  Clock,
   Flame,
+  FileText,
   Gavel,
   Handshake,
+  Loader2,
   RefreshCw,
   ShieldCheck,
-  Loader2,
-  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { useGetListingsQuery } from "../../services/listingService";
 import { useGetMyBidsQuery } from "../../services/listingService";
+import { usePartnerTheme } from "../../hooks/usePartnerTheme";
 import { useGetMyDealsQuery } from "../../services/dealService";
 import { useGetMeQuery } from "../../services/userService";
 
-
-/* ─── Journey steps for wholesaler ─────────────────────────────────── */
+/* ─── Journey steps ─────────────────────────────────────────────────── */
 const journeySteps = [
   {
     id: "kyc",
@@ -71,84 +72,132 @@ const journeySteps = [
   },
 ];
 
-
-/* ─── Sub-components ─────────────────────────────────────────────────── */
+/* ─── Stat card ──────────────────────────────────────────────────────── */
 interface StatCardProps {
   label: string;
-  value: number;
+  value: number | string;
   note: string;
   icon: LucideIcon;
+  isDark: boolean;
 }
 
-function StatCard({ label, value, note, icon: Icon }: StatCardProps) {
+function StatCard({ label, value, note, icon: Icon, isDark }: StatCardProps) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] p-6 shadow-2xl backdrop-blur transition hover:-translate-y-1 hover:bg-white/[0.09]">
+    <div
+      className={`group relative overflow-hidden rounded-2xl border p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 ${isDark
+        ? "border-white/10 bg-white/[0.06] hover:bg-white/[0.09] backdrop-blur shadow-xl"
+        : "border-[var(--color-border-light)] bg-white hover:shadow-xl"
+        }`}
+    >
       <div className="mb-5 flex items-start justify-between">
-        <p className="max-w-[120px] text-[11px] font-black uppercase tracking-[0.22em] text-white/45">
+        <p
+          className={`max-w-[150px] text-[11px] font-black uppercase tracking-[0.22em] ${isDark ? "text-white/45" : "text-[var(--color-text-muted)]"
+            }`}
+        >
           {label}
         </p>
-        <Icon className="h-5 w-5 text-[var(--color-secondary)]" />
+
+        <div
+          className={
+            isDark
+              ? ""
+              : "flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary)]/8"
+          }
+        >
+          <Icon
+            className={`h-5 w-5 ${isDark
+              ? "text-[var(--color-secondary)]"
+              : "text-[var(--color-primary)]"
+              }`}
+          />
+        </div>
       </div>
 
-      <div className="font-serif text-4xl font-black text-white">{value}</div>
+      <div
+        className={`font-serif text-4xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+          }`}
+      >
+        {value}
+      </div>
 
-      <p className="mt-2 text-xs font-semibold text-[var(--color-secondary)]">
+      <p
+        className={`mt-2 text-xs font-semibold ${isDark
+          ? "text-[var(--color-secondary)]"
+          : "text-[var(--color-primary)]/70"
+          }`}
+      >
         {note}
       </p>
 
-      {/* Gold bottom accent */}
-      <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-gradient-to-r from-[var(--color-secondary)] to-transparent transition-all duration-500 group-hover:w-full" />
+      <div
+        className={`absolute bottom-0 left-0 h-0.5 w-0 transition-all duration-500 group-hover:w-full ${isDark
+          ? "bg-gradient-to-r from-[var(--color-secondary)] to-transparent"
+          : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]"
+          }`}
+      />
     </div>
   );
 }
 
 export default function PartnerDashboard() {
-  // ─── Real API data ───────────────────────────────────────────────
-  const { isLoading: isLoadingMe } = useGetMeQuery();
+  const theme = usePartnerTheme();
+  const isDark = theme === "dark";
 
-  const { data: listingsData, refetch: refetchListings, isLoading: isLoadingListings } = useGetListingsQuery(
+  const { data: meData, isLoading: isLoadingMe } = useGetMeQuery();
+  const userName =
+    (meData as any)?.data?.full_name ||
+    (meData as any)?.full_name ||
+    "Partner";
+
+  const {
+    data: listingsData,
+    refetch: refetchListings,
+    isLoading: isLoadingListings,
+  } = useGetListingsQuery(
     { status: "live" },
     { refetchOnMountOrArgChange: true }
   );
   const allListings: any[] = (() => {
-    const payload = listingsData?.data?.data ?? listingsData?.data ?? listingsData;
-    if (Array.isArray(payload?.listings)) return payload.listings;
-    if (Array.isArray(payload)) return payload;
+    const payload =
+      (listingsData as any)?.data?.data ??
+      (listingsData as any)?.data ??
+      listingsData;
+    if (Array.isArray((payload as any)?.listings))
+      return (payload as any).listings;
+    if (Array.isArray(payload)) return payload as any[];
     return [];
   })();
 
   const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
   const allBids: any[] = (() => {
-    const payload = bidsData?.data ?? bidsData;
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.bids)) return payload.bids;
+    const payload = (bidsData as any)?.data ?? bidsData;
+    if (Array.isArray(payload)) return payload as any[];
+    if (Array.isArray((payload as any)?.bids)) return (payload as any).bids;
     return [];
   })();
 
-  const { data: dealsData, isLoading: isLoadingDeals, refetch: refetchDeals } = useGetMyDealsQuery();
-  const allDeals: any[] = Array.isArray(dealsData) ? dealsData : [];
+  const {
+    data: dealsData,
+    isLoading: isLoadingDeals,
+    refetch: refetchDeals,
+  } = useGetMyDealsQuery();
+  const allDeals: any[] = Array.isArray(dealsData) ? (dealsData as any[]) : [];
 
-  const isLoading = isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals;
+  const isLoading =
+    isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals;
 
-  // Derived stats
   const activeBids = allBids.filter((b) =>
-    ["pending", "accepted", "selected"].includes(String(b?.status || "").toLowerCase())
+    ["active", "selected", "backup"].includes(
+      String(b?.status || "").toLowerCase()
+    )
   ).length;
+
   const activeDeals = allDeals.filter((d) =>
-    ["active", "under_contract", "closing"].includes(String(d?.status || "").toLowerCase())
+    ["active", "backup_activated", "under_review", "proceeding_to_closing"].includes(
+      String(d?.status || "").toLowerCase()
+    )
   ).length;
 
-
-
-  // function getBidCount(listing: any): number {
-  //   return (
-  //     Number(listing?.bid_count) ||
-  //     Number(listing?.bids_summary?.total) ||
-  //     (Array.isArray(listing?.bids) ? listing.bids.length : 0)
-  //   );
-  // }
-
-  // Live stats for cards
   const liveStats = [
     {
       label: "Available Deals",
@@ -170,7 +219,7 @@ export default function PartnerDashboard() {
     },
     {
       label: "Partner Score",
-      value: 94,
+      value: 100,
       note: "Trusted Buyer status",
       icon: ShieldCheck,
     },
@@ -182,9 +231,22 @@ export default function PartnerDashboard() {
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-8 py-6 text-center shadow-2xl backdrop-blur">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--color-secondary)]" />
-          <p className="mt-3 text-sm font-semibold text-white">
+        <div
+          className={`rounded-2xl border px-8 py-6 text-center shadow-[var(--shadow-card)] ${isDark
+            ? "border-white/10 bg-white/[0.04]"
+            : "border-[var(--color-border-light)] bg-white"
+            }`}
+        >
+          <Loader2
+            className={`mx-auto h-8 w-8 animate-spin ${isDark
+              ? "text-[var(--color-secondary)]"
+              : "text-[var(--color-primary)]"
+              }`}
+          />
+          <p
+            className={`mt-3 text-sm font-semibold ${isDark ? "text-white" : "text-[var(--color-primary)]"
+              }`}
+          >
             Loading Dashboard...
           </p>
         </div>
@@ -193,11 +255,14 @@ export default function PartnerDashboard() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
 
-      <section className="relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.03] p-8 shadow-2xl">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border border-[var(--color-secondary)]/8" />
-        <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border border-[var(--color-secondary)]/6" />
+      <section className={`relative overflow-hidden rounded-2xl p-8 shadow-[var(--shadow-card)] ${isDark
+        ? "bg-[var(--color-dark-main)] border border-white/10"
+        : "bg-[var(--color-primary)]"
+        }`}>
+        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border border-white/5" />
+        <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border border-white/5" />
 
         <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
           <div>
@@ -209,19 +274,19 @@ export default function PartnerDashboard() {
             </div>
 
             <h1 className="font-serif text-3xl font-black text-white lg:text-4xl">
-              Your Wholesaler Dashboard
+              {userName.split(" ")[0]}, let’s find your next deal!
             </h1>
 
-            <p className="mt-2 max-w-xl text-sm leading-6 text-white/50">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/60">
               Browse live opportunities, submit competitive offers, and manage
-              active contracts — all from one focused workspace.
+              active contracts — all from one focused platform.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
             <Link
               to="/properties"
-              className="inline-flex items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-dark-main)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02]"
+              className="inline-flex items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02]"
             >
               <Flame className="h-4 w-4" />
               Browse Stream
@@ -230,7 +295,7 @@ export default function PartnerDashboard() {
             <button
               type="button"
               onClick={() => refetchListings()}
-              className="inline-flex items-center gap-2 border border-white/15 bg-white/8 px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:bg-white/12"
+              className="inline-flex items-center gap-2 border border-white/20 bg-white/10 px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:bg-white/15"
             >
               <RefreshCw className="h-4 w-4" />
               Refresh
@@ -239,16 +304,36 @@ export default function PartnerDashboard() {
         </div>
       </section>
 
-
-      <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/5 to-transparent p-6 shadow-2xl">
+      <section
+        className={`rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark
+          ? "border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/5 to-transparent"
+          : "border-[var(--color-border-light)] bg-white"
+          }`}
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10">
-              <BarChart3 className="h-7 w-7 text-[var(--color-secondary)]" />
+            <div
+              className={`flex h-16 w-16 items-center justify-center rounded-2xl border ${isDark
+                ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
+                : "border-[var(--color-border-light)] bg-[var(--color-primary)]/8"
+                }`}
+            >
+              <BarChart3
+                className={`h-7 w-7 ${isDark
+                  ? "text-[var(--color-secondary)]"
+                  : "text-[var(--color-primary)]"
+                  }`}
+              />
             </div>
+
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-serif text-3xl font-black text-[var(--color-secondary)]">
+                <p
+                  className={`font-serif text-3xl font-black ${isDark
+                    ? "text-[var(--color-secondary)]"
+                    : "text-[var(--color-primary)]"
+                    }`}
+                >
                   100
                 </p>
                 <span className="flex items-center gap-1 rounded-full border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]">
@@ -256,7 +341,10 @@ export default function PartnerDashboard() {
                   Trusted Buyer
                 </span>
               </div>
-              <p className="mt-1 text-sm font-semibold text-white/50">
+              <p
+                className={`mt-1 text-sm font-semibold ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"
+                  }`}
+              >
                 Your Reliability Score · Top 8% of partners
               </p>
             </div>
@@ -264,7 +352,10 @@ export default function PartnerDashboard() {
 
           <Link
             to="/score"
-            className="inline-flex items-center gap-2 border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] transition hover:bg-[var(--color-secondary)]/10"
+            className={`inline-flex items-center gap-2 border px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition ${isDark
+              ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/5 text-[var(--color-secondary)] hover:bg-[var(--color-secondary)]/10"
+              : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] text-[var(--color-primary)] hover:border-[var(--color-primary)]"
+              }`}
           >
             View Full Report
             <ArrowRight className="h-3.5 w-3.5" />
@@ -272,40 +363,58 @@ export default function PartnerDashboard() {
         </div>
       </section>
 
-      {/* Stats */}
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {liveStats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
+          <StatCard key={stat.label} {...stat} isDark={isDark} />
         ))}
       </section>
 
-      {/* Journey tracker */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl">
+      <section
+        className={`rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark
+          ? "border-white/10 bg-white/[0.04]"
+          : "border-[var(--color-border-light)] bg-white"
+          }`}
+      >
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
-            <h2 className="font-serif text-xl font-black text-white">
+            <h2
+              className={`font-serif text-xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                }`}
+            >
               Partner Journey
             </h2>
-            <p className="mt-0.5 text-xs text-white/35">
+            <p
+              className={`mt-0.5 text-xs ${isDark ? "text-white/35" : "text-[var(--color-text-muted)]"
+                }`}
+            >
               {completedSteps} of {journeySteps.length} milestones complete
             </p>
           </div>
 
           <div className="hidden w-36 sm:block">
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className={`h-1.5 w-full overflow-hidden rounded-full ${isDark ? "bg-white/10" : "bg-[var(--color-border-light)]"
+                }`}
+            >
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[var(--color-secondary)] to-[#f0d060] transition-all duration-700"
+                className="h-full rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] transition-all duration-700"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <p className="mt-1 text-right text-[10px] font-bold text-white/35">
+            <p
+              className={`mt-1 text-right text-[10px] font-bold ${isDark ? "text-white/35" : "text-[var(--color-text-muted)]"
+                }`}
+            >
               {progressPct}% done
             </p>
           </div>
         </div>
 
         <div className="relative space-y-0">
-          <div className="absolute left-[19px] top-5 h-[calc(100%-40px)] w-0.5 bg-white/8" />
+          <div
+            className={`absolute left-[19px] top-5 h-[calc(100%-40px)] w-0.5 ${isDark ? "bg-white/8" : "bg-[var(--color-border-light)]"
+              }`}
+          />
 
           {journeySteps.map((step, index) => {
             const Icon = step.icon;
@@ -316,23 +425,34 @@ export default function PartnerDashboard() {
             return (
               <div
                 key={step.id}
-                className={`group relative flex items-start gap-4 py-4 ${index < journeySteps.length - 1 ? "border-b border-white/6" : ""
+                className={`group relative flex items-start gap-4 py-4 ${index < journeySteps.length - 1
+                  ? isDark
+                    ? "border-b border-white/6"
+                    : "border-b border-[var(--color-border-light)]"
+                  : ""
                   }`}
               >
                 <div
                   className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition-all ${step.done
-                    ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]"
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
                     : isNext
-                      ? "border-[var(--color-secondary)] bg-white/5 shadow-[0_0_0_4px_rgba(212,175,55,0.12)]"
-                      : "border-white/15 bg-white/5"
+                      ? "border-[var(--color-secondary)] bg-white shadow-[0_0_0_4px_rgba(212,175,55,0.12)]"
+                      : isDark
+                        ? "border-white/15 bg-white/5"
+                        : "border-[var(--color-border-light)] bg-white"
                     }`}
                 >
                   {step.done ? (
-                    <CheckCircle2 className="h-5 w-5 text-[var(--color-dark-main)]" />
+                    <CheckCircle2 className="h-5 w-5 text-white" />
                   ) : isNext ? (
                     <Icon className="h-4 w-4 text-[var(--color-secondary)]" />
                   ) : (
-                    <Circle className="h-4 w-4 text-white/20" />
+                    <Circle
+                      className={`h-4 w-4 ${isDark
+                        ? "text-white/20"
+                        : "text-[var(--color-border-light)]"
+                        }`}
+                    />
                   )}
                 </div>
 
@@ -340,25 +460,46 @@ export default function PartnerDashboard() {
                   <div className="min-w-0">
                     <p
                       className={`text-sm font-black ${step.done
-                        ? "text-[var(--color-secondary)]"
+                        ? isDark
+                          ? "text-[var(--color-secondary)]"
+                          : "text-[var(--color-primary)]"
                         : isNext
-                          ? "text-white"
-                          : "text-white/40"
+                          ? isDark
+                            ? "text-white"
+                            : "text-[var(--color-text-main)]"
+                          : isDark
+                            ? "text-white/40"
+                            : "text-[var(--color-text-muted)]"
                         }`}
                     >
                       {step.label}
+
                       {step.done && (
-                        <span className="ml-2 inline-flex items-center rounded-full bg-[var(--color-secondary)]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]">
+                        <span
+                          className={`ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${isDark
+                            ? "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)]"
+                            : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                            }`}
+                        >
                           Done
                         </span>
                       )}
+
                       {isNext && (
-                        <span className="ml-2 inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white/50">
+                        <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-secondary)]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#7a5d00]">
                           Next
                         </span>
                       )}
                     </p>
-                    <p className="mt-0.5 text-xs text-white/30">{step.desc}</p>
+
+                    <p
+                      className={`mt-0.5 text-xs ${isDark
+                        ? "text-white/30"
+                        : "text-[var(--color-text-muted)]"
+                        }`}
+                    >
+                      {step.desc}
+                    </p>
                   </div>
 
                   {(step.done || isNext) && (
@@ -376,10 +517,12 @@ export default function PartnerDashboard() {
         </div>
       </section>
 
-      {/* My Deals table */}
       <section className="w-full">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="font-serif text-2xl font-black text-white">
+          <h2
+            className={`font-serif text-2xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+              }`}
+          >
             My Deals
           </h2>
 
@@ -391,11 +534,22 @@ export default function PartnerDashboard() {
           </Link>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl">
+        <div
+          className={`overflow-hidden rounded-2xl border shadow-[var(--shadow-card)] ${isDark
+            ? "border-white/10 bg-white/[0.04]"
+            : "border-[var(--color-border-light)] bg-white"
+            }`}
+        >
           {allDeals.length === 0 ? (
             <div className="p-10 text-center">
-              <Building2 className="mx-auto h-8 w-8 text-white/20" />
-              <p className="mt-3 text-sm text-white/40">
+              <Building2
+                className={`mx-auto h-8 w-8 ${isDark ? "text-white/20" : "text-[var(--color-text-muted)]"
+                  }`}
+              />
+              <p
+                className={`mt-3 text-sm ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+                  }`}
+              >
                 No active deals right now.{" "}
                 <button
                   type="button"
@@ -409,13 +563,22 @@ export default function PartnerDashboard() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[680px] text-left">
-                <thead className="bg-white/[0.04]">
+                <thead
+                  className={
+                    isDark
+                      ? "bg-white/[0.04]"
+                      : "bg-[var(--color-bg-soft)]"
+                  }
+                >
                   <tr>
                     {["Property", "Status", "Contract", "Deadline", "Action"].map(
                       (heading) => (
                         <th
                           key={heading}
-                          className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.22em] text-white/35"
+                          className={`px-5 py-4 text-[10px] font-black uppercase tracking-[0.2em] ${isDark
+                            ? "text-white/35"
+                            : "text-[var(--color-text-muted)]"
+                            }`}
                         >
                           {heading}
                         </th>
@@ -427,48 +590,101 @@ export default function PartnerDashboard() {
                   {allDeals.slice(0, 3).map((deal: any) => {
                     const listing = deal?.listing_id || {};
                     const id = String(deal?._id || deal?.id || "");
-                    const listingId = String(listing?._id || listing?.id || "");
+                    const listingId = String(
+                      listing?._id || listing?.id || ""
+                    );
 
-                    let statusLabel = String(deal?.status || "").replace(/_/g, " ");
-                    statusLabel = statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1);
+                    let statusLabel = String(deal?.status || "").replace(
+                      /_/g,
+                      " "
+                    );
+                    statusLabel =
+                      statusLabel.charAt(0).toUpperCase() +
+                      statusLabel.slice(1);
+
+                    const hasDeadline = Boolean(deal?.marketing_deadline);
+                    const deadlineDate = hasDeadline
+                      ? new Date(deal.marketing_deadline)
+                      : null;
+                    const isUrgent =
+                      deadlineDate &&
+                      deadlineDate.getTime() - Date.now() <
+                      12 * 60 * 60 * 1000;
 
                     return (
                       <tr
                         key={id}
-                        className="border-t border-white/8 transition hover:bg-white/[0.03]"
+                        className={`border-t transition ${isDark
+                          ? "border-white/8 hover:bg-white/[0.03]"
+                          : "border-[var(--color-border-light)] hover:bg-[var(--color-bg-soft)]/50"
+                          }`}
                       >
-                        <td className="px-6 py-6">
+                        <td className="px-5 py-5">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/8 text-lg">
+                            <div
+                              className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl ${isDark
+                                ? "bg-white/8"
+                                : "bg-[var(--color-bg-soft)]"
+                                }`}
+                            >
                               🤝
                             </div>
                             <div>
                               <Link
                                 to={`/deals?listingId=${listingId}`}
-                                className="text-sm font-black text-white hover:text-[var(--color-secondary)]"
+                                className={`text-sm font-black transition hover:text-[var(--color-secondary)] ${isDark
+                                  ? "text-white"
+                                  : "text-[var(--color-primary)]"
+                                  }`}
                               >
                                 {listing?.address || "—"}
                               </Link>
-                              <p className="text-xs text-white/35">
+                              <p
+                                className={`text-xs ${isDark
+                                  ? "text-white/35"
+                                  : "text-[var(--color-text-muted)]"
+                                  }`}
+                              >
                                 {listing?.state_code || ""}
                               </p>
                             </div>
                           </div>
                         </td>
 
-                        <td className="px-6 py-6 text-sm font-bold text-white/80">
+                        <td
+                          className={`px-5 py-5 text-sm font-bold ${isDark
+                            ? "text-white/80"
+                            : "text-[var(--color-text-main)]"
+                            }`}
+                        >
                           {statusLabel}
                         </td>
 
-                        <td className="px-6 py-6 text-sm font-black text-[#6ee7b7]">
+                        <td className="px-5 py-5 text-sm font-black text-[#16a34a]">
                           {deal?.contract_id ? "Created" : "Pending"}
                         </td>
 
-                        <td className="px-6 py-6 text-sm font-black text-white/50">
-                          {deal?.marketing_deadline ? new Date(deal.marketing_deadline).toLocaleDateString() : "—"}
+                        <td
+                          className={`px-5 py-5 text-sm font-black ${isUrgent
+                            ? "text-[var(--color-danger)]"
+                            : isDark
+                              ? "text-white/50"
+                              : "text-[var(--color-text-muted)]"
+                            }`}
+                        >
+                          {deadlineDate ? (
+                            <div className="flex items-center gap-1.5">
+                              {isUrgent && (
+                                <Clock className="h-3.5 w-3.5" />
+                              )}
+                              {deadlineDate.toLocaleDateString()}
+                            </div>
+                          ) : (
+                            "—"
+                          )}
                         </td>
 
-                        <td className="px-6 py-6">
+                        <td className="px-5 py-5">
                           <Link
                             to={`/deals?listingId=${listingId}`}
                             className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)] hover:underline"
@@ -485,7 +701,12 @@ export default function PartnerDashboard() {
             </div>
           )}
 
-          <div className="border-t border-white/8 bg-white/[0.03] px-6 py-4">
+          <div
+            className={`border-t px-5 py-4 ${isDark
+              ? "border-white/8 bg-white/[0.03]"
+              : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+              }`}
+          >
             <Link
               to="/deals"
               className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] hover:underline"

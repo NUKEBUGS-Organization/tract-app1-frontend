@@ -1,5 +1,6 @@
 import { AlertCircle, DollarSign, ShieldAlert } from "lucide-react";
 import type { BidFormState } from "../types";
+import { usePartnerTheme } from "../../../../hooks/usePartnerTheme";
 
 interface BidDetailsProps {
   form: BidFormState;
@@ -17,7 +18,12 @@ function FieldError({ message }: { message?: string }) {
   );
 }
 
-export default function BidDetails({ form, fieldErrors, set }: BidDetailsProps) {
+export default function BidDetails({
+  form,
+  fieldErrors,
+  set,
+}: BidDetailsProps) {
+  const isDark = usePartnerTheme() === "dark";
   const offerNum = Number(form.bid_price);
   const hasAmount = form.bid_price !== "" && offerNum > 0;
 
@@ -27,49 +33,49 @@ export default function BidDetails({ form, fieldErrors, set }: BidDetailsProps) 
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-secondary)]">
           Step 1 of 3
         </p>
-        <h2 className="mt-1 font-serif text-2xl font-black text-white">
+        <h2
+          className={`mt-1 font-serif text-2xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+            }`}
+        >
           Your Bid Price
         </h2>
-        <p className="mt-1 text-sm text-white/50">
+        <p
+          className={`mt-1 text-sm ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"
+            }`}
+        >
           Enter the price you are offering for this property. This is what the
           seller will see alongside your Reliability Score.
         </p>
       </div>
 
-      {/* Hidden Reserve Notice
-      <div className="flex items-start gap-3 rounded-2xl border border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/5 p-5">
-        <Info className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-secondary)]" />
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.15em] text-[var(--color-secondary)]">
-            Hidden Reserve Price
-          </p>
-          <p className="mt-1.5 text-[12px] leading-5 text-white/60">
-            Each listing has a hidden reserve price set by the seller. Bids
-            below this threshold are{" "}
-            <span className="font-bold text-[var(--color-danger)]">
-              automatically rejected
-            </span>
-            . Bid with confidence.
-          </p>
-        </div>
-      </div> */}
-
       {/* Bid Price */}
       <div>
-        <label className="block text-[11px] font-black uppercase tracking-[0.2em] text-white/60">
+        <label
+          className={`block text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/60" : "text-[var(--color-text-muted)]"
+            }`}
+        >
           Bid Price (USD) <span className="text-[var(--color-danger)]">*</span>
         </label>
 
         <div
-          className={`mt-3 flex items-center gap-4 rounded-2xl border-2 bg-white/[0.04] px-6 py-5 transition-all ${fieldErrors.bid_price
-            ? "border-[var(--color-danger)]/60"
-            : hasAmount
-              ? "border-[var(--color-secondary)] shadow-[0_0_0_4px_rgba(212,175,55,0.08)]"
-              : "border-white/10 focus-within:border-[var(--color-secondary)]"
+          className={`mt-3 flex items-center gap-4 rounded-2xl border-2 px-6 py-5 transition-all ${isDark
+            ? fieldErrors.bid_price
+              ? "border-[var(--color-danger)]/60"
+              : hasAmount
+                ? "border-[var(--color-secondary)] shadow-[0_0_0_4px_rgba(212,175,55,0.08)]"
+                : "border-white/10 focus-within:border-[var(--color-secondary)]"
+            : fieldErrors.bid_price
+              ? "border-[var(--color-danger)]/60"
+              : hasAmount
+                ? "border-[var(--color-secondary)] shadow-[0_0_0_4px_rgba(212,175,55,0.08)]"
+                : "border-[var(--color-border-light)] focus-within:border-[var(--color-secondary)]"
             }`}
+          style={{
+            background: isDark ? "rgba(255,255,255,0.04)" : "var(--color-bg-soft)",
+          }}
         >
           <DollarSign
-            className={`h-7 w-7 shrink-0 ${hasAmount ? "text-[var(--color-secondary)]" : "text-white/25"
+            className={`h-7 w-7 shrink-0 ${hasAmount ? "text-[var(--color-secondary)]" : isDark ? "text-white/25" : "text-[var(--color-text-muted)]"
               }`}
           />
           <input
@@ -78,16 +84,24 @@ export default function BidDetails({ form, fieldErrors, set }: BidDetailsProps) 
             value={form.bid_price}
             onChange={(e) => set("bid_price", e.target.value)}
             placeholder="0"
-            className="w-full bg-transparent font-serif text-3xl font-black text-white placeholder-white/15 outline-none"
+            className={`w-full bg-transparent font-serif text-3xl font-black outline-none ${isDark
+              ? "text-white placeholder-white/15"
+              : "text-[var(--color-primary)] placeholder-[var(--color-text-muted)]/50"
+              }`}
           />
-          <span className="shrink-0 text-[12px] font-black uppercase tracking-wider text-white/30">
+          <span
+            className={`shrink-0 text-[12px] font-black uppercase tracking-wider ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]/60"
+              }`}
+          >
             USD
           </span>
         </div>
 
-        {/* Live dollar preview */}
         {hasAmount && (
-          <p className="mt-2 text-[12px] font-semibold text-white/40">
+          <p
+            className={`mt-2 text-[12px] font-semibold ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+              }`}
+          >
             ={" "}
             <span className="font-black text-[var(--color-secondary)]">
               {offerNum.toLocaleString(undefined, {
@@ -103,8 +117,16 @@ export default function BidDetails({ form, fieldErrors, set }: BidDetailsProps) 
       </div>
 
       {/* What seller will see */}
-      <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
-        <p className="mb-4 text-[10px] font-black uppercase tracking-[0.22em] text-white/35">
+      <div
+        className={`rounded-2xl border p-5 ${isDark
+          ? "border-white/8 bg-white/[0.03]"
+          : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+          }`}
+      >
+        <p
+          className={`mb-4 text-[10px] font-black uppercase tracking-[0.22em] ${isDark ? "text-white/35" : "text-[var(--color-text-muted)]"
+            }`}
+        >
           What the Seller Will See
         </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -127,17 +149,26 @@ export default function BidDetails({ form, fieldErrors, set }: BidDetailsProps) 
             <div
               key={item.label}
               className={`rounded-xl border p-3 text-center ${item.highlight
-                ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/8"
-                : "border-white/6 bg-white/[0.02]"
+                ? isDark
+                  ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/8"
+                  : "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
+                : isDark
+                  ? "border-white/6 bg-white/[0.02]"
+                  : "border-[var(--color-border-light)] bg-white"
                 }`}
             >
-              <p className="text-[9px] font-black uppercase tracking-wider text-white/30">
+              <p
+                className={`text-[9px] font-black uppercase tracking-wider ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+                  }`}
+              >
                 {item.label}
               </p>
               <p
                 className={`mt-1 text-[12px] font-black ${item.highlight
                   ? "text-[var(--color-secondary)]"
-                  : "text-white/50"
+                  : isDark
+                    ? "text-white/50"
+                    : "text-[var(--color-text-muted)]"
                   }`}
               >
                 {item.value}
@@ -148,9 +179,17 @@ export default function BidDetails({ form, fieldErrors, set }: BidDetailsProps) 
       </div>
 
       {/* Anti-circumvention */}
-      <div className="flex items-start gap-3 rounded-xl border border-[var(--color-danger)]/15 bg-[var(--color-danger)]/5 px-4 py-3">
+      <div
+        className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${isDark
+          ? "border-[var(--color-danger)]/15 bg-[var(--color-danger)]/5"
+          : "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5"
+          }`}
+      >
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-danger)]/70" />
-        <p className="text-[11px] leading-5 text-white/40">
+        <p
+          className={`text-[11px] leading-5 ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+            }`}
+        >
           No contact details are shared with the seller at this stage. Direct
           communication is not permitted until a contract is signed by both
           parties.

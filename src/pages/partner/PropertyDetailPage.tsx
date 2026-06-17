@@ -23,6 +23,7 @@ import {
   useGetListingByIdQuery,
   useGetListingDocumentsQuery,
 } from "../../services/listingService";
+import { usePartnerTheme } from "../../hooks/usePartnerTheme";
 
 /* ─── Helpers ─────────────────────────────────────────────────────── */
 function formatMoney(value: any) {
@@ -58,6 +59,23 @@ function getBidCount(listing: any): number {
   );
 }
 
+function formatPropertyType(propertyType?: string) {
+  const normalized = String(propertyType || "").toLowerCase();
+  const labels: Record<string, string> = {
+    sfh: "Single Family Home",
+    single_family: "Single Family Home",
+    single_family_home: "Single Family Home",
+    multi: "Multi-Family",
+    multi_family: "Multi-Family",
+    multifamily: "Multi-Family",
+    land: "Land",
+    commercial: "Commercial",
+    mixeduse: "Mixed Use",
+    mixed_use: "Mixed Use",
+  };
+  return labels[normalized] || (propertyType ? propertyType.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "Off-Market Property");
+}
+
 function normalizeListingData(data: any): any {
   return data?.data?.data ?? data?.data ?? data ?? null;
 }
@@ -83,7 +101,6 @@ function normalizeImageUrl(rawUrl: any) {
 
   const apiOrigin = apiBaseUrl.replace(/\/api\/v1$/, "");
 
-  // Relative URL missing /v1:
   if (url.startsWith("/api/listings/")) {
     return `${apiOrigin}${url.replace(
       "/api/listings/",
@@ -91,12 +108,10 @@ function normalizeImageUrl(rawUrl: any) {
     )}`;
   }
 
-  // Relative URL already has /api/v1:
   if (url.startsWith("/api/v1/")) {
     return `${apiOrigin}${url}`;
   }
 
-  // Relative URL without leading slash and missing /v1:
   if (url.startsWith("api/listings/")) {
     return `${apiOrigin}/${url.replace(
       "api/listings/",
@@ -104,22 +119,17 @@ function normalizeImageUrl(rawUrl: any) {
     )}`;
   }
 
-  // Relative URL without leading slash but already has /api/v1:
   if (url.startsWith("api/v1/")) {
     return `${apiOrigin}/${url}`;
   }
 
-  // Backend route only:
   if (url.startsWith("listings/")) {
     return `${apiBaseUrl}/${url}`;
   }
-
-  // Full URL but missing /v1:
   if (url.includes("/api/listings/")) {
     return url.replace("/api/listings/", "/api/v1/listings/");
   }
 
-  // S3 signed URL, public URL, or already valid full URL
   return url;
 }
 
@@ -161,23 +171,41 @@ function StatPill({
   label,
   value,
   highlight,
+  isDark,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   highlight?: boolean;
+  isDark: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/8 bg-white/[0.04] px-4 py-4 text-center">
+    <div
+      className={`flex flex-col items-center gap-1.5 rounded-2xl border px-4 py-4 text-center ${isDark
+        ? "border-white/8 bg-white/[0.04]"
+        : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+        }`}
+    >
       <Icon
-        className={`h-5 w-5 ${highlight ? "text-[var(--color-secondary)]" : "text-white/40"
+        className={`h-5 w-5 ${highlight
+          ? "text-[var(--color-secondary)]"
+          : isDark
+            ? "text-white/40"
+            : "text-[var(--color-text-muted)]"
           }`}
       />
-      <p className="text-[9px] font-black uppercase tracking-wider text-white/30">
+      <p
+        className={`text-[9px] font-black uppercase tracking-wider ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+          }`}
+      >
         {label}
       </p>
       <p
-        className={`text-base font-black ${highlight ? "text-[var(--color-secondary)]" : "text-white"
+        className={`text-base font-black ${highlight
+          ? "text-[var(--color-secondary)]"
+          : isDark
+            ? "text-white"
+            : "text-[var(--color-primary)]"
           }`}
       >
         {value}
@@ -187,6 +215,9 @@ function StatPill({
 }
 
 export default function PropertyDetailPage() {
+  const theme = usePartnerTheme();
+  const isDark = theme === "dark";
+
   const { id: propertyId } = useParams<{ id: string }>();
 
   const {
@@ -210,7 +241,10 @@ export default function PropertyDetailPage() {
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--color-secondary)]" />
-          <p className="mt-3 text-sm font-semibold text-white/40">
+          <p
+            className={`mt-3 text-sm font-semibold ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+              }`}
+          >
             Loading property details...
           </p>
         </div>
@@ -221,7 +255,12 @@ export default function PropertyDetailPage() {
   if (isError || !listing) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="rounded-2xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-8 text-center">
+        <div
+          className={`rounded-2xl border p-8 text-center ${isDark
+            ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10"
+            : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5"
+            }`}
+        >
           <p className="text-sm font-bold text-[var(--color-danger)]">
             Unable to load this property. It may have been removed or you may
             not have access.
@@ -250,10 +289,9 @@ export default function PropertyDetailPage() {
   const capRate = Number(listing?.cap_rate);
   const grossRent = Number(listing?.gross_rent || listing?.monthly_rent);
 
-  const propertyAddress = listing?.address || "Property Details";
   const city = listing?.city || "";
   const stateCode = listing?.state_code || "";
-  const zipCode = listing?.zip_code || "";
+
 
   return (
     <div className="space-y-8">
@@ -261,7 +299,10 @@ export default function PropertyDetailPage() {
       <div>
         <Link
           to="/properties"
-          className="mb-4 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-white/40 transition hover:text-white"
+          className={`mb-4 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] transition ${isDark
+            ? "text-white/40 hover:text-white"
+            : "text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+            }`}
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Stream
@@ -277,20 +318,31 @@ export default function PropertyDetailPage() {
                 </span>
               )}
               {listing?.property_type && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white/50">
-                  {listing.property_type}
+                <span
+                  className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider ${isDark
+                    ? "border-white/10 bg-white/5 text-white/50"
+                    : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
+                    }`}
+                >
+                  {formatPropertyType(listing.property_type)}
                 </span>
               )}
             </div>
 
-            <h1 className="mt-3 font-serif text-3xl font-black text-white lg:text-4xl">
-              {propertyAddress}
+            <h1
+              className={`mt-3 font-serif text-3xl font-black lg:text-4xl ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                }`}
+            >
+              {formatPropertyType(listing?.property_type)}
             </h1>
 
-            {(city || stateCode) && (
-              <div className="mt-2 flex items-center gap-1.5 text-sm text-white/45">
+            {(listing?.address || listing?.street_address || city || stateCode) && (
+              <div
+                className={`mt-2 flex items-center gap-1.5 text-sm ${isDark ? "text-white/45" : "text-[var(--color-text-muted)]"
+                  }`}
+              >
                 <MapPin className="h-4 w-4" />
-                {[city, stateCode, zipCode].filter(Boolean).join(", ")}
+                {[listing?.address || listing?.street_address || city, stateCode].filter(Boolean).join(", ")}
               </div>
             )}
           </div>
@@ -299,8 +351,12 @@ export default function PropertyDetailPage() {
           {hoursLeft !== null && (
             <div
               className={`flex items-center gap-2 rounded-2xl border px-5 py-3 ${isUrgent
+                ? isDark
                   ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
-                  : "border-white/10 bg-white/5 text-white/50"
+                  : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
+                : isDark
+                  ? "border-white/10 bg-white/5 text-white/50"
+                  : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
                 }`}
             >
               <Clock className="h-5 w-5" />
@@ -316,12 +372,16 @@ export default function PropertyDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Left column */}
+
         <div className="space-y-6">
-          {/* Image Gallery */}
+
           <div className="space-y-3">
-            {/* Main Active Image Display */}
-            <div className="relative h-64 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] lg:h-80 flex items-center justify-center">
+            <div
+              className={`relative h-64 overflow-hidden rounded-2xl border lg:h-80 flex items-center justify-center ${isDark
+                ? "border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02]"
+                : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+                }`}
+            >
               {images.length > 0 ? (
                 <>
                   <img
@@ -329,8 +389,7 @@ export default function PropertyDetailPage() {
                     alt={images[selectedImageIndex]?.name || "Property photo"}
                     className="h-full w-full object-cover transition-all duration-300"
                   />
-                  
-                  {/* Navigation Arrows if more than 1 image */}
+
                   {images.length > 1 && (
                     <>
                       <button
@@ -361,14 +420,21 @@ export default function PropertyDetailPage() {
                   )}
                 </>
               ) : (
-                /* Fallback UI when no images */
                 <div className="flex flex-col items-center justify-center text-center p-6 space-y-2">
-                  <ImageIcon className="h-10 w-10 text-white/20" />
-                  <span className="text-sm font-semibold text-white/30">No property photos uploaded yet</span>
+                  <ImageIcon
+                    className={`h-10 w-10 ${isDark ? "text-white/20" : "text-[var(--color-text-muted)]"
+                      }`}
+                  />
+                  <span
+                    className={`text-sm font-semibold ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+                      }`}
+                  >
+                    No property photos uploaded yet
+                  </span>
                 </div>
               )}
 
-              {/* Beds / Baths / Sqft Overlay */}
+
               <div className="absolute bottom-4 left-4 right-4 flex justify-between pointer-events-none">
                 <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1.5 text-[10px] font-black text-white/60 backdrop-blur pointer-events-auto">
                   {[
@@ -379,7 +445,7 @@ export default function PropertyDetailPage() {
                     .filter(Boolean)
                     .join(" · ")}
                 </span>
-                
+
                 {images.length > 1 && (
                   <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1.5 text-[10px] font-black text-white/60 backdrop-blur">
                     {selectedImageIndex + 1} / {images.length}
@@ -388,7 +454,6 @@ export default function PropertyDetailPage() {
               </div>
             </div>
 
-            {/* Thumbnails Row if more than 1 image */}
             {images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
                 {images.map((image: any, index: number) => {
@@ -398,11 +463,12 @@ export default function PropertyDetailPage() {
                       key={image.id}
                       type="button"
                       onClick={() => setSelectedImageIndex(index)}
-                      className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
-                        isActive
-                          ? "border-[var(--color-secondary)] scale-95"
-                          : "border-white/10 hover:border-white/30"
-                      }`}
+                      className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${isActive
+                        ? "border-[var(--color-secondary)] scale-95"
+                        : isDark
+                          ? "border-white/10 hover:border-white/30"
+                          : "border-[var(--color-border-light)] hover:border-[var(--color-secondary)]/40"
+                        }`}
                     >
                       <img
                         src={image.url}
@@ -416,34 +482,56 @@ export default function PropertyDetailPage() {
             )}
           </div>
 
-          {/* Core stats grid */}
           {(listing?.beds_count ||
             listing?.baths_count ||
             listing?.square_footage ||
             listing?.year_built) && (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {listing?.beds_count > 0 && (
-                  <StatPill icon={Bed} label="Bedrooms" value={String(listing.beds_count)} />
+                  <StatPill
+                    icon={Bed}
+                    label="Bedrooms"
+                    value={String(listing.beds_count)}
+                    isDark={isDark}
+                  />
                 )}
                 {listing?.baths_count > 0 && (
-                  <StatPill icon={Bath} label="Bathrooms" value={String(listing.baths_count)} />
+                  <StatPill
+                    icon={Bath}
+                    label="Bathrooms"
+                    value={String(listing.baths_count)}
+                    isDark={isDark}
+                  />
                 )}
                 {listing?.square_footage && (
                   <StatPill
                     icon={Maximize2}
                     label="Sqft"
                     value={Number(listing.square_footage).toLocaleString()}
+                    isDark={isDark}
                   />
                 )}
                 {listing?.year_built && (
-                  <StatPill icon={Building2} label="Year Built" value={String(listing.year_built)} />
+                  <StatPill
+                    icon={Building2}
+                    label="Year Built"
+                    value={String(listing.year_built)}
+                    isDark={isDark}
+                  />
                 )}
               </div>
             )}
 
-          {/* Financial breakdown */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl">
-            <h2 className="mb-5 font-serif text-xl font-black text-white">
+          <div
+            className={`rounded-2xl border p-6 ${isDark
+              ? "border-white/10 bg-white/[0.04] shadow-2xl"
+              : "border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]"
+              }`}
+          >
+            <h2
+              className={`mb-5 font-serif text-xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                }`}
+            >
               Financial Breakdown
             </h2>
 
@@ -452,7 +540,7 @@ export default function PropertyDetailPage() {
                 {
                   label: "Asking Price",
                   value: formatMoney(listing?.market_price),
-                  color: "text-white",
+                  color: isDark ? "text-white" : "text-[var(--color-primary)]",
                   highlight: false,
                 },
                 ...(arv
@@ -492,11 +580,18 @@ export default function PropertyDetailPage() {
                 <div
                   key={row.label}
                   className={`flex items-center justify-between rounded-xl border px-4 py-3 ${row.highlight
+                    ? isDark
                       ? "border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/5"
-                      : "border-white/6 bg-white/[0.02]"
+                      : "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
+                    : isDark
+                      ? "border-white/6 bg-white/[0.02]"
+                      : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
                     }`}
                 >
-                  <span className="text-[12px] font-semibold text-white/60">
+                  <span
+                    className={`text-[12px] font-semibold ${isDark ? "text-white/60" : "text-[var(--color-text-muted)]"
+                      }`}
+                  >
                     {row.label}
                   </span>
                   <span className={`text-base font-black ${row.color}`}>
@@ -510,8 +605,16 @@ export default function PropertyDetailPage() {
             {(marginPct || capRate || grossRent) && (
               <div className="mt-4 grid grid-cols-3 gap-3">
                 {marginPct && (
-                  <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3 text-center">
-                    <p className="text-[9px] font-black uppercase tracking-wider text-white/30">
+                  <div
+                    className={`rounded-xl border p-3 text-center ${isDark
+                      ? "border-white/8 bg-white/[0.03]"
+                      : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+                      }`}
+                  >
+                    <p
+                      className={`text-[9px] font-black uppercase tracking-wider ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+                        }`}
+                    >
                       Margin
                     </p>
                     <p className="mt-1 text-lg font-black text-[#6ee7b7]">
@@ -520,8 +623,16 @@ export default function PropertyDetailPage() {
                   </div>
                 )}
                 {capRate > 0 && (
-                  <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3 text-center">
-                    <p className="text-[9px] font-black uppercase tracking-wider text-white/30">
+                  <div
+                    className={`rounded-xl border p-3 text-center ${isDark
+                      ? "border-white/8 bg-white/[0.03]"
+                      : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+                      }`}
+                  >
+                    <p
+                      className={`text-[9px] font-black uppercase tracking-wider ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+                        }`}
+                    >
                       Cap Rate
                     </p>
                     <p className="mt-1 text-lg font-black text-[var(--color-secondary)]">
@@ -530,11 +641,22 @@ export default function PropertyDetailPage() {
                   </div>
                 )}
                 {grossRent > 0 && (
-                  <div className="rounded-xl border border-white/8 bg-white/[0.03] p-3 text-center">
-                    <p className="text-[9px] font-black uppercase tracking-wider text-white/30">
+                  <div
+                    className={`rounded-xl border p-3 text-center ${isDark
+                      ? "border-white/8 bg-white/[0.03]"
+                      : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+                      }`}
+                  >
+                    <p
+                      className={`text-[9px] font-black uppercase tracking-wider ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+                        }`}
+                    >
                       Gross Rent
                     </p>
-                    <p className="mt-1 text-lg font-black text-white">
+                    <p
+                      className={`mt-1 text-lg font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                        }`}
+                    >
                       ${grossRent}/mo
                     </p>
                   </div>
@@ -545,19 +667,38 @@ export default function PropertyDetailPage() {
 
           {/* Description */}
           {(listing?.description || listing?.seller_notes) && (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-              <h2 className="mb-3 font-serif text-xl font-black text-white">
+            <div
+              className={`rounded-2xl border p-6 ${isDark
+                ? "border-white/10 bg-white/[0.04]"
+                : "border-[var(--color-border-light)] bg-white"
+                }`}
+            >
+              <h2
+                className={`mb-3 font-serif text-xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                  }`}
+              >
                 Property Overview
               </h2>
-              <p className="text-sm leading-7 text-white/55">
+              <p
+                className={`text-sm leading-7 ${isDark ? "text-white/55" : "text-[var(--color-text-muted)]"
+                  }`}
+              >
                 {listing?.description || listing?.seller_notes}
               </p>
             </div>
           )}
 
           {/* Property details */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-            <h2 className="mb-4 font-serif text-xl font-black text-white">
+          <div
+            className={`rounded-2xl border p-6 ${isDark
+              ? "border-white/10 bg-white/[0.04]"
+              : "border-[var(--color-border-light)] bg-white"
+              }`}
+          >
+            <h2
+              className={`mb-4 font-serif text-xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                }`}
+            >
               Property Details
             </h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -568,18 +709,22 @@ export default function PropertyDetailPage() {
                 },
                 { label: "Zoning", value: listing?.zoning },
                 { label: "Lot Size", value: listing?.lot_size },
-                { label: "State", value: listing?.state_code },
-                { label: "ZIP Code", value: listing?.zip_code },
                 { label: "Year Built", value: listing?.year_built },
-                { label: "Property Type", value: listing?.property_type },
+                { label: "Property Type", value: formatPropertyType(listing?.property_type) },
               ]
                 .filter((item) => item.value)
                 .map((item) => (
                   <div key={item.label}>
-                    <p className="text-[10px] font-black uppercase tracking-wider text-white/30">
+                    <p
+                      className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+                        }`}
+                    >
                       {item.label}
                     </p>
-                    <p className="mt-1 text-[13px] font-bold text-white capitalize">
+                    <p
+                      className={`mt-1 text-[13px] font-bold capitalize ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                        }`}
+                    >
                       {String(item.value)}
                     </p>
                   </div>
@@ -591,16 +736,29 @@ export default function PropertyDetailPage() {
         {/* Right sticky column */}
         <div className="lg:sticky lg:top-[110px] lg:self-start space-y-4">
           {/* Bid CTA panel */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-6 shadow-2xl backdrop-blur">
+          <div
+            className={`rounded-2xl border p-6 ${isDark
+              ? "border-white/10 bg-white/[0.05] shadow-2xl backdrop-blur"
+              : "border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]"
+              }`}
+          >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-serif text-xl font-black text-white">
+              <h2
+                className={`font-serif text-xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                  }`}
+              >
                 Submit Your Bid
               </h2>
               <TrendingUp className="h-5 w-5 text-[var(--color-secondary)]" />
             </div>
 
             {/* Price */}
-            <div className="mb-4 rounded-xl border border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/8 p-4">
+            <div
+              className={`mb-4 rounded-xl border p-4 ${isDark
+                ? "border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/8"
+                : "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
+                }`}
+            >
               <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-secondary)]/70">
                 Asking Price
               </p>
@@ -612,33 +770,44 @@ export default function PropertyDetailPage() {
             {/* Bid cap */}
             <div className="mb-4">
               <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-white/40">
+                <span
+                  className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+                    }`}
+                >
                   Offer Cap
                 </span>
                 <span
                   className={`text-[11px] font-black ${isFull
-                      ? "text-[var(--color-danger)]"
-                      : spotsLeft <= 2
-                        ? "text-[var(--color-warning)]"
-                        : "text-white/50"
+                    ? "text-[var(--color-danger)]"
+                    : spotsLeft <= 2
+                      ? "text-[var(--color-warning)]"
+                      : isDark
+                        ? "text-white/50"
+                        : "text-[var(--color-text-muted)]"
                     }`}
                 >
                   {bidCount}/{maxBids} offers submitted
                 </span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-white/8">
+              <div
+                className={`h-2 w-full overflow-hidden rounded-full ${isDark ? "bg-white/8" : "bg-[var(--color-border-light)]"
+                  }`}
+              >
                 <div
                   className={`h-full rounded-full transition-all ${isFull
-                      ? "bg-[var(--color-danger)]"
-                      : spotsLeft <= 2
-                        ? "bg-[var(--color-warning)]"
-                        : "bg-[var(--color-secondary)]"
+                    ? "bg-[var(--color-danger)]"
+                    : spotsLeft <= 2
+                      ? "bg-[var(--color-warning)]"
+                      : "bg-[var(--color-secondary)]"
                     }`}
                   style={{ width: `${(bidCount / maxBids) * 100}%` }}
                 />
               </div>
               {!isFull && (
-                <p className="mt-1 text-[10px] text-white/35">
+                <p
+                  className={`mt-1 text-[10px] ${isDark ? "text-white/35" : "text-[var(--color-text-muted)]"
+                    }`}
+                >
                   {spotsLeft} spot{spotsLeft !== 1 ? "s" : ""} remaining
                 </p>
               )}
@@ -646,28 +815,44 @@ export default function PropertyDetailPage() {
 
             {/* CTA */}
             {isFull ? (
-              <div className="rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/8 p-4 text-center text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-danger)]">
+              <div
+                className={`rounded-xl border p-4 text-center text-[11px] font-black uppercase tracking-[0.2em] ${isDark
+                  ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/8 text-[var(--color-danger)]"
+                  : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
+                  }`}
+              >
                 Bid Cap Reached — No More Offers
               </div>
             ) : (
               <Link
                 to={`/properties/${propertyId}/bid`}
-                className="flex w-full items-center justify-center gap-2 bg-[var(--color-secondary)] py-4 text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-dark-main)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02]"
+                className="flex w-full items-center justify-center gap-2 bg-[var(--color-secondary)] py-4 text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] rounded-xl"
               >
                 <DollarSign className="h-4 w-4" />
                 Submit Offer
               </Link>
             )}
 
-            <p className="mt-3 text-center text-[10px] text-white/30">
+            <p
+              className={`mt-3 text-center text-[10px] ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+                }`}
+            >
               Submitting a bid is not a legal obligation until signed.
             </p>
           </div>
 
           {/* Documents */}
           {documents.length > 0 && (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-              <h3 className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-white/50">
+            <div
+              className={`rounded-2xl border p-5 ${isDark
+                ? "border-white/10 bg-white/[0.04]"
+                : "border-[var(--color-border-light)] bg-white"
+                }`}
+            >
+              <h3
+                className={`mb-3 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"
+                  }`}
+              >
                 Available Documents
               </h3>
               <div className="space-y-2">
@@ -686,7 +871,10 @@ export default function PropertyDetailPage() {
                       href={doc?.url || "#"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex w-full items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 text-[12px] font-semibold text-white/60 transition hover:border-[var(--color-secondary)]/30 hover:text-white"
+                      className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-[12px] font-semibold transition ${isDark
+                        ? "border-white/8 bg-white/[0.03] text-white/60 hover:border-[var(--color-secondary)]/30 hover:text-white"
+                        : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] text-[var(--color-text-muted)] hover:border-[var(--color-secondary)]/30 hover:text-[var(--color-primary)]"
+                        }`}
                     >
                       <FileText className="h-4 w-4 shrink-0 text-[var(--color-secondary)]" />
                       {label}
@@ -699,11 +887,22 @@ export default function PropertyDetailPage() {
 
           {/* No docs yet */}
           {documents.length === 0 && (
-            <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
-              <h3 className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-white/30">
+            <div
+              className={`rounded-2xl border p-5 ${isDark
+                ? "border-white/8 bg-white/[0.03]"
+                : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+                }`}
+            >
+              <h3
+                className={`mb-2 text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+                  }`}
+              >
                 Documents
               </h3>
-              <p className="text-[11px] text-white/30">
+              <p
+                className={`text-[11px] ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+                  }`}
+              >
                 No documents uploaded by seller yet.
               </p>
             </div>
@@ -711,10 +910,20 @@ export default function PropertyDetailPage() {
 
           {/* Urgency warning */}
           {isUrgent && (
-            <div className="rounded-xl border border-[var(--color-danger)]/25 bg-[var(--color-danger)]/5 px-4 py-3">
+            <div
+              className={`rounded-xl border px-4 py-3 ${isDark
+                ? "border-[var(--color-danger)]/25 bg-[var(--color-danger)]/5"
+                : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10"
+                }`}
+            >
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-danger)]" />
-                <p className="text-[11px] leading-5 text-[var(--color-danger)]/80">
+                <p
+                  className={`text-[11px] leading-5 ${isDark
+                    ? "text-[var(--color-danger)]/80"
+                    : "text-[var(--color-danger)]"
+                    }`}
+                >
                   This deal closes in {hoursLeft} hours. Submit your offer now
                   to be considered.
                 </p>
@@ -724,10 +933,20 @@ export default function PropertyDetailPage() {
 
           {/* Verified highlight */}
           {listing?.status === "live" && (
-            <div className="rounded-xl border border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/5 px-4 py-3">
+            <div
+              className={`rounded-xl border px-4 py-3 ${isDark
+                ? "border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/5"
+                : "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
+                }`}
+            >
               <div className="flex items-center gap-2">
                 <BadgeCheck className="h-4 w-4 text-[var(--color-secondary)]" />
-                <p className="text-[11px] font-bold text-[var(--color-secondary)]">
+                <p
+                  className={`text-[11px] font-bold ${isDark
+                    ? "text-[var(--color-secondary)]"
+                    : "text-[var(--color-primary)]"
+                    }`}
+                >
                   Seller-verified listing
                 </p>
               </div>

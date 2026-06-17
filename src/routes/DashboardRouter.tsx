@@ -5,6 +5,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import { useAuthContext } from "../contexts/AuthContext";
 import { tokenStorage } from "../redux/auth/tokenStorage";
 import { getRoleFromToken } from "../redux/auth/jwtUtils";
+import { useThemeMode } from "../hooks/useThemeMode";
 
 import {
   ADMIN_ROLES,
@@ -32,7 +33,6 @@ const partnerNav = [
   { label: "Active Deals", path: "/deals" },
   { label: "Chat", path: "/chat" },
   { label: "Score", path: "/score" },
-
 ];
 
 const realtorNav = [
@@ -51,61 +51,57 @@ const adminNav = [
   { label: "Chat Flags", path: "/chat-flags" },
 ];
 
-function getLayoutConfig(role?: string | null) {
-  const userRole = normalizeRole(role);
-
-  if (isAllowedRole(userRole, SELLER_ROLES)) {
-    return {
-      title: "Seller Portal",
-      navItems: sellerNav,
-      mode: "light" as const,
-    };
-  }
-
-  if (isAllowedRole(userRole, PARTNER_ROLES)) {
-    return {
-      title: "Partner Pro Mode",
-      navItems: partnerNav,
-      mode: "dark" as const,
-    };
-  }
-
-  if (isAllowedRole(userRole, REALTOR_ROLES)) {
-    return {
-      title: "Licensed Partner Portal",
-      navItems: realtorNav,
-      mode: "light" as const,
-    };
-  }
-
-  if (isAllowedRole(userRole, ADMIN_ROLES)) {
-    return {
-      title: "Admin Portal",
-      navItems: adminNav,
-      mode: "light" as const,
-    };
-  }
-
-  return null;
-}
-
 export default function DashboardRouter() {
   const { role, accessToken } = useAuthContext();
 
   const token = accessToken || tokenStorage.getAccessToken();
   const userRole = normalizeRole(role || getRoleFromToken(token));
 
-  const layoutConfig = getLayoutConfig(userRole);
+  const isPartner = isAllowedRole(userRole, PARTNER_ROLES);
 
-  if (!layoutConfig) {
-    return <Navigate to="/unauthorized" replace />;
+  const { mode, toggleMode } = useThemeMode(isPartner ? "partner" : "other");
+
+  if (isAllowedRole(userRole, SELLER_ROLES)) {
+    return (
+      <DashboardLayout
+        title="Seller Portal"
+        navItems={sellerNav}
+        mode="light"
+      />
+    );
   }
 
-  return (
-    <DashboardLayout
-      title={layoutConfig.title}
-      navItems={layoutConfig.navItems}
-      mode={layoutConfig.mode}
-    />
-  );
+  if (isPartner) {
+    return (
+      <DashboardLayout
+        title="Partner Pro Mode"
+        navItems={partnerNav}
+        mode={mode}
+        onToggleTheme={toggleMode}
+        showThemeToggle
+      />
+    );
+  }
+
+  if (isAllowedRole(userRole, REALTOR_ROLES)) {
+    return (
+      <DashboardLayout
+        title="Licensed Partner Portal"
+        navItems={realtorNav}
+        mode="light"
+      />
+    );
+  }
+
+  if (isAllowedRole(userRole, ADMIN_ROLES)) {
+    return (
+      <DashboardLayout
+        title="Admin Portal"
+        navItems={adminNav}
+        mode="light"
+      />
+    );
+  }
+
+  return <Navigate to="/unauthorized" replace />;
 }
