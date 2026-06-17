@@ -16,6 +16,7 @@ import {
   getMongoId,
   getPersonName,
   getStatusVariant,
+  normalizeValue,
 } from "../../utils/adminUtils";
 
 function getRelationEmail(value: any) {
@@ -24,6 +25,25 @@ function getRelationEmail(value: any) {
   return value.email || value._doc?.email || "-";
 }
 
+type BidFilter =
+  | "all"
+  | "active"
+  | "selected"
+  | "backup"
+  | "rejected"
+  | "deleted";
+
+const BID_FILTERS: Array<{
+  label: string;
+  value: BidFilter;
+}> = [
+  { label: "All", value: "all" },
+  { label: "Active", value: "active" },
+  { label: "Selected", value: "selected" },
+  { label: "Backup", value: "backup" },
+  { label: "Rejected", value: "rejected" },
+  { label: "Deleted", value: "deleted" },
+];
 function AdminBidMobileCard({ bid }: { bid: any }) {
   const bidId = getMongoId(bid);
   const bidAmount = getBidAmount(bid);
@@ -98,26 +118,59 @@ function AdminBidMobileCard({ bid }: { bid: any }) {
 
 function AdminBidsPage() {
   const [page, setPage] = useState(1);
+  const [filter, setFilter] = useState<BidFilter>("all");
 
   const { data, isLoading, isError } = useGetAdminBidsQuery({
     page,
     limit: 20,
   });
 
-  const bids = getApiList(data);
-  const pagination = getApiPagination(data);
+const allBids = getApiList(data);
+
+const bids =
+  filter === "all"
+    ? allBids
+    : allBids.filter(
+        (bid: any) => normalizeValue(bid.status) === filter
+      );
+
+const pagination = getApiPagination(data);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
-          Bids
-        </h1>
+   <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+  <div>
+    <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
+      Bids
+    </h1>
 
-        <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-          View all bids placed on seller listings.
-        </p>
-      </div>
+    <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+      View and filter all bids placed on seller listings.
+    </p>
+  </div>
+
+  <div className="max-w-full overflow-x-auto">
+    <div className="flex min-w-max rounded-xl border border-[var(--color-border-light)] bg-white p-1">
+      {BID_FILTERS.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => {
+            setFilter(option.value);
+            setPage(1);
+          }}
+          className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition ${
+            filter === option.value
+              ? "bg-[var(--color-primary)] text-white"
+              : "text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
 
       {isLoading ? (
         <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
@@ -129,7 +182,9 @@ function AdminBidsPage() {
         </div>
       ) : bids.length === 0 ? (
         <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-card)]">
-          No bids found.
+       {filter === "all"
+  ? "No bids found."
+  : `No ${filter.replace("_", " ")} bids found.`}
         </div>
       ) : (
         <>

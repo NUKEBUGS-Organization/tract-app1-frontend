@@ -22,8 +22,19 @@ import {
   normalizeValue,
 } from "../../utils/adminUtils";
 
+type DealFilter = "all" | string;
+
 function getDealProperty(deal: any) {
   return deal?.listing_id ?? deal?.property_id ?? null;
+}
+
+function formatStatusLabel(status: string) {
+  if (!status) return "Unknown";
+
+  return status
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function AdminDealMobileCard({
@@ -108,6 +119,7 @@ function AdminDealMobileCard({
             type="button"
             variant="danger"
             isLoading={isClosing}
+            disabled={isClosing}
             onClick={() => onClose(deal)}
             className="w-full justify-center px-4 py-2 text-xs"
           >
@@ -122,7 +134,10 @@ function AdminDealMobileCard({
 
 function AdminDealsPage() {
   const [page, setPage] = useState(1);
+  const [filter, setFilter] = useState<DealFilter>("all");
+
   const [closeTarget, setCloseTarget] = useState<any | null>(null);
+  const [processingDealId, setProcessingDealId] = useState("");
 
   const {
     data,
@@ -134,30 +149,95 @@ function AdminDealsPage() {
     limit: 20,
   });
 
-  const [closeDeal, { isLoading: isClosing }] = useCloseAdminDealMutation();
+  const [closeDeal, { isLoading: isClosing }] =
+    useCloseAdminDealMutation();
 
-  const deals = getApiList(data);
+  const allDeals = getApiList(data);
+
+  const availableStatuses = Array.from(
+    new Set(
+      allDeals
+        .map((deal: any) => normalizeValue(deal.status))
+        .filter(Boolean)
+    )
+  ) as string[];
+
+  const dealFilters = [
+    {
+      label: "All",
+      value: "all",
+    },
+    ...availableStatuses.map((status) => ({
+      label: formatStatusLabel(status),
+      value: status,
+    })),
+  ];
+
+  const deals =
+    filter === "all"
+      ? allDeals
+      : allDeals.filter(
+          (deal: any) => normalizeValue(deal.status) === filter
+        );
+
   const pagination = getApiPagination(data);
 
   async function handleCloseDeal() {
     if (!closeTarget) return;
 
-    await closeDeal(getMongoId(closeTarget)).unwrap();
+    const dealId = getMongoId(closeTarget);
 
-    setCloseTarget(null);
-    refetch();
+    try {
+      setProcessingDealId(dealId);
+
+      await closeDeal(dealId).unwrap();
+
+      setCloseTarget(null);
+
+      await refetch();
+    } finally {
+      setProcessingDealId("");
+    }
   }
+
+  const closeTargetId = closeTarget ? getMongoId(closeTarget) : "";
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
-          Deals
-        </h1>
+      {/* Header and status filter */}
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+        <div>
+          <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
+            Deals
+          </h1>
 
-        <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-          Monitor all platform deals and force close deals when needed.
-        </p>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+            Monitor and filter all platform deals, and force close deals when
+            needed.
+          </p>
+        </div>
+
+        <div className="max-w-full overflow-x-auto">
+          <div className="flex min-w-max rounded-xl border border-[var(--color-border-light)] bg-white p-1">
+            {dealFilters.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  setFilter(option.value);
+                  setPage(1);
+                }}
+                className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition ${
+                  filter === option.value
+                    ? "bg-[var(--color-primary)] text-white"
+                    : "text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
@@ -170,21 +250,31 @@ function AdminDealsPage() {
         </div>
       ) : deals.length === 0 ? (
         <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-card)]">
-          No deals found.
+          {filter === "all"
+            ? "No deals found."
+            : `No ${formatStatusLabel(filter).toLowerCase()} deals found.`}
         </div>
       ) : (
         <>
+          {/* Mobile cards */}
           <div className="grid grid-cols-1 gap-4 lg:hidden">
-            {deals.map((deal: any) => (
-              <AdminDealMobileCard
-                key={getMongoId(deal)}
-                deal={deal}
-                isClosing={isClosing}
-                onClose={setCloseTarget}
-              />
-            ))}
+            {deals.map((deal: any) => {
+              const dealId = getMongoId(deal);
+
+              return (
+                <AdminDealMobileCard
+                  key={dealId}
+                  deal={deal}
+                  isClosing={
+                    isClosing && processingDealId === dealId
+                  }
+                  onClose={setCloseTarget}
+                />
+              );
+            })}
           </div>
 
+          {/* Desktop table */}
           <div className="hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)] lg:block">
             <div className="w-full overflow-x-auto">
               <table className="w-full min-w-[1050px] text-left">
@@ -213,6 +303,9 @@ function AdminDealsPage() {
                     const dealId = getMongoId(deal);
                     const status = normalizeValue(deal.status);
                     const property = getDealProperty(deal);
+
+                    const isThisClosing =
+                      isClosing && processingDealId === dealId;
 
                     return (
                       <tr
@@ -253,7 +346,7 @@ function AdminDealsPage() {
                         </td>
 
                         <td className="px-6 py-5">
-                          <div className="flex flex-wrap gap-3">
+                          <div className="flex flex-wrap items-center gap-3">
                             <Link
                               to={`/deals/${dealId}`}
                               state={{ deal }}
@@ -266,6 +359,8 @@ function AdminDealsPage() {
                               <Button
                                 type="button"
                                 variant="danger"
+                                isLoading={isThisClosing}
+                                disabled={isThisClosing}
                                 onClick={() => setCloseTarget(deal)}
                                 className="px-4 py-2 text-xs"
                               >
@@ -285,6 +380,7 @@ function AdminDealsPage() {
         </>
       )}
 
+      {/* Pagination */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-[var(--color-text-muted)]">
           Page {pagination.page} of {pagination.totalPages || 1}
@@ -295,7 +391,9 @@ function AdminDealsPage() {
             type="button"
             variant="outline"
             disabled={page <= 1}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            onClick={() =>
+              setPage((current) => Math.max(1, current - 1))
+            }
             className="justify-center"
           >
             Previous
@@ -313,16 +411,27 @@ function AdminDealsPage() {
         </div>
       </div>
 
+      {/* Close confirmation modal */}
       <ConfirmModal
         isOpen={Boolean(closeTarget)}
         variant="danger"
         title="Force close deal?"
-        description="This will close the deal from admin side."
+        description={`Are you sure you want to close "${
+          closeTarget
+            ? getListingTitle(getDealProperty(closeTarget))
+            : "this deal"
+        }"?`}
         icon={<LockKeyhole className="h-5 w-5" />}
         confirmLabel="Close Deal"
         loadingLabel="Closing..."
-        isLoading={isClosing}
-        onCancel={() => setCloseTarget(null)}
+        isLoading={
+          isClosing && processingDealId === closeTargetId
+        }
+        onCancel={() => {
+          if (!isClosing) {
+            setCloseTarget(null);
+          }
+        }}
         onConfirm={handleCloseDeal}
       />
     </div>

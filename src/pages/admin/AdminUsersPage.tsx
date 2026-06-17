@@ -133,8 +133,13 @@ function AdminUsersPage() {
   const [banUser, { isLoading: isBanning }] = useBanAdminUserMutation();
   const [unbanUser, { isLoading: isUnbanning }] = useUnbanAdminUserMutation();
 
-  const users = getApiList(data);
-  const pagination = getApiPagination(data);
+const rawUsers = getApiList(data);
+
+const users = rawUsers.filter(
+  (user: any) => normalizeValue(user?.role) !== "admin"
+);
+
+const pagination = getApiPagination(data);
 
   async function handleBan() {
     if (!banTarget || banReason.trim().length < 3) return;
@@ -173,11 +178,10 @@ function AdminUsersPage() {
           }}
           className="w-full rounded-xl border border-[var(--color-border-light)] bg-white px-4 py-3 text-sm font-semibold outline-none lg:w-64"
         >
-          <option value="">All Roles</option>
-          <option value="seller">Seller</option>
-          <option value="wholesaler">Wholesaler</option>
-          <option value="realtor">Realtor</option>
-          <option value="admin">Admin</option>
+        <option value="">All Roles</option>
+<option value="seller">Seller</option>
+<option value="wholesaler">Wholesaler</option>
+<option value="realtor">Realtor</option>
         </select>
       </div>
 

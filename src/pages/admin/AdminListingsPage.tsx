@@ -1,13 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { CheckCircle, Trash2, XCircle } from "lucide-react";
+import {
+  CheckCircle,
+  RefreshCcw,
+  SlidersHorizontal,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 
 import {
-  useApproveAdminListingMutation,
   useDeleteAdminListingMutation,
   useGetAdminListingsQuery,
   useGetPendingAdminListingsQuery,
   useRejectAdminListingMutation,
+  useUpdateAdminListingStatusMutation,
 } from "../../services/adminService";
 
 import Button from "../../components/common/Button";
@@ -25,22 +31,93 @@ import {
   normalizeValue,
 } from "../../utils/adminUtils";
 
+type ListingTab = "all" | "pending";
+
+const LISTING_STATUS_OPTIONS = [
+  { label: "Draft", value: "draft" },
+  { label: "Submitted", value: "submitted" },
+  { label: "Live", value: "live" },
+  { label: "Rejected", value: "rejected" },
+  { label: "Paused", value: "paused" },
+  { label: "Under Contract", value: "under_contract" },
+  { label: "Closed", value: "closed" },
+  { label: "Cancelled", value: "cancelled" },
+  { label: "Withdrawn", value: "withdrawn" },
+];
+
+// function formatStatusLabel(status: string) {
+//   if (!status) return "Unknown";
+
+//   return status
+//     .split("_")
+//     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+//     .join(" ");
+// }
+
+function getListingStatus(listing: any, localStatuses: Record<string, string>) {
+  const listingId = getMongoId(listing);
+
+  return localStatuses[listingId] || listing.status || "unknown";
+}
+
+function isPendingListing(status: string) {
+  const normalized = normalizeValue(status);
+
+  return normalized === "submitted" || normalized === "pending";
+}
+
+function canMakeLive(status: string) {
+  const normalized = normalizeValue(status);
+
+  return !["live", "under_contract", "closed"].includes(normalized);
+}
+
+function canRejectListing(status: string) {
+  const normalized = normalizeValue(status);
+
+  return !["rejected", "under_contract", "closed", "cancelled"].includes(
+    normalized
+  );
+}
+
+function canDeleteListing(status: string) {
+  const normalized = normalizeValue(status);
+
+  return !["under_contract", "closed"].includes(normalized);
+}
+
+function getListingLocation(listing: any) {
+  return (
+    [listing.city, listing.state_code || listing.state]
+      .filter(Boolean)
+      .join(", ") || "-"
+  );
+}
+
 function ListingMobileCard({
   listing,
-  isApproving,
-  onApprove,
+  status,
+  isStatusUpdating,
+  isRejecting,
+  isDeleting,
+  onMakeLive,
+  onChangeStatus,
   onReject,
   onDelete,
 }: {
   listing: any;
-  isApproving: boolean;
-  onApprove: (listingId: string) => void;
+  status: string;
+  isStatusUpdating: boolean;
+  isRejecting: boolean;
+  isDeleting: boolean;
+  onMakeLive: (listing: any) => void;
+  onChangeStatus: (listing: any) => void;
   onReject: (listing: any) => void;
   onDelete: (listing: any) => void;
 }) {
   const listingId = getMongoId(listing);
-  const status = normalizeValue(listing.status);
   const seller = listing.seller_id;
+  const isBusy = isStatusUpdating || isRejecting || isDeleting;
 
   return (
     <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
@@ -48,21 +125,18 @@ function ListingMobileCard({
         <div className="min-w-0">
           <Link
             to={`/properties/${listingId}`}
+            state={{ listing }}
             className="break-words font-black text-[var(--color-primary)] hover:text-[var(--color-secondary)]"
           >
             {getListingTitle(listing)}
           </Link>
 
           <p className="mt-1 break-words text-xs text-[var(--color-text-muted)]">
-            {[listing.city, listing.state_code].filter(Boolean).join(", ") ||
-              "-"}
+            {getListingLocation(listing)}
           </p>
         </div>
 
-        <StatusBadge
-          label={listing.status || "unknown"}
-          variant={getStatusVariant(status)}
-        />
+        <StatusBadge label={status} variant={getStatusVariant(status)} />
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -87,52 +161,83 @@ function ListingMobileCard({
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        {status === "submitted" && (
-          <>
-            <Button
-              type="button"
-              variant="primary"
-              isLoading={isApproving}
-              onClick={() => onApprove(listingId)}
-              className="w-full justify-center px-4 py-2 text-xs"
-            >
-              <CheckCircle className="h-4 w-4" />
-              Approve
-            </Button>
-
-            <Button
-              type="button"
-              variant="danger"
-              onClick={() => onReject(listing)}
-              className="w-full justify-center px-4 py-2 text-xs"
-            >
-              <XCircle className="h-4 w-4" />
-              Reject
-            </Button>
-          </>
-        )}
+      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+       
 
         <Button
           type="button"
           variant="outline"
-          onClick={() => onDelete(listing)}
+          disabled={isBusy}
+          onClick={() => onChangeStatus(listing)}
           className="w-full justify-center px-4 py-2 text-xs"
         >
-          <Trash2 className="h-4 w-4" />
-          Delete
+          <SlidersHorizontal className="h-4 w-4" />
+          Status
         </Button>
+
+        {canMakeLive(status) && (
+          <Button
+            type="button"
+            variant="primary"
+            isLoading={isStatusUpdating}
+            disabled={isBusy}
+            onClick={() => onMakeLive(listing)}
+            className="w-full justify-center px-4 py-2 text-xs"
+          >
+            <CheckCircle className="h-4 w-4" />
+            Make Live
+          </Button>
+        )}
+
+        {canRejectListing(status) && (
+          <Button
+            type="button"
+            variant="danger"
+            isLoading={isRejecting}
+            disabled={isBusy}
+            onClick={() => onReject(listing)}
+            className="w-full justify-center px-4 py-2 text-xs"
+          >
+            <XCircle className="h-4 w-4" />
+            Reject
+          </Button>
+        )}
+
+        {canDeleteListing(status) && (
+          <Button
+            type="button"
+            variant="outline"
+            isLoading={isDeleting}
+            disabled={isBusy}
+            onClick={() => onDelete(listing)}
+            className="w-full justify-center px-4 py-2 text-xs"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </Button>
+        )}
       </div>
     </div>
   );
 }
 
 function AdminListingsPage() {
-  const [tab, setTab] = useState<"all" | "pending">("all");
+  const [tab, setTab] = useState<ListingTab>("all");
   const [page, setPage] = useState(1);
+
+  const [statusTarget, setStatusTarget] = useState<any | null>(null);
+  const [statusValue, setStatusValue] = useState("");
+  const [statusReason, setStatusReason] = useState("");
+
+  const [makeLiveTarget, setMakeLiveTarget] = useState<any | null>(null);
   const [rejectTarget, setRejectTarget] = useState<any | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+
   const [rejectReason, setRejectReason] = useState("");
+  const [processingListingId, setProcessingListingId] = useState("");
+  const [localStatuses, setLocalStatuses] = useState<Record<string, string>>(
+    {}
+  );
 
   const allListingsQuery = useGetAdminListingsQuery(
     { page, limit: 20 },
@@ -146,8 +251,8 @@ function AdminListingsPage() {
 
   const activeQuery = tab === "all" ? allListingsQuery : pendingListingsQuery;
 
-  const [approveListing, { isLoading: isApproving }] =
-    useApproveAdminListingMutation();
+  const [updateListingStatus, { isLoading: isStatusUpdating }] =
+    useUpdateAdminListingStatusMutation();
 
   const [rejectListing, { isLoading: isRejecting }] =
     useRejectAdminListingMutation();
@@ -155,31 +260,134 @@ function AdminListingsPage() {
   const [deleteListing, { isLoading: isDeleting }] =
     useDeleteAdminListingMutation();
 
-  const listings = getApiList(activeQuery.data);
+  const rawListings = getApiList(activeQuery.data);
+
+  const listings =
+    tab === "pending"
+      ? rawListings.filter((listing: any) =>
+          isPendingListing(getListingStatus(listing, localStatuses))
+        )
+      : rawListings;
+
   const pagination = getApiPagination(activeQuery.data);
 
-  async function handleApprove(listingId: string) {
-    await approveListing(listingId).unwrap();
+  function openStatusModal(listing: any) {
+    const currentStatus = getListingStatus(listing, localStatuses);
+
+    setStatusTarget(listing);
+    setStatusValue(normalizeValue(currentStatus));
+    setStatusReason("");
+  }
+
+  function openMakeLiveModal(listing: any) {
+    setMakeLiveTarget(listing);
+  }
+
+  async function handleChangeStatus() {
+    if (!statusTarget || !statusValue) return;
+
+    const listingId = getMongoId(statusTarget);
+
+    try {
+      setProcessingListingId(listingId);
+
+      await updateListingStatus({
+        id: listingId,
+        status: statusValue,
+        reason: statusReason.trim() || undefined,
+      }).unwrap();
+
+      setLocalStatuses((current) => ({
+        ...current,
+        [listingId]: statusValue,
+      }));
+
+      setStatusTarget(null);
+      setStatusValue("");
+      setStatusReason("");
+
+      activeQuery.refetch();
+    } finally {
+      setProcessingListingId("");
+    }
+  }
+
+  async function handleMakeLive() {
+    if (!makeLiveTarget) return;
+
+    const listingId = getMongoId(makeLiveTarget);
+
+    try {
+      setProcessingListingId(listingId);
+
+      await updateListingStatus({
+        id: listingId,
+        status: "live",
+        reason: "Admin changed listing status to live.",
+      }).unwrap();
+
+      setLocalStatuses((current) => ({
+        ...current,
+        [listingId]: "live",
+      }));
+
+      setMakeLiveTarget(null);
+
+      activeQuery.refetch();
+    } finally {
+      setProcessingListingId("");
+    }
   }
 
   async function handleReject() {
     if (!rejectTarget || rejectReason.trim().length < 3) return;
 
-    await rejectListing({
-      id: getMongoId(rejectTarget),
-      reason: rejectReason.trim(),
-    }).unwrap();
+    const listingId = getMongoId(rejectTarget);
 
-    setRejectTarget(null);
-    setRejectReason("");
+    try {
+      setProcessingListingId(listingId);
+
+      await rejectListing({
+        id: listingId,
+        reason: rejectReason.trim(),
+      }).unwrap();
+
+      setLocalStatuses((current) => ({
+        ...current,
+        [listingId]: "rejected",
+      }));
+
+      setRejectTarget(null);
+      setRejectReason("");
+
+      activeQuery.refetch();
+    } finally {
+      setProcessingListingId("");
+    }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
 
-    await deleteListing(getMongoId(deleteTarget)).unwrap();
-    setDeleteTarget(null);
+    const listingId = getMongoId(deleteTarget);
+
+    try {
+      setProcessingListingId(listingId);
+
+      await deleteListing(listingId).unwrap();
+
+      setDeleteTarget(null);
+
+      activeQuery.refetch();
+    } finally {
+      setProcessingListingId("");
+    }
   }
+
+  const statusTargetId = statusTarget ? getMongoId(statusTarget) : "";
+  const makeLiveTargetId = makeLiveTarget ? getMongoId(makeLiveTarget) : "";
+  const rejectTargetId = rejectTarget ? getMongoId(rejectTarget) : "";
+  const deleteTargetId = deleteTarget ? getMongoId(deleteTarget) : "";
 
   return (
     <div className="space-y-6">
@@ -190,8 +398,8 @@ function AdminListingsPage() {
           </h1>
 
           <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-            Review seller listings, approve submitted listings, reject invalid
-            listings, or delete listings.
+            Review seller listings, edit listings, change listing status, reject
+            invalid listings, or delete listings.
           </p>
         </div>
 
@@ -242,24 +450,33 @@ function AdminListingsPage() {
         </div>
       ) : (
         <>
-          {/* Mobile / small screen cards */}
           <div className="grid grid-cols-1 gap-4 lg:hidden">
-            {listings.map((listing: any) => (
-              <ListingMobileCard
-                key={getMongoId(listing)}
-                listing={listing}
-                isApproving={isApproving}
-                onApprove={handleApprove}
-                onReject={setRejectTarget}
-                onDelete={setDeleteTarget}
-              />
-            ))}
+            {listings.map((listing: any) => {
+              const listingId = getMongoId(listing);
+              const status = getListingStatus(listing, localStatuses);
+
+              return (
+                <ListingMobileCard
+                  key={listingId}
+                  listing={listing}
+                  status={status}
+                  isStatusUpdating={
+                    isStatusUpdating && processingListingId === listingId
+                  }
+                  isRejecting={isRejecting && processingListingId === listingId}
+                  isDeleting={isDeleting && processingListingId === listingId}
+                  onMakeLive={openMakeLiveModal}
+                  onChangeStatus={openStatusModal}
+                  onReject={setRejectTarget}
+                  onDelete={setDeleteTarget}
+                />
+              );
+            })}
           </div>
 
-          {/* Desktop / tablet table with horizontal scroll */}
           <div className="hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)] lg:block">
             <div className="w-full overflow-x-auto">
-              <table className="w-full min-w-[1050px] text-left">
+              <table className="w-full min-w-[1200px] text-left">
                 <thead className="bg-[var(--color-bg-soft)]">
                   <tr>
                     {["Listing", "Seller", "Status", "Created", "Action"].map(
@@ -278,8 +495,20 @@ function AdminListingsPage() {
                 <tbody>
                   {listings.map((listing: any) => {
                     const listingId = getMongoId(listing);
-                    const status = normalizeValue(listing.status);
+                    const status = getListingStatus(listing, localStatuses);
                     const seller = listing.seller_id;
+
+                    const isThisStatusUpdating =
+                      isStatusUpdating && processingListingId === listingId;
+
+                    const isThisRejecting =
+                      isRejecting && processingListingId === listingId;
+
+                    const isThisDeleting =
+                      isDeleting && processingListingId === listingId;
+
+                    const isBusy =
+                      isThisStatusUpdating || isThisRejecting || isThisDeleting;
 
                     return (
                       <tr
@@ -289,15 +518,14 @@ function AdminListingsPage() {
                         <td className="px-6 py-5">
                           <Link
                             to={`/properties/${listingId}`}
+                            state={{ listing }}
                             className="font-black text-[var(--color-primary)] hover:text-[var(--color-secondary)]"
                           >
                             {getListingTitle(listing)}
                           </Link>
 
                           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                            {[listing.city, listing.state_code]
-                              .filter(Boolean)
-                              .join(", ") || "-"}
+                            {getListingLocation(listing)}
                           </p>
                         </td>
 
@@ -307,7 +535,7 @@ function AdminListingsPage() {
 
                         <td className="px-6 py-5">
                           <StatusBadge
-                            label={listing.status || "unknown"}
+                            label={status}
                             variant={getStatusVariant(status)}
                           />
                         </td>
@@ -318,40 +546,60 @@ function AdminListingsPage() {
 
                         <td className="px-6 py-5">
                           <div className="flex flex-wrap gap-2">
-                            {status === "submitted" && (
-                              <>
-                                <Button
-                                  type="button"
-                                  variant="primary"
-                                  isLoading={isApproving}
-                                  onClick={() => handleApprove(listingId)}
-                                  className="px-4 py-2 text-xs"
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                  Approve
-                                </Button>
-
-                                <Button
-                                  type="button"
-                                  variant="danger"
-                                  onClick={() => setRejectTarget(listing)}
-                                  className="px-4 py-2 text-xs"
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                  Reject
-                                </Button>
-                              </>
-                            )}
+                            
 
                             <Button
                               type="button"
                               variant="outline"
-                              onClick={() => setDeleteTarget(listing)}
+                              disabled={isBusy}
+                              onClick={() => openStatusModal(listing)}
                               className="px-4 py-2 text-xs"
                             >
-                              <Trash2 className="h-4 w-4" />
-                              Delete
+                              <SlidersHorizontal className="h-4 w-4" />
+                              Status
                             </Button>
+
+                            {canMakeLive(status) && (
+                              <Button
+                                type="button"
+                                variant="primary"
+                                isLoading={isThisStatusUpdating}
+                                disabled={isBusy}
+                                onClick={() => openMakeLiveModal(listing)}
+                                className="px-4 py-2 text-xs"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                Make Live
+                              </Button>
+                            )}
+
+                            {canRejectListing(status) && (
+                              <Button
+                                type="button"
+                                variant="danger"
+                                isLoading={isThisRejecting}
+                                disabled={isBusy}
+                                onClick={() => setRejectTarget(listing)}
+                                className="px-4 py-2 text-xs"
+                              >
+                                <XCircle className="h-4 w-4" />
+                                Reject
+                              </Button>
+                            )}
+
+                            {canDeleteListing(status) && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                isLoading={isThisDeleting}
+                                disabled={isBusy}
+                                onClick={() => setDeleteTarget(listing)}
+                                className="px-4 py-2 text-xs"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Delete
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -393,14 +641,72 @@ function AdminListingsPage() {
       </div>
 
       <ConfirmModal
+        isOpen={Boolean(makeLiveTarget)}
+        variant="success"
+        title="Make listing live?"
+        description={`This will change "${
+          makeLiveTarget ? getListingTitle(makeLiveTarget) : "this listing"
+        }" status to live.`}
+        icon={<CheckCircle className="h-5 w-5" />}
+        confirmLabel="Make Live"
+        loadingLabel="Updating..."
+        isLoading={isStatusUpdating && processingListingId === makeLiveTargetId}
+        onCancel={() => setMakeLiveTarget(null)}
+        onConfirm={handleMakeLive}
+      />
+
+      <ConfirmModal
+        isOpen={Boolean(statusTarget)}
+        variant="success"
+        title="Change listing status?"
+        description={`Select a new status for "${
+          statusTarget ? getListingTitle(statusTarget) : "this listing"
+        }".`}
+        icon={<RefreshCcw className="h-5 w-5" />}
+        confirmLabel="Update Status"
+        loadingLabel="Updating..."
+        isLoading={isStatusUpdating && processingListingId === statusTargetId}
+        onCancel={() => {
+          setStatusTarget(null);
+          setStatusValue("");
+          setStatusReason("");
+        }}
+        onConfirm={handleChangeStatus}
+      >
+        <div className="space-y-4">
+          <select
+            value={statusValue}
+            onChange={(event) => setStatusValue(event.target.value)}
+            className="w-full rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm font-semibold outline-none focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)]"
+          >
+            {LISTING_STATUS_OPTIONS.map((statusOption) => (
+              <option key={statusOption.value} value={statusOption.value}>
+                {statusOption.label}
+              </option>
+            ))}
+          </select>
+
+          <textarea
+            value={statusReason}
+            onChange={(event) => setStatusReason(event.target.value)}
+            rows={4}
+            placeholder="Optional reason for status change..."
+            className="w-full rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)]"
+          />
+        </div>
+      </ConfirmModal>
+
+      <ConfirmModal
         isOpen={Boolean(rejectTarget)}
         variant="danger"
         title="Reject listing?"
-        description="This will mark the listing as rejected."
+        description={`This will mark "${
+          rejectTarget ? getListingTitle(rejectTarget) : "this listing"
+        }" as rejected.`}
         icon={<XCircle className="h-5 w-5" />}
         confirmLabel="Reject Listing"
         loadingLabel="Rejecting..."
-        isLoading={isRejecting}
+        isLoading={isRejecting && processingListingId === rejectTargetId}
         onCancel={() => {
           setRejectTarget(null);
           setRejectReason("");
@@ -420,11 +726,11 @@ function AdminListingsPage() {
         isOpen={Boolean(deleteTarget)}
         variant="danger"
         title="Delete listing?"
-        description="This listing will be marked as deleted by admin."
+        description="This listing will be deleted or marked as deleted by admin."
         icon={<Trash2 className="h-5 w-5" />}
         confirmLabel="Delete"
         loadingLabel="Deleting..."
-        isLoading={isDeleting}
+        isLoading={isDeleting && processingListingId === deleteTargetId}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
       />

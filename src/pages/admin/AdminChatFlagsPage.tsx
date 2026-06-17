@@ -40,7 +40,7 @@ function getRoomState(message: any) {
 }
 
 function AdminFlagMobileCard({ message }: { message: any }) {
-  const messageId = getMongoId(message);
+  
   const roomId = getRelationId(message.room_id);
 
   return (

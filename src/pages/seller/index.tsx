@@ -15,8 +15,6 @@ import {
   Handshake,
   Home,
   Loader2,
-  Plus,
-  RefreshCw,
   // ShieldCheck,
   Trash2,
   UserCheck,
@@ -208,7 +206,7 @@ export default function SellerDashboard() {
   );
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data, isLoading, isFetching, refetch } =
+  const { data, isLoading, refetch } =
     useGetListingsDashboardQuery();
 
   const [deleteListing] = useDeleteListingMutation();
@@ -371,14 +369,14 @@ export default function SellerDashboard() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link
+            {/* <Link
               to="/list-property"
               className="inline-flex items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02]"
             >
               <Plus className="h-4 w-4" />
               New Listing
-            </Link>
-
+            </Link> */}
+{/* 
             <button
               type="button"
               onClick={() => refetch()}
@@ -388,7 +386,7 @@ export default function SellerDashboard() {
                 className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
               />
               Refresh
-            </button>
+            </button> */}
           </div>
         </div>
       </section>
@@ -559,12 +557,12 @@ export default function SellerDashboard() {
         )}
       </div>
 
-      <Link
+      {/* <Link
         to="/list-property"
         className="text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-secondary)] underline decoration-[var(--color-secondary)]/40 underline-offset-8"
       >
         + Add Listing
-      </Link>
+      </Link> */}
     </div>
 
     <div className="w-full overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">

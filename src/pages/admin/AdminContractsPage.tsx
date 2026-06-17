@@ -14,7 +14,19 @@ import {
   getMongoId,
   getPersonName,
   getStatusVariant,
+  normalizeValue,
 } from "../../utils/adminUtils";
+
+type ContractFilter = "all" | string;
+
+function formatStatusLabel(status: string) {
+  if (!status) return "Unknown";
+
+  return status
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 function AdminContractMobileCard({ contract }: { contract: any }) {
   const contractId = getMongoId(contract);
@@ -89,26 +101,74 @@ function AdminContractMobileCard({ contract }: { contract: any }) {
 
 function AdminContractsPage() {
   const [page, setPage] = useState(1);
-
+const [filter, setFilter] = useState<ContractFilter>("all");
   const { data, isLoading, isError } = useGetAdminContractsQuery({
     page,
     limit: 20,
   });
 
-  const contracts = getApiList(data);
-  const pagination = getApiPagination(data);
+const allContracts = getApiList(data);
+
+const availableStatuses = Array.from(
+  new Set(
+    allContracts
+      .map((contract: any) => normalizeValue(contract.status))
+      .filter(Boolean)
+  )
+) as string[];
+
+const contractFilters = [
+  { label: "All", value: "all" },
+  ...availableStatuses.map((status) => ({
+    label: formatStatusLabel(status),
+    value: status,
+  })),
+];
+
+const contracts =
+  filter === "all"
+    ? allContracts
+    : allContracts.filter(
+        (contract: any) => normalizeValue(contract.status) === filter
+      );
+
+const pagination = getApiPagination(data);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
-          Contracts
-        </h1>
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+  <div>
+    <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
+      Contracts
+    </h1>
 
-        <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-          View all generated contracts and signing status.
-        </p>
-      </div>
+    <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+      View and filter all generated contracts and signing statuses.
+    </p>
+  </div>
+
+  <div className="max-w-full overflow-x-auto">
+    <div className="flex min-w-max rounded-xl border border-[var(--color-border-light)] bg-white p-1">
+      {contractFilters.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => {
+            setFilter(option.value);
+            setPage(1);
+          }}
+          className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition ${
+            filter === option.value
+              ? "bg-[var(--color-primary)] text-white"
+              : "text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
 
       {isLoading ? (
         <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
@@ -120,7 +180,9 @@ function AdminContractsPage() {
         </div>
       ) : contracts.length === 0 ? (
         <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-card)]">
-          No contracts found.
+         {filter === "all"
+  ? "No contracts found."
+  : `No ${formatStatusLabel(filter).toLowerCase()} contracts found.`}
         </div>
       ) : (
         <>

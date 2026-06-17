@@ -26,10 +26,8 @@ import {
 type DocumentCategory =
   | "survey"
   | "tax_bill"
-  | "property_picture"
-  | "loi"
-  | "proof_of_funds"
-  | "other";
+  | "property_picture";
+  // | "other";
 
 type ToastType = "success" | "error" | "info";
 
@@ -81,30 +79,15 @@ const VAULT_DOCS: VaultDoc[] = [
     accept: ".jpg,.jpeg,.png",
     allowMultiple: true,
   },
-  {
-    id: "loi",
-    title: "LOI",
-    desc: "Letter of intent document, if available.",
-    required: false,
-    icon: "📄",
-    accept: ".pdf,.doc,.docx,.jpg,.jpeg,.png",
-  },
-  {
-    id: "proof_of_funds",
-    title: "Proof of Funds",
-    desc: "Proof of available funds, if required for the deal.",
-    required: false,
-    icon: "💰",
-    accept: ".pdf,.doc,.docx,.jpg,.jpeg,.png",
-  },
-  {
-    id: "other",
-    title: "Other Document",
-    desc: "Any other supported document for this listing.",
-    required: false,
-    icon: "📎",
-    accept: ".pdf,.doc,.docx,.jpg,.jpeg,.png",
-  },
+  
+  // {
+  //   id: "other",
+  //   title: "Other Document",
+  //   desc: "Any other supported document for this listing.",
+  //   required: false,
+  //   icon: "📎",
+  //   accept: ".pdf,.doc,.docx,.jpg,.jpeg,.png",
+  // },
 ];
 
 function isMongoObjectId(value: string) {

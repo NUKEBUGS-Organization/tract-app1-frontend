@@ -220,8 +220,10 @@ function AppRoutes() {
                   admin: <AdminListingDetailsPage />,
                 }}
               />
+              
             }
           />
+          
 
           {/* Seller-only listing actions */}
 
@@ -243,6 +245,18 @@ function AppRoutes() {
             }
           />
 
+{/* <Route
+  path="/properties/:id/edit"
+  element={
+    <RoleRoute
+      allowedRoles={["seller", "admin"]}
+      roleContent={{
+        seller: <EditListingPage />,
+        admin: <AdminListingEditPage />,
+      }}
+    />
+  }
+/> */}
           <Route
             path="/document-vault"
             element={
