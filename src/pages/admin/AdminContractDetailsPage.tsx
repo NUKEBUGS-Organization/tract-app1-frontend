@@ -1,16 +1,18 @@
-import type { ReactNode } from "react";
-import { useLocation, useParams } from "react-router";
+import {
+  useLocation,
+  useParams,
+} from "react-router";
+
 import {
   Building2,
   CalendarClock,
-  FileText,
-  Home,
-  Link as LinkIcon,
-  MapPin,
-  UserRound,
-  ExternalLink,
   CheckCircle2,
   Clock,
+  ExternalLink,
+  FileText,
+  Home,
+  MapPin,
+  UserRound,
 } from "lucide-react";
 
 import {
@@ -20,8 +22,8 @@ import {
 
 import Loader from "../../components/common/Loader";
 import StatusBadge from "../../components/common/StatusBadge";
+
 import {
-  displayValue,
   formatDate,
   getListingTitle,
   getMongoId,
@@ -29,294 +31,34 @@ import {
   getStatusVariant,
 } from "../../utils/adminUtils";
 
-// ─── Detail Item ─────────────────────────────────────────────────────────────
+import {
+  DetailItem,
+  PartyCard,
+  SectionBlock,
+  SigningCard,
+  StatCard,
+} from "./contract-details/ContractDetailsComponents";
 
-function DetailItem({
-  label,
-  value,
-  children,
-  icon: Icon,
-}: {
-  label: string;
-  value?: any;
-  children?: ReactNode;
-  icon?: any;
-}) {
-  return (
-    <div className="group flex h-full flex-col gap-1.5 rounded-xl border border-[var(--color-border-light)] bg-white px-4 py-3.5 transition hover:border-[var(--color-primary)]/20 hover:shadow-sm">
-      <div className="flex items-center gap-1.5">
-        {Icon && <Icon className="h-3.5 w-3.5 text-[var(--color-primary)]/50" />}
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-          {label}
-        </p>
-      </div>
-      <div className="text-sm font-semibold text-[var(--color-text-main)] leading-snug break-words">
-        {children ?? displayValue(value)}
-      </div>
-    </div>
-  );
-}
+import ContractPdfCarousel from "./contract-details/ContractPdfCarousel";
 
-// ─── Section Block ────────────────────────────────────────────────────────────
-
-function SectionBlock({
-  title,
-  description,
-  icon,
-  children,
-  cols = 3,
-}: {
-  title: string;
-  description?: string;
-  icon: ReactNode;
-  children: ReactNode;
-  cols?: 2 | 3 | 4;
-}) {
-  const colClass =
-    cols === 4
-      ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
-      : cols === 2
-      ? "grid-cols-2"
-      : "grid-cols-2 md:grid-cols-3";
-
-  return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-3 pb-1 border-b border-[var(--color-border-light)]">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
-          {icon}
-        </div>
-        <div>
-          <h2 className="font-serif text-lg font-black text-[var(--color-primary)] leading-tight">
-            {title}
-          </h2>
-          {description && (
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{description}</p>
-          )}
-        </div>
-      </div>
-      <div className={`grid gap-3 auto-rows-fr ${colClass}`}>{children}</div>
-    </section>
-  );
-}
-
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  accent = false,
-}: {
-  label: string;
-  value: ReactNode;
-  icon: any;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={`flex items-center gap-3 rounded-xl border px-4 py-3.5 ${
-        accent
-          ? "border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5"
-          : "border-[var(--color-border-light)] bg-white"
-      }`}
-    >
-      <div
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-          accent
-            ? "bg-[var(--color-primary)]/12 text-[var(--color-primary)]"
-            : "bg-[var(--color-bg-soft)] text-[var(--color-primary)]/60"
-        }`}
-      >
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-          {label}
-        </p>
-        <div
-          className={`mt-0.5 truncate text-sm font-bold ${
-            accent ? "text-[var(--color-primary)]" : "text-[var(--color-text-main)]"
-          }`}
-        >
-          {value}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Signing Status Card ──────────────────────────────────────────────────────
-
-function SigningCard({
-  role,
-  name,
-  signedAt,
-}: {
-  role: string;
-  name: string;
-  signedAt: string | null | undefined;
-}) {
-  const signed = Boolean(signedAt);
-
-  return (
-    <div
-      className={`flex flex-col gap-2 rounded-xl border p-4 ${
-        signed
-          ? "border-green-200 bg-green-50"
-          : "border-[var(--color-border-light)] bg-white"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-          {role}
-        </p>
-        {signed ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
-            <CheckCircle2 className="h-3 w-3" />
-            Signed
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-bg-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-text-muted)]">
-            <Clock className="h-3 w-3" />
-            Pending
-          </span>
-        )}
-      </div>
-      <p className="text-sm font-semibold text-[var(--color-text-main)] leading-snug">
-        {name || "-"}
-      </p>
-      <p className="text-xs text-[var(--color-text-muted)]">
-        {signed ? formatDate(signedAt) : "Not yet signed"}
-      </p>
-    </div>
-  );
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function isObject(value: any) {
-  return value && typeof value === "object";
-}
-
-function getDoc(value: any) {
-  return value?.data?._doc ?? value?._doc ?? value?.data ?? value;
-}
-
-function getRelationIdValue(value: any) {
-  if (!value) return "";
-  if (typeof value === "string") return value;
-  const doc = getDoc(value);
-  return doc?._id || doc?.id || "";
-}
-
-function getRelationId(value: any) {
-  return getRelationIdValue(value) || "-";
-}
-
-function getRelationEmail(value: any) {
-  if (!value || typeof value !== "object") return "-";
-  const doc = getDoc(value);
-  return doc?.email || "-";
-}
-
-function getRelationPhone(value: any) {
-  if (!value || typeof value !== "object") return "-";
-  const doc = getDoc(value);
-  return (
-    doc?.phone || doc?.phone_number || doc?.phoneNumber || doc?.mobile || doc?.mobile_number || "-"
-  );
-}
-
-function hasPersonName(value: any) {
-  if (!value || typeof value !== "object") return false;
-  const doc = getDoc(value);
-  return Boolean(doc?.full_name || doc?.fullName || doc?.name);
-}
-
-function hasPersonEmail(value: any) {
-  if (!value || typeof value !== "object") return false;
-  const doc = getDoc(value);
-  return Boolean(doc?.email);
-}
-
-function hasPersonPhone(value: any) {
-  if (!value || typeof value !== "object") return false;
-  const doc = getDoc(value);
-  return Boolean(
-    doc?.phone || doc?.phone_number || doc?.phoneNumber || doc?.mobile || doc?.mobile_number
-  );
-}
-
-function hasCompletePerson(value: any) {
-  return hasPersonName(value) && hasPersonEmail(value) && hasPersonPhone(value);
-}
-
-function mergePerson(primary: any, fallback: any) {
-  if (!primary && !fallback) return null;
-  if (typeof primary === "string") return fallback || primary;
-  const primaryDoc = getDoc(primary) || {};
-  const fallbackDoc = getDoc(fallback) || {};
-  return {
-    ...fallbackDoc,
-    ...primaryDoc,
-    _id: primaryDoc._id || primaryDoc.id || fallbackDoc._id || fallbackDoc.id,
-    id: primaryDoc.id || primaryDoc._id || fallbackDoc.id || fallbackDoc._id,
-    full_name:
-      primaryDoc.full_name ||
-      primaryDoc.fullName ||
-      primaryDoc.name ||
-      fallbackDoc.full_name ||
-      fallbackDoc.fullName ||
-      fallbackDoc.name,
-    email: primaryDoc.email || fallbackDoc.email,
-    phone:
-      primaryDoc.phone ||
-      primaryDoc.phone_number ||
-      primaryDoc.phoneNumber ||
-      primaryDoc.mobile ||
-      primaryDoc.mobile_number ||
-      fallbackDoc.phone ||
-      fallbackDoc.phone_number ||
-      fallbackDoc.phoneNumber ||
-      fallbackDoc.mobile ||
-      fallbackDoc.mobile_number,
-  };
-}
-
-function mergeContractData(apiContract: any, stateContract: any) {
-  if (!apiContract && !stateContract) return null;
-  if (!apiContract) return stateContract;
-  if (!stateContract) return apiContract;
-  return {
-    ...stateContract,
-    ...apiContract,
-    property_id: isObject(apiContract.property_id)
-      ? apiContract.property_id
-      : stateContract.property_id ?? apiContract.property_id,
-    seller_id: isObject(apiContract.seller_id)
-      ? apiContract.seller_id
-      : stateContract.seller_id ?? apiContract.seller_id,
-    buyer_id: isObject(apiContract.buyer_id)
-      ? apiContract.buyer_id
-      : stateContract.buyer_id ?? apiContract.buyer_id,
-  };
-}
-
-function getPropertyAddress(property: any) {
-  if (!property || typeof property !== "object") return "-";
-  const doc = getDoc(property);
-  const address = [
-    doc.address || doc.property_address || doc.street_address,
-    doc.city,
-    doc.state_code,
-    doc.zip_code,
-  ]
-    .filter(Boolean)
-    .join(", ");
-  return address || getListingTitle(doc);
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+import {
+  formatCurrency,
+  getApiPayload,
+  getBuyerSignedAt,
+  getContractAmount,
+  getContractPdfUrl,
+  getContractProperty,
+  getContractPropertyRelation,
+  getPropertyAddress,
+  getRelationId,
+  getRelationIdValue,
+  getSellerSignedAt,
+  hasCompletePerson,
+  isBuyerSigned,
+  isSellerSigned,
+  mergeContractData,
+  mergePerson,
+} from "./contract-details/contractDetailsUtils";
 
 function AdminContractDetailsPage() {
   const { id = "" } = useParams();
@@ -325,60 +67,82 @@ function AdminContractDetailsPage() {
   const stateContract = (location.state as any)?.contract ?? null;
 
   const {
-    data: apiContract,
+    data: contractResponse,
     isLoading,
     isError,
-  } = useGetAdminContractQuery(id, {
-    skip: !id || Boolean(stateContract),
-  });
+  } = useGetAdminContractQuery(id, { skip: !id });
 
-  const contract = mergeContractData(apiContract, stateContract);
+  const contract = mergeContractData(contractResponse, stateContract);
 
-  const sellerRaw = contract?.seller_id ?? null;
-  const buyerRaw = contract?.buyer_id ?? null;
+  const sellerRelation = contract?.seller_id ?? null;
+  const buyerRelation = contract?.buyer_id ?? null;
 
-  const sellerUserId = getRelationIdValue(sellerRaw);
-  const buyerUserId = getRelationIdValue(buyerRaw);
+  const sellerUserId = getRelationIdValue(sellerRelation);
+  const buyerUserId = getRelationIdValue(buyerRelation);
 
-  const shouldFetchSellerUser = Boolean(sellerUserId) && !hasCompletePerson(sellerRaw);
-  const shouldFetchBuyerUser = Boolean(buyerUserId) && !hasCompletePerson(buyerRaw);
+  const shouldFetchSeller = Boolean(sellerUserId) && !hasCompletePerson(sellerRelation);
+  const shouldFetchBuyer = Boolean(buyerUserId) && !hasCompletePerson(buyerRelation);
 
-  const { data: fetchedSellerUser } = useGetAdminUserQuery(sellerUserId, {
-    skip: !shouldFetchSellerUser,
-  });
+  const { data: sellerResponse, isFetching: isFetchingSeller } = useGetAdminUserQuery(
+    sellerUserId,
+    { skip: !shouldFetchSeller }
+  );
 
-  const { data: fetchedBuyerUser } = useGetAdminUserQuery(buyerUserId, {
-    skip: !shouldFetchBuyerUser,
-  });
+  const { data: buyerResponse, isFetching: isFetchingBuyer } = useGetAdminUserQuery(
+    buyerUserId,
+    { skip: !shouldFetchBuyer }
+  );
+
+  const fetchedSeller = getApiPayload(sellerResponse);
+  const fetchedBuyer = getApiPayload(buyerResponse);
 
   if (isLoading && !contract) {
-    return <Loader label="Loading contract details..." />;
+    return (
+      <div className="rounded-xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
+        <Loader label="Loading contract details..." />
+      </div>
+    );
   }
 
   if ((isError && !contract) || !contract) {
     return (
-      <div className="rounded-xl bg-white p-5 text-sm font-semibold text-[var(--color-danger)] shadow-[var(--shadow-card)]">
+      <div className="rounded-xl bg-white p-6 text-sm font-semibold text-[var(--color-danger)] shadow-[var(--shadow-card)]">
         Failed to load contract details.
       </div>
     );
   }
 
-  const property = contract.property_id;
-  const seller = mergePerson(sellerRaw, fetchedSellerUser);
-  const buyer = mergePerson(buyerRaw, fetchedBuyerUser);
+  const propertyRelation = getContractPropertyRelation(contract);
+  const property = getContractProperty(contract);
+  const seller = mergePerson(sellerRelation, fetchedSeller);
+  const buyer = mergePerson(buyerRelation, fetchedBuyer);
 
   const contractId = getMongoId(contract);
-  const propertyName = getListingTitle(property);
+  const status = contract?.status || "unknown";
+  const propertyName = property ? getListingTitle(property) : "-";
   const propertyAddress = getPropertyAddress(property);
+  const pdfUrl = getContractPdfUrl(contract);
 
-  const bothSigned = Boolean(contract.seller_signed_at && contract.buyer_signed_at);
-  const eitherSigned = Boolean(contract.seller_signed_at || contract.buyer_signed_at);
+  const sellerSignedAt = getSellerSignedAt(contract);
+  const buyerSignedAt = getBuyerSignedAt(contract);
+  const sellerSigned = isSellerSigned(contract);
+  const buyerSigned = isBuyerSigned(contract);
+  const bothSigned = sellerSigned && buyerSigned;
+  const eitherSigned = sellerSigned || buyerSigned;
+
+  const sellerName = isFetchingSeller && !seller ? "Loading..." : getPersonName(seller);
+  const buyerName = isFetchingBuyer && !buyer ? "Loading..." : getPersonName(buyer);
+
+  const createdAt = contract?.createdAt || contract?.created_at;
+  const updatedAt = contract?.updatedAt || contract?.updated_at;
+  const bidRelation = contract?.bid_id || contract?.bidId;
+  const dealRelation = contract?.deal_id || contract?.dealId;
 
   return (
     <div className="space-y-6">
 
       {/* ── Page Header ──────────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
+      <section className="rounded-xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[var(--color-secondary)]">
@@ -387,22 +151,19 @@ function AdminContractDetailsPage() {
             <h1 className="mt-1.5 font-serif text-2xl font-black leading-tight text-[var(--color-primary)] md:text-3xl">
               Contract Details
             </h1>
-            {propertyName && propertyName !== "-" && (
-              <p className="mt-1.5 text-sm font-semibold text-[var(--color-text-main)]">
+            {propertyName !== "-" && (
+              <p className="mt-2 break-words text-sm font-semibold text-[var(--color-text-main)]">
                 {propertyName}
               </p>
             )}
             {propertyAddress !== "-" && (
-              <p className="mt-1 flex items-center gap-1.5 text-sm text-[var(--color-text-muted)]">
-                <MapPin className="h-3.5 w-3.5 shrink-0" />
-                {propertyAddress}
+              <p className="mt-1 flex items-start gap-1.5 text-sm text-[var(--color-text-muted)]">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span className="break-words">{propertyAddress}</span>
               </p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <StatusBadge
-                label={contract.status || "unknown"}
-                variant={getStatusVariant(contract.status)}
-              />
+              <StatusBadge label={status} variant={getStatusVariant(status)} />
               {bothSigned && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-[11px] font-bold text-green-700">
                   <CheckCircle2 className="h-3.5 w-3.5" />
@@ -424,48 +185,41 @@ function AdminContractDetailsPage() {
             </div>
           </div>
 
-          {/* PDF quick-action */}
-          {contract.pdf_url && (
+          {pdfUrl && (
             <a
-              href={contract.pdf_url}
+              href={pdfUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 px-4 py-3 text-sm font-bold text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/10"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 px-4 py-3 text-sm font-bold text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/10"
             >
               <FileText className="h-4 w-4" />
-              View Contract PDF
+              Open Full PDF
               <ExternalLink className="h-3.5 w-3.5 opacity-60" />
             </a>
           )}
         </div>
 
-        {/* Stat row */}
-        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--color-border-light)] pt-4 sm:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[var(--color-border-light)] pt-5 sm:grid-cols-4">
           <StatCard label="Contract ID" value={contractId || "-"} icon={FileText} />
           <StatCard
             label="Status"
-            value={
-              <StatusBadge
-                label={contract.status || "unknown"}
-                variant={getStatusVariant(contract.status)}
-              />
-            }
+            value={<StatusBadge label={status} variant={getStatusVariant(status)} />}
             icon={CheckCircle2}
             accent
           />
-          <StatCard label="Seller" value={getPersonName(seller) || "-"} icon={UserRound} />
-          <StatCard label="Buyer" value={getPersonName(buyer) || "-"} icon={Building2} />
+          <StatCard label="Seller" value={sellerName || "-"} icon={UserRound} />
+          <StatCard label="Buyer" value={buyerName || "-"} icon={Building2} />
         </div>
-      </div>
+      </section>
 
-      {/* ── PDF Preview + Signing Status side-by-side ────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
+      {/* ── PDF Preview (left) + Signing & Parties (right) ──────────────── */}
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_780px]">
 
-        {/* Contract PDF Preview — mirrors image gallery style */}
-        {contract.pdf_url ? (
-          <section className="overflow-hidden rounded-xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
-            {/* Header */}
-            <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border-light)] px-4 py-3">
+        {/* ── Left: PDF carousel — no outer wrapper, carousel IS the card ── */}
+        {pdfUrl ? (
+          <div>
+            {/* Thin label row above the carousel */}
+            {/* <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-[var(--color-primary)]/60" />
                 <span className="text-sm font-black text-[var(--color-primary)]">
@@ -473,27 +227,20 @@ function AdminContractDetailsPage() {
                 </span>
               </div>
               <a
-                href={contract.pdf_url}
+                href={pdfUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-secondary)] hover:text-[var(--color-primary)] transition"
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-secondary)] transition hover:text-[var(--color-primary)]"
               >
-                Open full PDF
-                <ExternalLink className="h-3.5 w-3.5" />
+                Open Full PDF
+                <ExternalLink className="h-6.5 w-6.5" />
               </a>
-            </div>
-            {/* iframe — same fixed height as listing gallery */}
-            <div className="bg-[var(--color-bg-soft)]">
-              <iframe
-                src={contract.pdf_url}
-                title="Contract PDF Preview"
-                className="h-64 w-full sm:h-80"
-                style={{ border: "none", display: "block" }}
-              />
-            </div>
-          </section>
+            </div> */}
+            {/* Carousel renders its own white card — no wrapper needed */}
+            <ContractPdfCarousel pdfUrl={pdfUrl} />
+          </div>
         ) : (
-          <div className="rounded-xl border border-[var(--color-border-light)] bg-white px-6 py-8 text-center">
+          <div className="rounded-xl border border-[var(--color-border-light)] bg-white px-6 py-10 text-center shadow-[var(--shadow-card)]">
             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
               <FileText className="h-5 w-5" />
             </div>
@@ -504,126 +251,106 @@ function AdminContractDetailsPage() {
           </div>
         )}
 
-        {/* Signing Status — sits beside the PDF */}
-        <section className="space-y-3">
-          <div className="flex items-center gap-3 pb-1 border-b border-[var(--color-border-light)]">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
-              <CalendarClock className="h-4 w-4" />
+        {/* ── Right: single white card containing Signing + Parties ─────── */}
+        <div className="overflow-hidden rounded-xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
+
+          {/* Signing Status */}
+          <div className="border-b border-[var(--color-border-light)] p-5">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+                <CalendarClock className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="font-serif text-base font-black leading-tight text-[var(--color-primary)]">
+                  Signing Status
+                </h2>
+                <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+                  Track which parties have signed.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-serif text-lg font-black text-[var(--color-primary)] leading-tight">
-                Signing Status
-              </h2>
-              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                Track which parties have signed this contract.
-              </p>
+            <div className="grid grid-cols-2 gap-3">
+              <SigningCard
+                role="Seller"
+                name={sellerName}
+                signed={sellerSigned}
+                signedAt={sellerSignedAt}
+              />
+              <SigningCard
+                role="Buyer"
+                name={buyerName}
+                signed={buyerSigned}
+                signedAt={buyerSignedAt}
+              />
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <SigningCard
-              role="Seller"
-              name={getPersonName(seller)}
-              signedAt={contract.seller_signed_at}
-            />
-            <SigningCard
-              role="Buyer"
-              name={getPersonName(buyer)}
-              signedAt={contract.buyer_signed_at}
-            />
+
+          {/* Contract Parties */}
+          <div className="p-5">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+                <UserRound className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="font-serif text-base font-black leading-tight text-[var(--color-primary)]">
+                  Contract Parties
+                </h2>
+                <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+                  Seller and buyer contact details.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <PartyCard title="Seller" person={seller} relation={sellerRelation} />
+              <PartyCard title="Buyer" person={buyer} relation={buyerRelation} />
+            </div>
           </div>
-        </section>
 
+        </div>
       </div>
 
-   {/* ── Two-column: Seller + Buyer ────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-
-        {/* Seller */}
-        <SectionBlock
-          title="Seller"
-          description="Seller attached to this contract."
-          icon={<UserRound className="h-4 w-4" />}
-          cols={2}
-        >
-          <DetailItem label="Name" value={getPersonName(seller)} />
-          <DetailItem label="Seller ID" value={getRelationId(seller)} />
-          <DetailItem label="Email" value={getRelationEmail(seller)} />
-          <DetailItem label="Phone" value={getRelationPhone(seller)} />
-        </SectionBlock>
-
-        {/* Buyer */}
-        <SectionBlock
-          title="Buyer"
-          description="Buyer, wholesaler, or partner attached to this contract."
-          icon={<Building2 className="h-4 w-4" />}
-          cols={2}
-        >
-          <DetailItem label="Name" value={getPersonName(buyer)} />
-          <DetailItem label="Buyer ID" value={getRelationId(buyer)} />
-          <DetailItem label="Email" value={getRelationEmail(buyer)} />
-          <DetailItem label="Phone" value={getRelationPhone(buyer)} />
-        </SectionBlock>
-      </div>
-
-      {/* ── Two-column: Property + Contract Info ─────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-
-        {/* Property Info */}
-        <SectionBlock
-          title="Property"
-          description="The listing connected to this contract."
-          icon={<Home className="h-4 w-4" />}
-          cols={2}
-        >
-          <DetailItem label="Property Name" value={propertyName} />
-          <DetailItem label="Property ID" value={getRelationId(property)} />
-          <DetailItem label="Address" value={propertyAddress} />
-        </SectionBlock>
-
-        {/* Contract Info */}
-        <SectionBlock
-          title="Contract Info"
-          description="Identity, status, and document link."
-          icon={<FileText className="h-4 w-4" />}
-          cols={2}
-        >
-          <DetailItem label="Contract ID" value={contractId} />
-          <DetailItem label="Status">
-            <StatusBadge
-              label={contract.status || "unknown"}
-              variant={getStatusVariant(contract.status)}
-            />
-          </DetailItem>
-          <DetailItem label="PDF Document">
-            {contract.pdf_url ? (
-              <a
-                href={contract.pdf_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 text-[var(--color-secondary)] hover:text-[var(--color-primary)] hover:underline transition"
-              >
-                Open Contract PDF
-                <LinkIcon className="h-3.5 w-3.5" />
-              </a>
-            ) : (
-              "-"
-            )}
-          </DetailItem>
-        </SectionBlock>
-      </div>
-
-   
-      {/* ── Timeline ─────────────────────────────────────────────────────── */}
+      {/* ── Property ─────────────────────────────────────────────────────── */}
       <SectionBlock
-        title="Timeline"
-        description="Contract creation and update history."
-        icon={<CalendarClock className="h-4 w-4" />}
+        title="Property"
+        description="Property connected to this contract."
+        icon={<Home className="h-4 w-4" />}
+        cols={3}
+      >
+        <DetailItem label="Property" value={propertyName} icon={Home} />
+        <DetailItem label="Property ID" value={getRelationId(propertyRelation)} icon={FileText} />
+        <DetailItem label="Address" value={propertyAddress} icon={MapPin} />
+      </SectionBlock>
+
+      {/* ── Contract Information ──────────────────────────────────────────── */}
+      <SectionBlock
+        title="Contract Information"
+        description="Contract amount, identifiers, and dates."
+        icon={<FileText className="h-4 w-4" />}
         cols={4}
       >
-        <DetailItem label="Created At" value={formatDate(contract.createdAt)} />
-        <DetailItem label="Updated At" value={formatDate(contract.updatedAt)} />
-        <DetailItem label="Seller Signed At" value={formatDate(contract.seller_signed_at)} />
-        <DetailItem label="Buyer Signed At" value={formatDate(contract.buyer_signed_at)} />
+        <DetailItem label="Contract ID" value={contractId} icon={FileText} />
+        <DetailItem label="Bid ID" value={getRelationId(bidRelation)} icon={FileText} />
+      
+        <DetailItem label="Created" value={formatDate(createdAt)} icon={CalendarClock} />
+        <DetailItem label="Updated" value={formatDate(updatedAt)} icon={CalendarClock} />
+        <DetailItem
+          label="Seller Signed"
+          value={
+            sellerSignedAt
+              ? formatDate(sellerSignedAt)
+              : sellerSigned ? "Signed" : "Pending"
+          }
+          icon={sellerSigned ? CheckCircle2 : Clock}
+        />
+        <DetailItem
+          label="Buyer Signed"
+          value={
+            buyerSignedAt
+              ? formatDate(buyerSignedAt)
+              : buyerSigned ? "Signed" : "Pending"
+          }
+          icon={buyerSigned ? CheckCircle2 : Clock}
+        />
       </SectionBlock>
 
     </div>

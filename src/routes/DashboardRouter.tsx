@@ -60,10 +60,10 @@ const adminNav = [
 
   // Admin-only screens
   { label: "Chat Flags", path: "/chat-flags" },
-  { label: "State Firewall", path: "/states" },
-  { label: "Scores", path: "/scores" },
-  { label: "Financials", path: "/financials" },
-  { label: "Audit Logs", path: "/audit-logs" },
+  // { label: "State Firewall", path: "/states" },
+  // { label: "Scores", path: "/scores" },
+  // { label: "Financials", path: "/financials" },
+  // { label: "Audit Logs", path: "/audit-logs" },
 ];
 
 function getLayoutConfig(role?: string | null) {
