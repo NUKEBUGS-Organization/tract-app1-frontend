@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router";
 
@@ -10,9 +11,6 @@ import {
   formatDate,
   getApiList,
   getApiPagination,
-  getListingTitle,
-  getMongoId,
-  getPersonName,
   getStatusVariant,
   normalizeValue,
 } from "../../utils/adminUtils";
@@ -28,8 +26,24 @@ function formatStatusLabel(status: string) {
     .join(" ");
 }
 
+function getContractId(contract: any) {
+  return contract?._id || "";
+}
+
+function getContractPropertyName(contract: any) {
+  return contract?.property_id?.address || "Listing";
+}
+
+function getContractSellerName(contract: any) {
+  return contract?.seller_id?.full_name || "-";
+}
+
+function getContractBuyerName(contract: any) {
+  return contract?.buyer_id?.full_name || "-";
+}
+
 function AdminContractMobileCard({ contract }: { contract: any }) {
-  const contractId = getMongoId(contract);
+  const contractId = getContractId(contract);
 
   return (
     <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
@@ -40,7 +54,7 @@ function AdminContractMobileCard({ contract }: { contract: any }) {
             state={{ contract }}
             className="break-words font-black text-[var(--color-primary)] hover:text-[var(--color-secondary)]"
           >
-            {getListingTitle(contract.property_id)}
+            {getContractPropertyName(contract)}
           </Link>
 
           <p className="mt-1 break-words text-xs text-[var(--color-text-muted)]">
@@ -61,7 +75,7 @@ function AdminContractMobileCard({ contract }: { contract: any }) {
           </p>
 
           <p className="mt-1 break-words text-sm font-bold text-[var(--color-text-main)]">
-            {getPersonName(contract.seller_id)}
+            {getContractSellerName(contract)}
           </p>
         </div>
 
@@ -71,7 +85,7 @@ function AdminContractMobileCard({ contract }: { contract: any }) {
           </p>
 
           <p className="mt-1 break-words text-sm font-bold text-[var(--color-text-main)]">
-            {getPersonName(contract.buyer_id)}
+            {getContractBuyerName(contract)}
           </p>
         </div>
 
@@ -101,74 +115,75 @@ function AdminContractMobileCard({ contract }: { contract: any }) {
 
 function AdminContractsPage() {
   const [page, setPage] = useState(1);
-const [filter, setFilter] = useState<ContractFilter>("all");
+  const [filter, setFilter] = useState<ContractFilter>("all");
+
   const { data, isLoading, isError } = useGetAdminContractsQuery({
     page,
     limit: 20,
   });
 
-const allContracts = getApiList(data);
+  const allContracts = getApiList(data);
 
-const availableStatuses = Array.from(
-  new Set(
-    allContracts
-      .map((contract: any) => normalizeValue(contract.status))
-      .filter(Boolean)
-  )
-) as string[];
+  const availableStatuses = Array.from(
+    new Set(
+      allContracts
+        .map((contract: any) => normalizeValue(contract.status))
+        .filter(Boolean)
+    )
+  ) as string[];
 
-const contractFilters = [
-  { label: "All", value: "all" },
-  ...availableStatuses.map((status) => ({
-    label: formatStatusLabel(status),
-    value: status,
-  })),
-];
+  const contractFilters = [
+    { label: "All", value: "all" },
+    ...availableStatuses.map((status) => ({
+      label: formatStatusLabel(status),
+      value: status,
+    })),
+  ];
 
-const contracts =
-  filter === "all"
-    ? allContracts
-    : allContracts.filter(
-        (contract: any) => normalizeValue(contract.status) === filter
-      );
+  const contracts =
+    filter === "all"
+      ? allContracts
+      : allContracts.filter(
+          (contract: any) => normalizeValue(contract.status) === filter
+        );
 
-const pagination = getApiPagination(data);
+  const pagination = getApiPagination(data);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-  <div>
-    <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
-      Contracts
-    </h1>
+        <div>
+          <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
+            Contracts
+          </h1>
 
-    <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-      View and filter all generated contracts and signing statuses.
-    </p>
-  </div>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+            View and filter all generated contracts and signing statuses.
+          </p>
+        </div>
 
-  <div className="max-w-full overflow-x-auto">
-    <div className="flex min-w-max rounded-xl border border-[var(--color-border-light)] bg-white p-1">
-      {contractFilters.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => {
-            setFilter(option.value);
-            setPage(1);
-          }}
-          className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition ${
-            filter === option.value
-              ? "bg-[var(--color-primary)] text-white"
-              : "text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  </div>
-</div>
+        <div className="max-w-full overflow-x-auto">
+          <div className="flex min-w-max rounded-xl border border-[var(--color-border-light)] bg-white p-1">
+            {contractFilters.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  setFilter(option.value);
+                  setPage(1);
+                }}
+                className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition ${
+                  filter === option.value
+                    ? "bg-[var(--color-primary)] text-white"
+                    : "text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
@@ -180,16 +195,16 @@ const pagination = getApiPagination(data);
         </div>
       ) : contracts.length === 0 ? (
         <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-card)]">
-         {filter === "all"
-  ? "No contracts found."
-  : `No ${formatStatusLabel(filter).toLowerCase()} contracts found.`}
+          {filter === "all"
+            ? "No contracts found."
+            : `No ${formatStatusLabel(filter).toLowerCase()} contracts found.`}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 lg:hidden">
             {contracts.map((contract: any) => (
               <AdminContractMobileCard
-                key={getMongoId(contract)}
+                key={getContractId(contract)}
                 contract={contract}
               />
             ))}
@@ -220,7 +235,7 @@ const pagination = getApiPagination(data);
 
                 <tbody>
                   {contracts.map((contract: any) => {
-                    const contractId = getMongoId(contract);
+                    const contractId = getContractId(contract);
 
                     return (
                       <tr
@@ -233,7 +248,7 @@ const pagination = getApiPagination(data);
                             state={{ contract }}
                             className="font-black text-[var(--color-primary)] hover:text-[var(--color-secondary)]"
                           >
-                            {getListingTitle(contract.property_id)}
+                            {getContractPropertyName(contract)}
                           </Link>
 
                           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
@@ -242,11 +257,11 @@ const pagination = getApiPagination(data);
                         </td>
 
                         <td className="px-6 py-5 text-sm font-bold">
-                          {getPersonName(contract.seller_id)}
+                          {getContractSellerName(contract)}
                         </td>
 
                         <td className="px-6 py-5 text-sm font-bold">
-                          {getPersonName(contract.buyer_id)}
+                          {getContractBuyerName(contract)}
                         </td>
 
                         <td className="px-6 py-5">
@@ -298,7 +313,7 @@ const pagination = getApiPagination(data);
           <Button
             type="button"
             variant="outline"
-            disabled={page >= pagination.totalPages}
+            disabled={page >= (pagination.totalPages || 1)}
             onClick={() => setPage((current) => current + 1)}
             className="justify-center"
           >

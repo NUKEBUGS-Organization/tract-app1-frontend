@@ -111,10 +111,10 @@ function getRelationPhone(value: any) {
 function hasCompletePerson(value: any) {
   if (!value || typeof value !== "object") return false;
   const doc = getDoc(value);
-  const hasName = Boolean(doc?.full_name || doc?.fullName || doc?.name);
+  const hasName = Boolean(doc?.full_name );
   const hasEmail = Boolean(doc?.email);
   const hasPhone = Boolean(
-    doc?.phone || doc?.phone_number || doc?.phoneNumber || doc?.mobile || doc?.mobile_number
+    doc?.phone 
   );
   return hasName && hasEmail && hasPhone;
 }

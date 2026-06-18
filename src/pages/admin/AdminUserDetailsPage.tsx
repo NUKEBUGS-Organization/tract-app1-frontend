@@ -191,7 +191,7 @@ function getDoc(value: any) {
 function getPhone(user: any) {
   const doc = getDoc(user);
   return (
-    doc?.phone || doc?.phone_number || doc?.phoneNumber || doc?.mobile || doc?.mobile_number || "-"
+    doc?.phone || "-"
   );
 }
 

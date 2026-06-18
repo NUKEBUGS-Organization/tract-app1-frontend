@@ -186,14 +186,14 @@ function getRelationPhone(value: any) {
   if (!value || typeof value !== "object") return "-";
   const doc = getDoc(value);
   return (
-    doc?.phone || doc?.phone_number || doc?.phoneNumber || doc?.mobile || doc?.mobile_number || "-"
+    doc?.phone || "-"
   );
 }
 
 function hasPersonName(value: any) {
   if (!value || typeof value !== "object") return false;
   const doc = getDoc(value);
-  return Boolean(doc?.full_name || doc?.fullName || doc?.name);
+  return Boolean(doc?.full_name);
 }
 
 function hasPersonEmail(value: any) {
@@ -206,7 +206,7 @@ function hasPersonPhone(value: any) {
   if (!value || typeof value !== "object") return false;
   const doc = getDoc(value);
   return Boolean(
-    doc?.phone || doc?.phone_number || doc?.phoneNumber || doc?.mobile || doc?.mobile_number
+    doc?.phone
   );
 }
 

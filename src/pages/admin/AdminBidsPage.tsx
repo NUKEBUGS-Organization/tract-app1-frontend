@@ -1,3 +1,6 @@
+
+// src/pages/admin/AdminBidsPage.tsx
+
 import { useState } from "react";
 import { Link } from "react-router";
 
@@ -11,19 +14,10 @@ import {
   formatMoney,
   getApiList,
   getApiPagination,
-  getBidAmount,
-  getListingTitle,
   getMongoId,
-  getPersonName,
   getStatusVariant,
   normalizeValue,
 } from "../../utils/adminUtils";
-
-function getRelationEmail(value: any) {
-  if (!value || typeof value !== "object") return "-";
-
-  return value.email || value._doc?.email || "-";
-}
 
 type BidFilter =
   | "all"
@@ -44,9 +38,26 @@ const BID_FILTERS: Array<{
   { label: "Rejected", value: "rejected" },
   { label: "Deleted", value: "deleted" },
 ];
+
+function getBidderName(bid: any) {
+  return bid?.bidder_id?.full_name || "-";
+}
+
+function getBidderEmail(bid: any) {
+  return bid?.bidder_id?.email || "-";
+}
+
+function getPropertyAddress(bid: any) {
+  return bid?.property_id?.address || "-";
+}
+
+function getBidPrice(bid: any) {
+  return bid?.bid_price ?? null;
+}
+
 function AdminBidMobileCard({ bid }: { bid: any }) {
   const bidId = getMongoId(bid);
-  const bidAmount = getBidAmount(bid);
+  const bidAmount = getBidPrice(bid);
 
   return (
     <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
@@ -57,11 +68,11 @@ function AdminBidMobileCard({ bid }: { bid: any }) {
             state={{ bid }}
             className="break-words font-black text-[var(--color-primary)] hover:text-[var(--color-secondary)]"
           >
-            {getPersonName(bid.bidder_id)}
+            {getBidderName(bid)}
           </Link>
 
           <p className="mt-1 break-words text-xs text-[var(--color-text-muted)]">
-            {getRelationEmail(bid.bidder_id)}
+            {getBidderEmail(bid)}
           </p>
         </div>
 
@@ -78,7 +89,7 @@ function AdminBidMobileCard({ bid }: { bid: any }) {
           </p>
 
           <p className="mt-1 break-words text-sm font-bold text-[var(--color-text-main)]">
-            {getListingTitle(bid.property_id)}
+            {getPropertyAddress(bid)}
           </p>
         </div>
 
@@ -125,52 +136,52 @@ function AdminBidsPage() {
     limit: 20,
   });
 
-const allBids = getApiList(data);
+  const allBids = getApiList(data);
 
-const bids =
-  filter === "all"
-    ? allBids
-    : allBids.filter(
-        (bid: any) => normalizeValue(bid.status) === filter
-      );
+  const bids =
+    filter === "all"
+      ? allBids
+      : allBids.filter(
+          (bid: any) => normalizeValue(bid.status) === filter
+        );
 
-const pagination = getApiPagination(data);
+  const pagination = getApiPagination(data);
 
   return (
     <div className="space-y-6">
-   <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-  <div>
-    <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
-      Bids
-    </h1>
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+        <div>
+          <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
+            Bids
+          </h1>
 
-    <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-      View and filter all bids placed on seller listings.
-    </p>
-  </div>
+          <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+            View and filter all bids placed on seller listings.
+          </p>
+        </div>
 
-  <div className="max-w-full overflow-x-auto">
-    <div className="flex min-w-max rounded-xl border border-[var(--color-border-light)] bg-white p-1">
-      {BID_FILTERS.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => {
-            setFilter(option.value);
-            setPage(1);
-          }}
-          className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition ${
-            filter === option.value
-              ? "bg-[var(--color-primary)] text-white"
-              : "text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  </div>
-</div>
+        <div className="max-w-full overflow-x-auto">
+          <div className="flex min-w-max rounded-xl border border-[var(--color-border-light)] bg-white p-1">
+            {BID_FILTERS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  setFilter(option.value);
+                  setPage(1);
+                }}
+                className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-black uppercase tracking-[0.16em] transition ${
+                  filter === option.value
+                    ? "bg-[var(--color-primary)] text-white"
+                    : "text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
@@ -182,9 +193,9 @@ const pagination = getApiPagination(data);
         </div>
       ) : bids.length === 0 ? (
         <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-card)]">
-       {filter === "all"
-  ? "No bids found."
-  : `No ${filter.replace("_", " ")} bids found.`}
+          {filter === "all"
+            ? "No bids found."
+            : `No ${filter.replace("_", " ")} bids found.`}
         </div>
       ) : (
         <>
@@ -220,7 +231,7 @@ const pagination = getApiPagination(data);
                 <tbody>
                   {bids.map((bid: any) => {
                     const bidId = getMongoId(bid);
-                    const bidAmount = getBidAmount(bid);
+                    const bidAmount = getBidPrice(bid);
 
                     return (
                       <tr
@@ -233,11 +244,11 @@ const pagination = getApiPagination(data);
                             state={{ bid }}
                             className="font-black text-[var(--color-primary)] hover:text-[var(--color-secondary)]"
                           >
-                            {getPersonName(bid.bidder_id)}
+                            {getBidderName(bid)}
                           </Link>
 
                           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                            {getRelationEmail(bid.bidder_id)}
+                            {getBidderEmail(bid)}
                           </p>
                         </td>
 
@@ -247,7 +258,7 @@ const pagination = getApiPagination(data);
                             state={{ bid }}
                             className="text-sm font-bold text-[var(--color-text-main)] hover:text-[var(--color-secondary)]"
                           >
-                            {getListingTitle(bid.property_id)}
+                            {getPropertyAddress(bid)}
                           </Link>
                         </td>
 
@@ -304,7 +315,7 @@ const pagination = getApiPagination(data);
           <Button
             type="button"
             variant="outline"
-            disabled={page >= pagination.totalPages}
+            disabled={page >= (pagination.totalPages || 1)}
             onClick={() => setPage((current) => current + 1)}
             className="justify-center"
           >

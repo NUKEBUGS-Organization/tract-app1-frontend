@@ -174,7 +174,6 @@ export const adminService = baseApi.injectEndpoints({
       invalidatesTags: ["Admin", "User"],
     }),
 
-    // ================= LISTINGS =================
    // ================= LISTINGS =================
 getAdminListings: builder.query<any, PaginationQuery | void>({
   query: (params) => ({

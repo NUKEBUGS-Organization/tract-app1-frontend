@@ -52,7 +52,7 @@ function hasPersonName(value: any) {
 
   const doc = getDoc(value);
 
-  return Boolean(doc?.full_name || doc?.fullName || doc?.name);
+  return Boolean(doc?.full_name );
 }
 
 function hasPersonEmail(value: any) {

@@ -1,3 +1,15 @@
+// src/utils/adminUtils.ts
+
+export function getApiPayload(response: any) {
+  return response?.data?.data ?? response?.data ?? response;
+}
+
+export function getApiDoc(response: any) {
+  const payload = getApiPayload(response);
+
+  return payload?._doc ?? payload;
+}
+
 export function getApiList(response: any) {
   if (!response) return [];
 
@@ -7,37 +19,46 @@ export function getApiList(response: any) {
 
   if (Array.isArray(response?.data?.data)) return response.data.data;
 
-  // For object-shaped lists:
+  if (Array.isArray(response?.data?.data?.data)) {
+    return response.data.data.data;
+  }
+
+  // Only support numeric object lists:
   // { "0": {...}, "1": {...} }
-  if (response && typeof response === "object") {
-    const values = Object.values(response);
+  function getNumericObjectList(value: any) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return [];
+    }
 
-    const looksLikeObjectList =
-      values.length > 0 &&
+    const keys = Object.keys(value);
+    const values = Object.values(value);
+
+    const looksLikeNumericObjectList =
+      keys.length > 0 &&
+      keys.every((key) => /^\d+$/.test(key)) &&
       values.every((item) => item && typeof item === "object");
 
-    if (looksLikeObjectList) {
-      return values;
-    }
+    return looksLikeNumericObjectList ? values : [];
   }
 
-  if (response?.data && typeof response.data === "object") {
-    const values = Object.values(response.data);
+  const directObjectList = getNumericObjectList(response);
+  if (directObjectList.length > 0) return directObjectList;
 
-    const looksLikeObjectList =
-      values.length > 0 &&
-      values.every((item) => item && typeof item === "object");
+  const dataObjectList = getNumericObjectList(response?.data);
+  if (dataObjectList.length > 0) return dataObjectList;
 
-    if (looksLikeObjectList) {
-      return values;
-    }
-  }
+  const nestedDataObjectList = getNumericObjectList(response?.data?.data);
+  if (nestedDataObjectList.length > 0) return nestedDataObjectList;
 
   return [];
 }
 
 export function getApiPagination(response: any) {
-  const pagination = response?.pagination ?? {};
+  const pagination =
+    response?.pagination ??
+    response?.data?.pagination ??
+    response?.data?.data?.pagination ??
+    {};
 
   return {
     page: pagination.page ?? 1,
@@ -53,7 +74,7 @@ export function getApiPagination(response: any) {
 }
 
 export function getMongoId(item: any) {
-  const data = item?.data ?? item?._doc ?? item;
+  const data = getApiDoc(item);
 
   return data?._id ?? data?.id ?? "";
 }
@@ -87,13 +108,13 @@ export function formatDateTime(value?: string | Date | null) {
 }
 
 export function getPersonName(user: any) {
-  const data = user?.data ?? user?._doc ?? user;
+  const data = getApiDoc(user);
 
   return data?.full_name || data?.fullName || data?.name || data?.email || "-";
 }
 
 export function getListingTitle(listing: any) {
-  const data = listing?.data ?? listing?._doc ?? listing;
+  const data = getApiDoc(listing);
 
   return (
     data?.title ||
@@ -106,11 +127,11 @@ export function getListingTitle(listing: any) {
 }
 
 export function getBidAmount(bid: any) {
-  const data = bid?.data ?? bid?._doc ?? bid;
+  const data = getApiDoc(bid);
 
   return (
-    data?.amount ??
     data?.bid_price ??
+    data?.amount ??
     data?.bidPrice ??
     data?.offer_price ??
     data?.offerPrice ??
@@ -146,7 +167,8 @@ export function getStatusVariant(status?: string | null) {
     normalizedStatus.includes("signed") ||
     normalizedStatus.includes("completed") ||
     normalizedStatus.includes("closed") ||
-    normalizedStatus.includes("active")
+    normalizedStatus.includes("active") ||
+    normalizedStatus.includes("selected")
   ) {
     return "success";
   }
@@ -163,3 +185,4 @@ export function getStatusVariant(status?: string | null) {
 
   return "warning";
 }
+
