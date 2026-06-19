@@ -67,11 +67,9 @@ function getInitials(name: string) {
 function getPrimaryAction(title: string) {
   const normalizedTitle = title.toLowerCase();
 
+  // Admin header should not show a primary action button
   if (normalizedTitle.includes("admin")) {
-    return {
-      label: "Review Queue",
-      path: "/verifications",
-    };
+    return null;
   }
 
   if (normalizedTitle.includes("partner")) {
@@ -477,13 +475,15 @@ function DashboardLayout({
                 </div>
               )}
 
-              <Link
-                to={primaryAction.path}
-                className="hidden items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-[var(--shadow-premium)] transition hover:scale-[1.02] md:flex"
-              >
-                <Plus className="h-4 w-4" />
-                {primaryAction.label}
-              </Link>
+            {primaryAction && (
+  <Link
+    to={primaryAction.path}
+    className="inline-flex h-11 items-center justify-center gap-2 rounded-none bg-[var(--color-secondary)] px-6 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary)] shadow-sm transition hover:brightness-95"
+  >
+    <Plus className="h-4 w-4" aria-hidden="true" />
+    {primaryAction.label}
+  </Link>
+)}
 
               <button
                 type="button"

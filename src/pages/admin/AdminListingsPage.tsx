@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import {
   CheckCircle,
@@ -30,6 +30,9 @@ import {
   getStatusVariant,
   normalizeValue,
 } from "../../utils/adminUtils";
+import AdminListingCard from "./components/AdminListingCard";
+import AdminListingFilters from "./components/AdminListingFilters";
+import { ActionIconButton } from "./components/AdminListingActionButtons";
 
 type ListingTab = "all" | "pending";
 
@@ -45,14 +48,14 @@ const LISTING_STATUS_OPTIONS = [
   { label: "Withdrawn", value: "withdrawn" },
 ];
 
-// function formatStatusLabel(status: string) {
-//   if (!status) return "Unknown";
+function formatStatusLabel(status: string) {
+  if (!status) return "Unknown";
 
-//   return status
-//     .split("_")
-//     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-//     .join(" ");
-// }
+  return status
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 function getListingStatus(listing: any, localStatuses: Record<string, string>) {
   const listingId = getMongoId(listing);
@@ -94,136 +97,13 @@ function getListingLocation(listing: any) {
   );
 }
 
-function ListingMobileCard({
-  listing,
-  status,
-  isStatusUpdating,
-  isRejecting,
-  isDeleting,
-  onMakeLive,
-  onChangeStatus,
-  onReject,
-  onDelete,
-}: {
-  listing: any;
-  status: string;
-  isStatusUpdating: boolean;
-  isRejecting: boolean;
-  isDeleting: boolean;
-  onMakeLive: (listing: any) => void;
-  onChangeStatus: (listing: any) => void;
-  onReject: (listing: any) => void;
-  onDelete: (listing: any) => void;
-}) {
-  const listingId = getMongoId(listing);
-  const seller = listing.seller_id;
-  const isBusy = isStatusUpdating || isRejecting || isDeleting;
-
-  return (
-    <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <Link
-            to={`/properties/${listingId}`}
-            state={{ listing }}
-            className="break-words font-black text-[var(--color-primary)] hover:text-[var(--color-secondary)]"
-          >
-            {getListingTitle(listing)}
-          </Link>
-
-          <p className="mt-1 break-words text-xs text-[var(--color-text-muted)]">
-            {getListingLocation(listing)}
-          </p>
-        </div>
-
-        <StatusBadge label={status} variant={getStatusVariant(status)} />
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-            Seller
-          </p>
-
-          <p className="mt-1 break-words text-sm font-bold text-[var(--color-text-main)]">
-            {getPersonName(seller)}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-            Created
-          </p>
-
-          <p className="mt-1 text-sm font-semibold text-[var(--color-text-muted)]">
-            {formatDate(listing.createdAt)}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
-       
-
-        <Button
-          type="button"
-          variant="outline"
-          disabled={isBusy}
-          onClick={() => onChangeStatus(listing)}
-          className="w-full justify-center px-4 py-2 text-xs"
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-          Status
-        </Button>
-
-        {canMakeLive(status) && (
-          <Button
-            type="button"
-            variant="primary"
-            isLoading={isStatusUpdating}
-            disabled={isBusy}
-            onClick={() => onMakeLive(listing)}
-            className="w-full justify-center px-4 py-2 text-xs"
-          >
-            <CheckCircle className="h-4 w-4" />
-            Make Live
-          </Button>
-        )}
-
-        {canRejectListing(status) && (
-          <Button
-            type="button"
-            variant="danger"
-            isLoading={isRejecting}
-            disabled={isBusy}
-            onClick={() => onReject(listing)}
-            className="w-full justify-center px-4 py-2 text-xs"
-          >
-            <XCircle className="h-4 w-4" />
-            Reject
-          </Button>
-        )}
-
-        {canDeleteListing(status) && (
-          <Button
-            type="button"
-            variant="outline"
-            isLoading={isDeleting}
-            disabled={isBusy}
-            onClick={() => onDelete(listing)}
-            className="w-full justify-center px-4 py-2 text-xs"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function AdminListingsPage() {
   const [tab, setTab] = useState<ListingTab>("all");
   const [page, setPage] = useState(1);
+
+  const [searchValue, setSearchValue] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [cityFilter, setCityFilter] = useState("all");
 
   const [statusTarget, setStatusTarget] = useState<any | null>(null);
   const [statusValue, setStatusValue] = useState("");
@@ -260,16 +140,67 @@ function AdminListingsPage() {
   const [deleteListing, { isLoading: isDeleting }] =
     useDeleteAdminListingMutation();
 
-  const rawListings = getApiList(activeQuery.data);
+const rawListings = getApiList(activeQuery.data) as any[];
 
-  const listings =
-    tab === "pending"
-      ? rawListings.filter((listing: any) =>
-          isPendingListing(getListingStatus(listing, localStatuses))
-        )
-      : rawListings;
+const tabListings: any[] =
+  tab === "pending"
+    ? rawListings.filter((listing: any) =>
+        isPendingListing(getListingStatus(listing, localStatuses))
+      )
+    : rawListings;
+
+const cityOptions = useMemo<string[]>(() => {
+  const locations = tabListings
+    .map((listing: any): string => getListingLocation(listing))
+    .filter((location: string) => {
+      return location.trim().length > 0 && location !== "-";
+    });
+
+  return Array.from(new Set(locations)).sort((a, b) =>
+    a.localeCompare(b)
+  );
+}, [tabListings]);
+
+  const hasActiveFilters =
+    searchValue.trim().length > 0 ||
+    statusFilter !== "all" ||
+    cityFilter !== "all";
+
+  const listings = useMemo(() => {
+    const normalizedSearch = searchValue.trim().toLowerCase();
+
+    return tabListings.filter((listing: any) => {
+      const status = getListingStatus(listing, localStatuses);
+      const normalizedStatus = normalizeValue(status);
+      const formattedStatus = formatStatusLabel(status);
+      const seller = getPersonName(listing.seller_id);
+      const title = getListingTitle(listing);
+      const location = getListingLocation(listing);
+
+      const matchesSearch =
+        !normalizedSearch ||
+        [title, seller, location, formattedStatus]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearch);
+
+      const matchesStatus =
+        statusFilter === "all" || normalizedStatus === statusFilter;
+
+      const matchesCity = cityFilter === "all" || location === cityFilter;
+
+      return matchesSearch && matchesStatus && matchesCity;
+    });
+  }, [tabListings, localStatuses, searchValue, statusFilter, cityFilter]);
 
   const pagination = getApiPagination(activeQuery.data);
+  const totalPages = pagination.totalPages || 1;
+
+  function clearFilters() {
+    setSearchValue("");
+    setStatusFilter("all");
+    setCityFilter("all");
+  }
 
   function openStatusModal(listing: any) {
     const currentStatus = getListingStatus(listing, localStatuses);
@@ -390,81 +321,165 @@ function AdminListingsPage() {
   const deleteTargetId = deleteTarget ? getMongoId(deleteTarget) : "";
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-        <div>
-          <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
-            Listings
-          </h1>
+    <div className="min-w-0 space-y-6 overflow-x-hidden">
+      <section className="rounded-3xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
+        <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center">
+          <div className="min-w-0">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+              <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+              Admin Review
+            </div>
 
-          <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-            Review seller listings, edit listings, change listing status, reject
-            invalid listings, or delete listings.
-          </p>
-        </div>
+            <h1 className="font-serif text-3xl font-black leading-tight text-[var(--color-primary)] sm:text-4xl">
+              Listings
+            </h1>
 
-        <div className="grid grid-cols-2 rounded-xl border border-[var(--color-border-light)] bg-white p-1 sm:flex">
-          <button
-            type="button"
-            onClick={() => {
-              setTab("all");
-              setPage(1);
-            }}
-            className={`rounded-lg px-4 py-2 text-xs font-black uppercase tracking-[0.16em] ${
-              tab === "all"
-                ? "bg-[var(--color-primary)] text-white"
-                : "text-[var(--color-text-muted)]"
-            }`}
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">
+              Review submitted properties, manage listing status, and take
+              approval actions without leaving this page.
+            </p>
+          </div>
+
+          <div
+            role="tablist"
+            aria-label="Listing filters"
+            className="grid grid-cols-2 rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-1 sm:flex"
           >
-            All
-          </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "all"}
+              aria-pressed={tab === "all"}
+              onClick={() => {
+                setTab("all");
+                setPage(1);
+              }}
+              className={`rounded-xl px-5 py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all duration-200 ${
+                tab === "all"
+                  ? "bg-[var(--color-primary)] text-white shadow-sm"
+                  : "text-[var(--color-text-muted)] hover:bg-white hover:text-[var(--color-primary)]"
+              }`}
+            >
+              All
+            </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setTab("pending");
-              setPage(1);
-            }}
-            className={`rounded-lg px-4 py-2 text-xs font-black uppercase tracking-[0.16em] ${
-              tab === "pending"
-                ? "bg-[var(--color-primary)] text-white"
-                : "text-[var(--color-text-muted)]"
-            }`}
-          >
-            Pending
-          </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "pending"}
+              aria-pressed={tab === "pending"}
+              onClick={() => {
+                setTab("pending");
+                setPage(1);
+              }}
+              className={`rounded-xl px-5 py-2.5 text-xs font-black uppercase tracking-[0.16em] transition-all duration-200 ${
+                tab === "pending"
+                  ? "bg-[var(--color-primary)] text-white shadow-sm"
+                  : "text-[var(--color-text-muted)] hover:bg-white hover:text-[var(--color-primary)]"
+              }`}
+            >
+              Pending
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {!activeQuery.isLoading && !activeQuery.isError && tabListings.length > 0 && (
+        <AdminListingFilters
+          searchValue={searchValue}
+          statusFilter={statusFilter}
+          cityFilter={cityFilter}
+          cityOptions={cityOptions}
+          statusOptions={LISTING_STATUS_OPTIONS}
+          hasActiveFilters={hasActiveFilters}
+          shownCount={listings.length}
+          totalCount={tabListings.length}
+          onSearchChange={setSearchValue}
+          onStatusFilterChange={setStatusFilter}
+          onCityFilterChange={setCityFilter}
+          onClear={clearFilters}
+        />
+      )}
 
       {activeQuery.isLoading ? (
-        <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
+        <div className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
           <Loader label="Loading listings..." />
         </div>
       ) : activeQuery.isError ? (
-        <div className="rounded-2xl bg-white p-6 text-sm font-semibold text-[var(--color-danger)] shadow-[var(--shadow-card)]">
-          Failed to load listings.
+        <div className="rounded-3xl border border-[var(--color-danger)]/15 bg-white p-6 shadow-[var(--shadow-card)]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-black text-[var(--color-danger)]">
+                Failed to load listings
+              </h2>
+
+              <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
+                Something went wrong while loading the admin listings.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => activeQuery.refetch()}
+              className="justify-center"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Retry
+            </Button>
+          </div>
         </div>
       ) : listings.length === 0 ? (
-        <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 text-sm text-[var(--color-text-muted)] shadow-[var(--shadow-card)]">
-          No listings found.
+        <div className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 text-center shadow-[var(--shadow-card)]">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-bg-soft)] text-[var(--color-primary)]">
+            <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+          </div>
+
+          <h2 className="mt-4 text-base font-black text-[var(--color-primary)]">
+            No listings found
+          </h2>
+
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--color-text-muted)]">
+            {hasActiveFilters
+              ? "No listings match your current search or filter selection."
+              : tab === "pending"
+              ? "There are no pending listings waiting for review right now."
+              : "There are no listings available in this view right now."}
+          </p>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="mt-5 inline-flex items-center justify-center rounded-2xl border border-[var(--color-border-light)] bg-white px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary)] transition hover:bg-[var(--color-bg-soft)]"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 lg:hidden">
+          {/* Cards used below 2xl to avoid horizontal scroll in admin sidebar layout */}
+          <div className="grid grid-cols-1 gap-4 2xl:hidden">
             {listings.map((listing: any) => {
               const listingId = getMongoId(listing);
               const status = getListingStatus(listing, localStatuses);
 
               return (
-                <ListingMobileCard
+                <AdminListingCard
                   key={listingId}
                   listing={listing}
                   status={status}
+                  location={getListingLocation(listing)}
+                  formattedStatus={formatStatusLabel(status)}
                   isStatusUpdating={
                     isStatusUpdating && processingListingId === listingId
                   }
                   isRejecting={isRejecting && processingListingId === listingId}
                   isDeleting={isDeleting && processingListingId === listingId}
+                  canMakeLive={canMakeLive}
+                  canRejectListing={canRejectListing}
+                  canDeleteListing={canDeleteListing}
                   onMakeLive={openMakeLiveModal}
                   onChangeStatus={openStatusModal}
                   onReject={setRejectTarget}
@@ -474,147 +489,189 @@ function AdminListingsPage() {
             })}
           </div>
 
-          <div className="hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)] lg:block">
-            <div className="w-full overflow-x-auto">
-              <table className="w-full min-w-[1200px] text-left">
-                <thead className="bg-[var(--color-bg-soft)]">
-                  <tr>
-                    {["Listing", "Seller", "Status", "Created", "Action"].map(
-                      (heading) => (
-                        <th
-                          key={heading}
-                          className="whitespace-nowrap px-6 py-5 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]"
-                        >
-                          {heading}
-                        </th>
-                      )
-                    )}
-                  </tr>
-                </thead>
+          {/* Table only on very large screens. No overflow-x and no min-width. */}
+          <div className="hidden rounded-3xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)] 2xl:block">
+            <div className="border-b border-[var(--color-border-light)] px-6 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-sm font-black text-[var(--color-primary)]">
+                    Listing Queue
+                  </h2>
 
-                <tbody>
-                  {listings.map((listing: any) => {
-                    const listingId = getMongoId(listing);
-                    const status = getListingStatus(listing, localStatuses);
-                    const seller = listing.seller_id;
+                  <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
+                    Use icon actions to update, approve, reject, or delete
+                    listings.
+                  </p>
+                </div>
 
-                    const isThisStatusUpdating =
-                      isStatusUpdating && processingListingId === listingId;
-
-                    const isThisRejecting =
-                      isRejecting && processingListingId === listingId;
-
-                    const isThisDeleting =
-                      isDeleting && processingListingId === listingId;
-
-                    const isBusy =
-                      isThisStatusUpdating || isThisRejecting || isThisDeleting;
-
-                    return (
-                      <tr
-                        key={listingId}
-                        className="border-t border-[var(--color-border-light)]"
-                      >
-                        <td className="px-6 py-5">
-                          <Link
-                            to={`/properties/${listingId}`}
-                            state={{ listing }}
-                            className="font-black text-[var(--color-primary)] hover:text-[var(--color-secondary)]"
-                          >
-                            {getListingTitle(listing)}
-                          </Link>
-
-                          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                            {getListingLocation(listing)}
-                          </p>
-                        </td>
-
-                        <td className="px-6 py-5 text-sm font-bold">
-                          {getPersonName(seller)}
-                        </td>
-
-                        <td className="px-6 py-5">
-                          <StatusBadge
-                            label={status}
-                            variant={getStatusVariant(status)}
-                          />
-                        </td>
-
-                        <td className="px-6 py-5 text-sm font-semibold text-[var(--color-text-muted)]">
-                          {formatDate(listing.createdAt)}
-                        </td>
-
-                        <td className="px-6 py-5">
-                          <div className="flex flex-wrap gap-2">
-                            
-
-                            <Button
-                              type="button"
-                              variant="outline"
-                              disabled={isBusy}
-                              onClick={() => openStatusModal(listing)}
-                              className="px-4 py-2 text-xs"
-                            >
-                              <SlidersHorizontal className="h-4 w-4" />
-                              Status
-                            </Button>
-
-                            {canMakeLive(status) && (
-                              <Button
-                                type="button"
-                                variant="primary"
-                                isLoading={isThisStatusUpdating}
-                                disabled={isBusy}
-                                onClick={() => openMakeLiveModal(listing)}
-                                className="px-4 py-2 text-xs"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                                Make Live
-                              </Button>
-                            )}
-
-                            {canRejectListing(status) && (
-                              <Button
-                                type="button"
-                                variant="danger"
-                                isLoading={isThisRejecting}
-                                disabled={isBusy}
-                                onClick={() => setRejectTarget(listing)}
-                                className="px-4 py-2 text-xs"
-                              >
-                                <XCircle className="h-4 w-4" />
-                                Reject
-                              </Button>
-                            )}
-
-                            {canDeleteListing(status) && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                isLoading={isThisDeleting}
-                                disabled={isBusy}
-                                onClick={() => setDeleteTarget(listing)}
-                                className="px-4 py-2 text-xs"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                Delete
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                <span className="rounded-full bg-[var(--color-bg-soft)] px-3 py-1 text-xs font-black text-[var(--color-text-muted)]">
+                  {listings.length} shown
+                </span>
+              </div>
             </div>
+
+            <table className="w-full table-fixed text-left">
+              <thead className="bg-[var(--color-bg-soft)]">
+                <tr>
+                  <th className="w-[30%] px-6 py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    Listing
+                  </th>
+
+                  <th className="w-[20%] px-6 py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    Seller
+                  </th>
+
+                  <th className="w-[17%] px-6 py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    Status
+                  </th>
+
+                  <th className="w-[14%] px-6 py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    Created
+                  </th>
+
+                  <th className="w-[19%] px-6 py-4 text-center text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {listings.map((listing: any) => {
+                  const listingId = getMongoId(listing);
+                  const status = getListingStatus(listing, localStatuses);
+                  const seller = listing.seller_id;
+
+                  const isThisStatusUpdating =
+                    isStatusUpdating && processingListingId === listingId;
+
+                  const isThisRejecting =
+                    isRejecting && processingListingId === listingId;
+
+                  const isThisDeleting =
+                    isDeleting && processingListingId === listingId;
+
+                  const isBusy =
+                    isThisStatusUpdating || isThisRejecting || isThisDeleting;
+
+                  return (
+                    <tr
+                      key={listingId}
+                      className="border-t border-[var(--color-border-light)] transition-colors duration-200 hover:bg-[var(--color-bg-soft)]/60"
+                    >
+                      <td className="px-6 py-5">
+                        <Link
+                          to={`/properties/${listingId}`}
+                          state={{ listing }}
+                          className="line-clamp-2 font-black text-[var(--color-primary)] transition-colors hover:text-[var(--color-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)]/40"
+                        >
+                          {getListingTitle(listing)}
+                        </Link>
+
+                        <p className="mt-1 line-clamp-1 text-xs font-semibold text-[var(--color-text-muted)]">
+                          {getListingLocation(listing)}
+                        </p>
+                      </td>
+
+                      <td className="px-6 py-5 text-sm font-bold text-[var(--color-text-main)]">
+                        <span className="line-clamp-2">
+                          {getPersonName(seller)}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-5">
+                        <StatusBadge
+                          label={formatStatusLabel(status)}
+                          variant={getStatusVariant(status)}
+                        />
+                      </td>
+
+                      <td className="px-6 py-5 text-sm font-semibold text-[var(--color-text-muted)]">
+                        {formatDate(listing.createdAt)}
+                      </td>
+
+                      <td className="px-6 py-5">
+                        <div className="flex items-center justify-center gap-2">
+                          <ActionIconButton
+                            label="Update Status"
+                            variant="status"
+                            disabled={isBusy}
+                            onClick={() => openStatusModal(listing)}
+                            icon={
+                              <RefreshCcw
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                              />
+                            }
+                          />
+
+                          {canMakeLive(status) && (
+                            <ActionIconButton
+                              label="Make Live"
+                              variant="success"
+                              isLoading={isThisStatusUpdating}
+                              disabled={isBusy}
+                              onClick={() => openMakeLiveModal(listing)}
+                              icon={
+                                <CheckCircle
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
+                              }
+                            />
+                          )}
+
+                          {canRejectListing(status) && (
+                            <ActionIconButton
+                              label="Reject"
+                              variant="danger"
+                              isLoading={isThisRejecting}
+                              disabled={isBusy}
+                              onClick={() => setRejectTarget(listing)}
+                              icon={
+                                <XCircle
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
+                              }
+                            />
+                          )}
+
+                          {canDeleteListing(status) && (
+                            <ActionIconButton
+                              label="Delete"
+                              variant="neutral"
+                              isLoading={isThisDeleting}
+                              disabled={isBusy}
+                              onClick={() => setDeleteTarget(listing)}
+                              icon={
+                                <Trash2
+                                  className="h-4 w-4"
+                                  aria-hidden="true"
+                                />
+                              }
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </>
       )}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-[var(--color-text-muted)]">
-          Page {pagination.page} of {pagination.totalPages || 1}
+      <div className="flex flex-col gap-4 rounded-3xl border border-[var(--color-border-light)] bg-white p-4 shadow-[var(--shadow-card)] sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-semibold text-[var(--color-text-muted)]">
+          Page{" "}
+          <span className="font-black text-[var(--color-primary)]">
+            {pagination.page}
+          </span>{" "}
+          of{" "}
+          <span className="font-black text-[var(--color-primary)]">
+            {totalPages}
+          </span>
         </p>
 
         <div className="grid grid-cols-2 gap-2 sm:flex">
@@ -631,7 +688,7 @@ function AdminListingsPage() {
           <Button
             type="button"
             variant="outline"
-            disabled={page >= pagination.totalPages}
+            disabled={page >= totalPages}
             onClick={() => setPage((current) => current + 1)}
             className="justify-center"
           >
@@ -674,25 +731,45 @@ function AdminListingsPage() {
         onConfirm={handleChangeStatus}
       >
         <div className="space-y-4">
-          <select
-            value={statusValue}
-            onChange={(event) => setStatusValue(event.target.value)}
-            className="w-full rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm font-semibold outline-none focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)]"
-          >
-            {LISTING_STATUS_OPTIONS.map((statusOption) => (
-              <option key={statusOption.value} value={statusOption.value}>
-                {statusOption.label}
-              </option>
-            ))}
-          </select>
+          <div>
+            <label
+              htmlFor="listing-status"
+              className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-[var(--color-text-muted)]"
+            >
+              New status
+            </label>
 
-          <textarea
-            value={statusReason}
-            onChange={(event) => setStatusReason(event.target.value)}
-            rows={4}
-            placeholder="Optional reason for status change..."
-            className="w-full rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)]"
-          />
+            <select
+              id="listing-status"
+              value={statusValue}
+              onChange={(event) => setStatusValue(event.target.value)}
+              className="w-full rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm font-semibold outline-none transition focus:border-[var(--color-secondary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-secondary)]/30"
+            >
+              {LISTING_STATUS_OPTIONS.map((statusOption) => (
+                <option key={statusOption.value} value={statusOption.value}>
+                  {statusOption.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="listing-status-reason"
+              className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-[var(--color-text-muted)]"
+            >
+              Reason optional
+            </label>
+
+            <textarea
+              id="listing-status-reason"
+              value={statusReason}
+              onChange={(event) => setStatusReason(event.target.value)}
+              rows={4}
+              placeholder="Optional reason for status change..."
+              className="w-full resize-none rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm outline-none transition focus:border-[var(--color-secondary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-secondary)]/30"
+            />
+          </div>
         </div>
       </ConfirmModal>
 
@@ -713,13 +790,27 @@ function AdminListingsPage() {
         }}
         onConfirm={handleReject}
       >
-        <textarea
-          value={rejectReason}
-          onChange={(event) => setRejectReason(event.target.value)}
-          rows={4}
-          placeholder="Enter rejection reason..."
-          className="w-full rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)]"
-        />
+        <div>
+          <label
+            htmlFor="listing-reject-reason"
+            className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-[var(--color-text-muted)]"
+          >
+            Rejection reason
+          </label>
+
+          <textarea
+            id="listing-reject-reason"
+            value={rejectReason}
+            onChange={(event) => setRejectReason(event.target.value)}
+            rows={4}
+            placeholder="Enter rejection reason..."
+            className="w-full resize-none rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm outline-none transition focus:border-[var(--color-secondary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-secondary)]/30"
+          />
+
+          <p className="mt-2 text-xs font-semibold text-[var(--color-text-muted)]">
+            Minimum 3 characters are required before rejection can be submitted.
+          </p>
+        </div>
       </ConfirmModal>
 
       <ConfirmModal

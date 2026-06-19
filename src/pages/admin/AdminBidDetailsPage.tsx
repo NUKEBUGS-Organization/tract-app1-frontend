@@ -1,13 +1,17 @@
 // src/pages/admin/AdminBidDetailsPage.tsx
 
 import type { ReactNode } from "react";
-import { useLocation, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import {
+  ArrowLeft,
   CalendarClock,
   DollarSign,
+  ExternalLink,
   Gavel,
   Home,
+  Mail,
   MapPin,
+  Phone,
   UserRound,
   UsersRound,
 } from "lucide-react";
@@ -28,24 +32,170 @@ import {
   getMongoId,
   getPersonName,
   getStatusVariant,
+  normalizeValue,
 } from "../../utils/adminUtils";
+
+function getDoc(value: any) {
+  return (
+    value?.data?.data?._doc ??
+    value?.data?._doc ??
+    value?._doc ??
+    value?.data?.data ??
+    value?.data ??
+    value
+  );
+}
+
+function getId(value: any) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+
+  const doc = getDoc(value);
+
+  return doc?._id || doc?.id || "";
+}
+
+function formatLabel(value: string) {
+  if (!value) return "-";
+
+  return value
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function hasReadableValue(value: any) {
+  return value !== undefined && value !== null && value !== "" && value !== "-";
+}
+
+function getEmail(value: any) {
+  const doc = getDoc(value);
+
+  return doc?.email || "-";
+}
+
+function getPhone(value: any) {
+  const doc = getDoc(value);
+
+  return doc?.phone || doc?.phone_number || doc?.phoneNumber || "-";
+}
+
+function getRole(value: any) {
+  const doc = getDoc(value);
+
+  return doc?.role || "-";
+}
+
+function getBidPrice(bid: any) {
+  return bid?.bid_price ?? bid?.bidPrice ?? bid?.amount ?? null;
+}
+
+function getBidStatus(bid: any) {
+  return bid?.status || "unknown";
+}
+
+function getBackupPosition(bid: any) {
+  return bid?.backup_position ?? bid?.backupPosition ?? null;
+}
+
+function getListingIdFromBid(bid: any) {
+  return getId(bid?.property_id);
+}
+
+function getBidderIdFromBid(bid: any) {
+  return getId(bid?.bidder_id);
+}
+
+function getSellerIdFromProperty(property: any) {
+  return getId(property?.seller_id);
+}
+
+function getPropertyTitle(property: any) {
+  const doc = getDoc(property);
+
+  return (
+    doc?.address ||
+    doc?.property_address ||
+    doc?.street_address ||
+    doc?.title ||
+    doc?.propertyTitle ||
+    "Linked Property"
+  );
+}
+
+function getStreetAddress(property: any) {
+  const doc = getDoc(property);
+
+  return (
+    doc?.address ||
+    doc?.property_address ||
+    doc?.street_address ||
+    doc?.streetAddress ||
+    doc?.address_line_1 ||
+    doc?.addressLine1 ||
+    "-"
+  );
+}
+
+function getCity(property: any) {
+  const doc = getDoc(property);
+
+  return doc?.city || "-";
+}
+
+function getState(property: any) {
+  const doc = getDoc(property);
+
+  return doc?.state_code || doc?.stateCode || doc?.state || "-";
+}
+
+function getZipCode(property: any) {
+  const doc = getDoc(property);
+
+  return doc?.zip_code || doc?.zipCode || doc?.postal_code || doc?.postalCode || "-";
+}
+
+function getFullAddress(property: any) {
+  const parts = [
+    getStreetAddress(property),
+    getCity(property),
+    getState(property),
+    getZipCode(property),
+  ].filter((part) => hasReadableValue(part));
+
+  return parts.length > 0 ? parts.join(", ") : "-";
+}
+
+function getListingStatus(property: any) {
+  const doc = getDoc(property);
+
+  return doc?.status || "unknown";
+}
 
 function DetailItem({
   label,
   value,
   children,
-  icon: Icon,
+  icon,
+  featured = false,
 }: {
   label: string;
   value?: any;
   children?: ReactNode;
-  icon?: any;
+  icon?: ReactNode;
+  featured?: boolean;
 }) {
   return (
-    <div className="group flex min-w-0 flex-col gap-1.5 rounded-xl border border-[var(--color-border-light)] bg-white px-4 py-3.5 transition hover:border-[var(--color-primary)]/20 hover:shadow-sm">
-      <div className="flex items-center gap-1.5">
-        {Icon && (
-          <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]/50" />
+    <div
+      className={`group min-w-0 rounded-2xl border px-4 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-secondary)]/40 hover:shadow-sm ${
+        featured
+          ? "border-[var(--color-primary)]/15 bg-[var(--color-primary)]/5"
+          : "border-[var(--color-border-light)] bg-white hover:bg-[var(--color-bg-soft)]/60"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        {icon && (
+          <span className="text-[var(--color-primary)]/60">{icon}</span>
         )}
 
         <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
@@ -53,7 +203,13 @@ function DetailItem({
         </p>
       </div>
 
-      <div className="break-words text-sm font-semibold leading-snug text-[var(--color-text-main)]">
+      <div
+        className={`mt-1.5 break-words text-sm font-bold leading-6 ${
+          featured
+            ? "text-[var(--color-primary)]"
+            : "text-[var(--color-text-main)]"
+        }`}
+      >
         {children ?? displayValue(value)}
       </div>
     </div>
@@ -65,140 +221,135 @@ function SectionBlock({
   description,
   icon,
   children,
-  cols = 3,
+  columns = "default",
 }: {
   title: string;
   description?: string;
   icon: ReactNode;
   children: ReactNode;
-  cols?: 2 | 3 | 4;
+  columns?: "default" | "compact" | "equal";
 }) {
-  const colClass =
-    cols === 4
-      ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
-      : cols === 2
-        ? "grid-cols-1 sm:grid-cols-2"
-        : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3";
+  const gridClass =
+    columns === "compact"
+      ? "grid-cols-1"
+      : columns === "equal"
+      ? "grid-cols-1 sm:grid-cols-2"
+      : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3";
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-3 border-b border-[var(--color-border-light)] pb-2">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+    <section className="h-full rounded-3xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)] transition-all duration-300 hover:shadow-lg sm:p-6">
+      <div className="mb-5 flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
           {icon}
         </div>
 
         <div className="min-w-0">
-          <h2 className="font-serif text-lg font-black leading-tight text-[var(--color-primary)]">
+          <h2 className="font-serif text-xl font-black leading-tight text-[var(--color-primary)]">
             {title}
           </h2>
 
           {description && (
-            <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+            <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
               {description}
             </p>
           )}
         </div>
       </div>
 
-      <div className={`grid items-start gap-3 ${colClass}`}>{children}</div>
+      <div className={`grid ${gridClass} gap-3`}>{children}</div>
     </section>
   );
 }
-
-function StatCard({
+function RecordLink({
+  to,
   label,
-  value,
-  icon: Icon,
-  accent = false,
 }: {
+  to: string;
   label: string;
-  value: string;
-  icon: any;
-  accent?: boolean;
 }) {
   return (
-    <div
-      className={`flex min-w-0 items-center gap-3 rounded-xl border px-4 py-3.5 ${
-        accent
-          ? "border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5"
-          : "border-[var(--color-border-light)] bg-white"
-      }`}
+    <Link
+      to={to}
+      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--color-border-light)] bg-white px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary)] transition hover:border-[var(--color-secondary)] hover:bg-[var(--color-bg-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)]/40"
     >
-      <div
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-          accent
-            ? "bg-[var(--color-primary)]/12 text-[var(--color-primary)]"
-            : "bg-[var(--color-bg-soft)] text-[var(--color-primary)]/60"
-        }`}
-      >
-        <Icon className="h-4 w-4" />
-      </div>
-
-      <div className="min-w-0">
-        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-          {label}
-        </p>
-
-        <p
-          className={`mt-0.5 truncate text-sm font-bold ${
-            accent
-              ? "text-[var(--color-primary)]"
-              : "text-[var(--color-text-main)]"
-          }`}
-        >
-          {value}
-        </p>
-      </div>
-    </div>
+      {label}
+      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+    </Link>
   );
 }
 
-function getId(value: any) {
-  if (!value) return "";
-  if (typeof value === "string") return value;
+function PartyCard({
+  title,
+  person,
+  fallback,
+  path,
+  icon,
+}: {
+  title: string;
+  person: any;
+  fallback: string;
+  path?: string;
+  icon: ReactNode;
+}) {
+  const personDoc = getDoc(person);
+  const name = personDoc ? getPersonName(personDoc) : fallback;
+  const email = getEmail(personDoc);
+  const phone = getPhone(personDoc);
+  const role = getRole(personDoc);
 
-  return value._id || "";
+  return (
+    <article className="rounded-3xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
+          {icon}
+        </div>
+
+        <div className="min-w-0">
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+            {title}
+          </p>
+
+          <h3 className="mt-1 break-words text-base font-black text-[var(--color-primary)]">
+            {name}
+          </h3>
+
+          {role !== "-" && (
+            <p className="mt-1 text-xs font-semibold capitalize text-[var(--color-text-muted)]">
+              {formatLabel(role)}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2 text-sm font-semibold text-[var(--color-text-muted)]">
+        {email !== "-" && (
+          <p className="flex min-w-0 items-center gap-2">
+            <Mail className="h-4 w-4 shrink-0 text-[var(--color-primary)]/60" />
+            <span className="break-words">{email}</span>
+          </p>
+        )}
+
+        {phone !== "-" && (
+          <p className="flex min-w-0 items-center gap-2">
+            <Phone className="h-4 w-4 shrink-0 text-[var(--color-primary)]/60" />
+            <span className="break-words">{phone}</span>
+          </p>
+        )}
+      </div>
+
+      {path && (
+        <div className="mt-5">
+          <RecordLink to={path} label="Open Profile" />
+        </div>
+      )}
+    </article>
+  );
 }
 
-function getEmail(value: any) {
-  return value?.email || "-";
-}
-
-function getPhone(value: any) {
-  return value?.phone || "-";
-}
-
-function getBidPrice(bid: any) {
-  return bid?.bid_price ?? null;
-}
-
-function getListingIdFromBid(bid: any) {
-  return getId(bid?.property_id);
-}
-
-function getPropertyAddress(property: any) {
-  if (!property || typeof property !== "object") return "-";
-
-  const address = [
-    property.address,
-    property.city,
-    property.state_code,
-    property.zip_code,
-  ]
-    .filter(Boolean)
-    .join(", ");
-
-  return address || "-";
-}
-
-function getPropertyName(property: any) {
-  if (!property || typeof property !== "object") return "-";
-
-  return property.address || "-";
-}
 
 function AdminBidDetailsPage() {
   const { id = "" } = useParams();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const stateBid = (location.state as any)?.bid ?? null;
@@ -212,7 +363,7 @@ function AdminBidDetailsPage() {
   });
 
   const apiBid = getApiDoc(apiBidResponse);
-  const bid = apiBid || stateBid;
+  const bid = getDoc(apiBid || stateBid);
 
   const listingId = getListingIdFromBid(bid);
 
@@ -230,10 +381,10 @@ function AdminBidDetailsPage() {
   });
 
   const apiListing = getApiDoc(listingResponse);
-  const property = apiListing || stateProperty;
+  const property = getDoc(apiListing || stateProperty);
 
-  const sellerId = getId(property?.seller_id);
-  const buyerId = getId(bid?.bidder_id);
+  const sellerId = getSellerIdFromProperty(property);
+  const buyerId = getBidderIdFromBid(bid);
 
   const { data: sellerResponse } = useGetAdminUserQuery(sellerId, {
     skip: !sellerId,
@@ -243,183 +394,251 @@ function AdminBidDetailsPage() {
     skip: !buyerId,
   });
 
-  const seller = getApiDoc(sellerResponse) || null;
-  const buyer = getApiDoc(buyerResponse) || bid?.bidder_id || null;
+  const seller =
+    getDoc(getApiDoc(sellerResponse)) ||
+    (property?.seller_id && typeof property.seller_id === "object"
+      ? property.seller_id
+      : null);
+
+  const buyer =
+    getDoc(getApiDoc(buyerResponse)) ||
+    (bid?.bidder_id && typeof bid.bidder_id === "object"
+      ? bid.bidder_id
+      : null);
 
   if (isBidLoading && !bid) {
-    return <Loader label="Loading bid details..." />;
-  }
-
-  if ((isBidError && !bid) || !bid) {
     return (
-      <div className="rounded-xl bg-white p-5 text-sm font-semibold text-[var(--color-danger)] shadow-[var(--shadow-card)]">
-        Failed to load bid details.
+      <div className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
+        <Loader label="Loading bid details..." />
       </div>
     );
   }
 
-  const bidAmount = getBidPrice(bid);
+  if ((isBidError && !bid) || !bid) {
+    return (
+      <div className="rounded-3xl border border-[var(--color-danger)]/15 bg-white p-6 shadow-[var(--shadow-card)]">
+        <h1 className="text-base font-black text-[var(--color-danger)]">
+          Failed to load bid details
+        </h1>
 
-  const propertyDisplay = isListingLoading
-    ? stateProperty
-      ? getPropertyName(stateProperty)
-      : "Loading property..."
-    : isListingError
-      ? listingId || "-"
-      : getPropertyName(property);
+        <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
+          The bid could not be loaded. Please go back and try again.
+        </p>
 
-  const propertyAddress = isListingLoading
-    ? stateProperty
-      ? getPropertyAddress(stateProperty)
-      : "Loading property..."
-    : isListingError
-      ? "-"
-      : getPropertyAddress(property);
+        <button
+          type="button"
+          onClick={() => navigate("/bids")}
+          className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-[var(--color-border-light)] bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary)] transition hover:bg-[var(--color-bg-soft)]"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Back to Bids
+        </button>
+      </div>
+    );
+  }
+
+  const bidPrice = getBidPrice(bid);
+  const bidStatus = normalizeValue(getBidStatus(bid));
+  const backupPosition = getBackupPosition(bid);
+  const propertyTitle = property ? getPropertyTitle(property) : "Linked Property";
+  const fullAddress = property ? getFullAddress(property) : "-";
+  const listingStatus = property ? getListingStatus(property) : "unknown";
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[var(--color-secondary)]">
-              Admin · Bid Review
-            </p>
+    <div className="min-w-0 space-y-6 overflow-x-hidden">
+      <button
+        type="button"
+        onClick={() => navigate("/bids")}
+        className="inline-flex items-center gap-2 rounded-2xl border border-[var(--color-border-light)] bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary)] shadow-sm transition hover:bg-[var(--color-bg-soft)] focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)]/40"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Back to Bids
+      </button>
 
-            <h1 className="mt-1.5 font-serif text-2xl font-black leading-tight text-[var(--color-primary)] md:text-3xl">
-              Bid Details
+      <section className="relative overflow-hidden rounded-3xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[var(--color-secondary)]/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 left-10 h-56 w-56 rounded-full bg-[var(--color-primary)]/10 blur-3xl" />
+
+        <div className="relative flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+              <Gavel className="h-3.5 w-3.5" aria-hidden="true" />
+              Admin Bid Review
+            </div>
+
+            <h1 className="font-serif text-3xl font-black leading-tight text-[var(--color-primary)] sm:text-4xl">
+              {formatMoney(bidPrice)}
             </h1>
 
-            {propertyDisplay !== "-" && (
-              <p className="mt-1.5 break-words text-sm font-semibold text-[var(--color-text-main)]">
-                {propertyDisplay}
-              </p>
-            )}
+            <p className="mt-2 max-w-3xl break-words text-sm font-semibold leading-6 text-[var(--color-text-muted)]">
+              Bid submitted for{" "}
+              <span className="font-black text-[var(--color-primary)]">
+                {propertyTitle}
+              </span>
+              {fullAddress !== "-" ? ` · ${fullAddress}` : ""}
+            </p>
 
-            {propertyAddress !== "-" && (
-              <p className="mt-1 flex items-start gap-1.5 text-sm text-[var(--color-text-muted)]">
-                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span className="break-words">{propertyAddress}</span>
-              </p>
-            )}
-
-            <div className="mt-3">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <StatusBadge
-                label={bid.status || "unknown"}
-                variant={getStatusVariant(bid.status)}
+                label={formatLabel(bidStatus)}
+                variant={getStatusVariant(bidStatus)}
               />
+
+              {hasReadableValue(backupPosition) && (
+                <span className="rounded-full border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[var(--color-primary)]">
+                  Backup #{backupPosition}
+                </span>
+              )}
+
+              {property && (
+                <StatusBadge
+                  label={`Listing ${formatLabel(listingStatus)}`}
+                  variant={getStatusVariant(listingStatus)}
+                />
+              )}
             </div>
           </div>
-        </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 border-t border-[var(--color-border-light)] pt-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Bid ID" value={getMongoId(bid) || "-"} icon={Gavel} />
-
-          <StatCard
-            label="Bid Price"
-            value={formatMoney(bidAmount)}
-            icon={DollarSign}
-            accent
-          />
-
-          <StatCard
-            label="Seller"
-            value={seller ? getPersonName(seller) : "-"}
-            icon={UserRound}
-          />
-
-          <StatCard
-            label="Buyer"
-            value={buyer ? getPersonName(buyer) : "-"}
-            icon={UsersRound}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SectionBlock
-          title="Property"
-          description="The listing this bid was placed on."
-          icon={<Home className="h-4 w-4" />}
-          cols={2}
-        >
-          <DetailItem label="Property Name" value={propertyDisplay} />
-          <DetailItem label="Property ID" value={listingId || "-"} />
-
-          <div className="sm:col-span-2">
-            <DetailItem label="Property Address" value={propertyAddress} />
+          <div className="flex shrink-0 flex-wrap gap-2 xl:justify-end">
+            {listingId && (
+              <RecordLink to={`/properties/${listingId}`} label="Open Listing" />
+            )}
           </div>
-        </SectionBlock>
+        </div>
+      </section>
 
-        <SectionBlock
-          title="Bid Info"
-          description="Bid identity, amount, and status."
-          icon={<Gavel className="h-4 w-4" />}
-          cols={2}
-        >
-          <DetailItem label="Bid ID" value={getMongoId(bid)} />
-          <DetailItem label="Bid Price" value={formatMoney(bidAmount)} />
+      <main className="min-w-0 space-y-6">
+ <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-stretch">
+   <SectionBlock
+  title="Bid Information"
+  description="Core bid amount and submission metadata."
+  icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
+  columns="equal"
+>
+      <DetailItem
+        label="Offer Amount"
+        value={formatMoney(bidPrice)}
+        featured
+        icon={<DollarSign className="h-3.5 w-3.5" aria-hidden="true" />}
+      />
 
-          <DetailItem label="Status">
-            <StatusBadge
-              label={bid.status || "unknown"}
-              variant={getStatusVariant(bid.status)}
-            />
-          </DetailItem>
+      <DetailItem label="Bid Status">
+        <StatusBadge
+          label={formatLabel(bidStatus)}
+          variant={getStatusVariant(bidStatus)}
+        />
+      </DetailItem>
 
-          <DetailItem label="Net To Seller" value={formatMoney(bid.net_to_seller)} />
-          {/* <DetailItem label="Inspection Period" value={bid.inspection_period} />
-          <DetailItem label="Due Diligence Period" value={bid.due_diligence_period} />
-          <DetailItem label="Backup Position" value={bid.backup_position} /> */}
-        </SectionBlock>
-      </div>
+      {hasReadableValue(backupPosition) && (
+        <DetailItem label="Backup Position" value={`#${backupPosition}`} />
+      )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SectionBlock
-          title="Seller"
-          description="Owner of the listed property."
-          icon={<UserRound className="h-4 w-4" />}
-          cols={2}
-        >
-          <DetailItem label="Name" value={seller ? getPersonName(seller) : "-"} />
-          <DetailItem label="Seller ID" value={sellerId || "-"} />
-          <DetailItem label="Email" value={getEmail(seller)} />
-          <DetailItem label="Phone" value={getPhone(seller)} />
-        </SectionBlock>
+      <DetailItem
+        label="Submitted"
+        value={formatDate(bid.createdAt)}
+        icon={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
+      />
 
-        <SectionBlock
-          title="Buyer / Bidder"
-          description="Wholesaler, realtor, or partner who placed this bid."
-          icon={<UsersRound className="h-4 w-4" />}
-          cols={2}
-        >
-          <DetailItem label="Name" value={buyer ? getPersonName(buyer) : "-"} />
-          <DetailItem label="Buyer ID" value={buyerId || "-"} />
-          <DetailItem label="Email" value={getEmail(buyer)} />
-          <DetailItem label="Phone" value={getPhone(buyer)} />
-        </SectionBlock>
-      </div>
+      <DetailItem
+        label="Last Updated"
+        value={formatDate(bid.updatedAt)}
+        icon={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
+      />
+    </SectionBlock>
 
-      <SectionBlock
-        title="Documents"
-        description="LOI and proof of funds attached with the bid."
-        icon={<Gavel className="h-4 w-4" />}
-        cols={2}
-      >
-        <DetailItem label="LOI URL" value={bid.loi_url || "-"} />
-        <DetailItem label="Proof Of Funds URL" value={bid.proof_of_funds_url || "-"} />
-      </SectionBlock>
+    <SectionBlock
+  title="Property Address"
+  description={
+    isListingLoading
+      ? "Loading linked property details..."
+      : isListingError
+      ? "Linked property details could not be loaded."
+      : "Location details for the listing connected to this bid."
+  }
+  icon={<MapPin className="h-5 w-5" aria-hidden="true" />}
+  columns="equal"
+>
+      <DetailItem
+        label="Street Address"
+        value={property ? getStreetAddress(property) : "-"}
+      />
 
-      <SectionBlock
-        title="Timeline"
-        description="When this bid was submitted, created, and last updated."
-        icon={<CalendarClock className="h-4 w-4" />}
-        cols={3}
-      >
-        <DetailItem label="Submitted At" value={formatDate(bid.submitted_at)} />
-        <DetailItem label="Created At" value={formatDate(bid.createdAt)} />
-        <DetailItem label="Updated At" value={formatDate(bid.updatedAt)} />
-        <DetailItem label="LOI Expires At" value={formatDate(bid.loi_expires_at)} />
-      </SectionBlock>
+      <DetailItem label="City" value={property ? getCity(property) : "-"} />
+
+      <DetailItem label="State" value={property ? getState(property) : "-"} />
+
+      <DetailItem
+        label="Zip Code"
+        value={property ? getZipCode(property) : "-"}
+      />
+
+      <DetailItem label="Listing Status">
+        {property ? (
+          <StatusBadge
+            label={formatLabel(listingStatus)}
+            variant={getStatusVariant(listingStatus)}
+          />
+        ) : (
+          "-"
+        )}
+      </DetailItem>
+
+      <DetailItem
+        label="Full Address"
+        value={property ? fullAddress : "-"}
+        featured
+      />
+    </SectionBlock>
+  </div>
+
+  <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <PartyCard
+      title="Bidder"
+      person={buyer}
+      fallback="Bidder unavailable"
+      path={buyer ? `/users/${getId(buyer)}` : undefined}
+      icon={<UserRound className="h-5 w-5" aria-hidden="true" />}
+    />
+
+    <PartyCard
+      title="Seller"
+      person={seller}
+      fallback="Seller unavailable"
+      path={seller ? `/users/${getId(seller)}` : undefined}
+      icon={<UsersRound className="h-5 w-5" aria-hidden="true" />}
+    />
+  </section>
+
+  <SectionBlock
+    title="Linked Listing"
+    description="Listing record connected to this bid."
+    icon={<Home className="h-5 w-5" aria-hidden="true" />}
+    columns="compact"
+  >
+    <DetailItem label="Listing" value={propertyTitle} featured />
+
+    <DetailItem label="Listing Status">
+      {property ? (
+        <StatusBadge
+          label={formatLabel(listingStatus)}
+          variant={getStatusVariant(listingStatus)}
+        />
+      ) : (
+        "-"
+      )}
+    </DetailItem>
+
+    <DetailItem
+      label="Created"
+      value={property ? formatDate(property.createdAt) : "-"}
+    />
+
+    <DetailItem
+      label="Updated"
+      value={property ? formatDate(property.updatedAt) : "-"}
+    />
+  </SectionBlock>
+</main>
     </div>
   );
 }
