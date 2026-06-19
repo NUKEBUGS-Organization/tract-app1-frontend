@@ -29,21 +29,13 @@ import {
   formatDate,
   formatMoney,
   getApiDoc,
-  getMongoId,
   getPersonName,
   getStatusVariant,
   normalizeValue,
 } from "../../utils/adminUtils";
 
 function getDoc(value: any) {
-  return (
-    value?.data?.data?._doc ??
-    value?.data?._doc ??
-    value?._doc ??
-    value?.data?.data ??
-    value?.data ??
-    value
-  );
+  return getApiDoc(value);
 }
 
 function getId(value: any) {
@@ -52,7 +44,7 @@ function getId(value: any) {
 
   const doc = getDoc(value);
 
-  return doc?._id || doc?.id || "";
+  return doc?._id || "";
 }
 
 function formatLabel(value: string) {
@@ -77,7 +69,7 @@ function getEmail(value: any) {
 function getPhone(value: any) {
   const doc = getDoc(value);
 
-  return doc?.phone || doc?.phone_number || doc?.phoneNumber || "-";
+  return doc?.phone || "-";
 }
 
 function getRole(value: any) {
@@ -87,54 +79,51 @@ function getRole(value: any) {
 }
 
 function getBidPrice(bid: any) {
-  return bid?.bid_price ?? bid?.bidPrice ?? bid?.amount ?? null;
+  const doc = getDoc(bid);
+
+  return doc?.bid_price ?? null;
 }
 
 function getBidStatus(bid: any) {
-  return bid?.status || "unknown";
+  const doc = getDoc(bid);
+
+  return doc?.status || "unknown";
 }
 
 function getBackupPosition(bid: any) {
-  return bid?.backup_position ?? bid?.backupPosition ?? null;
+  const doc = getDoc(bid);
+
+  return doc?.backup_position ?? null;
 }
 
 function getListingIdFromBid(bid: any) {
-  return getId(bid?.property_id);
+  const doc = getDoc(bid);
+
+  return getId(doc?.property_id);
 }
 
 function getBidderIdFromBid(bid: any) {
-  return getId(bid?.bidder_id);
+  const doc = getDoc(bid);
+
+  return getId(doc?.bidder_id);
 }
 
 function getSellerIdFromProperty(property: any) {
-  return getId(property?.seller_id);
+  const doc = getDoc(property);
+
+  return getId(doc?.seller_id);
 }
 
 function getPropertyTitle(property: any) {
   const doc = getDoc(property);
 
-  return (
-    doc?.address ||
-    doc?.property_address ||
-    doc?.street_address ||
-    doc?.title ||
-    doc?.propertyTitle ||
-    "Linked Property"
-  );
+  return doc?.address || "Linked Property";
 }
 
 function getStreetAddress(property: any) {
   const doc = getDoc(property);
 
-  return (
-    doc?.address ||
-    doc?.property_address ||
-    doc?.street_address ||
-    doc?.streetAddress ||
-    doc?.address_line_1 ||
-    doc?.addressLine1 ||
-    "-"
-  );
+  return doc?.address || "-";
 }
 
 function getCity(property: any) {
@@ -146,13 +135,13 @@ function getCity(property: any) {
 function getState(property: any) {
   const doc = getDoc(property);
 
-  return doc?.state_code || doc?.stateCode || doc?.state || "-";
+  return doc?.state_code || "-";
 }
 
 function getZipCode(property: any) {
   const doc = getDoc(property);
 
-  return doc?.zip_code || doc?.zipCode || doc?.postal_code || doc?.postalCode || "-";
+  return doc?.zip_code || "-";
 }
 
 function getFullAddress(property: any) {
@@ -260,6 +249,7 @@ function SectionBlock({
     </section>
   );
 }
+
 function RecordLink({
   to,
   label,
@@ -345,7 +335,6 @@ function PartyCard({
     </article>
   );
 }
-
 
 function AdminBidDetailsPage() {
   const { id = "" } = useParams();
@@ -508,137 +497,137 @@ function AdminBidDetailsPage() {
       </section>
 
       <main className="min-w-0 space-y-6">
- <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-stretch">
-   <SectionBlock
-  title="Bid Information"
-  description="Core bid amount and submission metadata."
-  icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
-  columns="equal"
->
-      <DetailItem
-        label="Offer Amount"
-        value={formatMoney(bidPrice)}
-        featured
-        icon={<DollarSign className="h-3.5 w-3.5" aria-hidden="true" />}
-      />
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-stretch">
+          <SectionBlock
+            title="Bid Information"
+            description="Core bid amount and submission metadata."
+            icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
+            columns="equal"
+          >
+            <DetailItem
+              label="Offer Amount"
+              value={formatMoney(bidPrice)}
+              featured
+              icon={<DollarSign className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
 
-      <DetailItem label="Bid Status">
-        <StatusBadge
-          label={formatLabel(bidStatus)}
-          variant={getStatusVariant(bidStatus)}
-        />
-      </DetailItem>
+            <DetailItem label="Bid Status">
+              <StatusBadge
+                label={formatLabel(bidStatus)}
+                variant={getStatusVariant(bidStatus)}
+              />
+            </DetailItem>
 
-      {hasReadableValue(backupPosition) && (
-        <DetailItem label="Backup Position" value={`#${backupPosition}`} />
-      )}
+            {hasReadableValue(backupPosition) && (
+              <DetailItem label="Backup Position" value={`#${backupPosition}`} />
+            )}
 
-      <DetailItem
-        label="Submitted"
-        value={formatDate(bid.createdAt)}
-        icon={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
-      />
+            <DetailItem
+              label="Submitted"
+              value={formatDate(bid.createdAt)}
+              icon={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
 
-      <DetailItem
-        label="Last Updated"
-        value={formatDate(bid.updatedAt)}
-        icon={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
-      />
-    </SectionBlock>
+            <DetailItem
+              label="Last Updated"
+              value={formatDate(bid.updatedAt)}
+              icon={<CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />}
+            />
+          </SectionBlock>
 
-    <SectionBlock
-  title="Property Address"
-  description={
-    isListingLoading
-      ? "Loading linked property details..."
-      : isListingError
-      ? "Linked property details could not be loaded."
-      : "Location details for the listing connected to this bid."
-  }
-  icon={<MapPin className="h-5 w-5" aria-hidden="true" />}
-  columns="equal"
->
-      <DetailItem
-        label="Street Address"
-        value={property ? getStreetAddress(property) : "-"}
-      />
+          <SectionBlock
+            title="Property Address"
+            description={
+              isListingLoading
+                ? "Loading linked property details..."
+                : isListingError
+                ? "Linked property details could not be loaded."
+                : "Location details for the listing connected to this bid."
+            }
+            icon={<MapPin className="h-5 w-5" aria-hidden="true" />}
+            columns="equal"
+          >
+            <DetailItem
+              label="Street Address"
+              value={property ? getStreetAddress(property) : "-"}
+            />
 
-      <DetailItem label="City" value={property ? getCity(property) : "-"} />
+            <DetailItem label="City" value={property ? getCity(property) : "-"} />
 
-      <DetailItem label="State" value={property ? getState(property) : "-"} />
+            <DetailItem label="State" value={property ? getState(property) : "-"} />
 
-      <DetailItem
-        label="Zip Code"
-        value={property ? getZipCode(property) : "-"}
-      />
+            <DetailItem
+              label="Zip Code"
+              value={property ? getZipCode(property) : "-"}
+            />
 
-      <DetailItem label="Listing Status">
-        {property ? (
-          <StatusBadge
-            label={formatLabel(listingStatus)}
-            variant={getStatusVariant(listingStatus)}
+            <DetailItem label="Listing Status">
+              {property ? (
+                <StatusBadge
+                  label={formatLabel(listingStatus)}
+                  variant={getStatusVariant(listingStatus)}
+                />
+              ) : (
+                "-"
+              )}
+            </DetailItem>
+
+            <DetailItem
+              label="Full Address"
+              value={property ? fullAddress : "-"}
+              featured
+            />
+          </SectionBlock>
+        </div>
+
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <PartyCard
+            title="Bidder"
+            person={buyer}
+            fallback="Bidder unavailable"
+            path={buyer ? `/users/${getId(buyer)}` : undefined}
+            icon={<UserRound className="h-5 w-5" aria-hidden="true" />}
           />
-        ) : (
-          "-"
-        )}
-      </DetailItem>
 
-      <DetailItem
-        label="Full Address"
-        value={property ? fullAddress : "-"}
-        featured
-      />
-    </SectionBlock>
-  </div>
+          <PartyCard
+            title="Seller"
+            person={seller}
+            fallback="Seller unavailable"
+            path={seller ? `/users/${getId(seller)}` : undefined}
+            icon={<UsersRound className="h-5 w-5" aria-hidden="true" />}
+          />
+        </section>
 
-  <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-    <PartyCard
-      title="Bidder"
-      person={buyer}
-      fallback="Bidder unavailable"
-      path={buyer ? `/users/${getId(buyer)}` : undefined}
-      icon={<UserRound className="h-5 w-5" aria-hidden="true" />}
-    />
+        <SectionBlock
+          title="Linked Listing"
+          description="Listing record connected to this bid."
+          icon={<Home className="h-5 w-5" aria-hidden="true" />}
+          columns="compact"
+        >
+          <DetailItem label="Listing" value={propertyTitle} featured />
 
-    <PartyCard
-      title="Seller"
-      person={seller}
-      fallback="Seller unavailable"
-      path={seller ? `/users/${getId(seller)}` : undefined}
-      icon={<UsersRound className="h-5 w-5" aria-hidden="true" />}
-    />
-  </section>
+          <DetailItem label="Listing Status">
+            {property ? (
+              <StatusBadge
+                label={formatLabel(listingStatus)}
+                variant={getStatusVariant(listingStatus)}
+              />
+            ) : (
+              "-"
+            )}
+          </DetailItem>
 
-  <SectionBlock
-    title="Linked Listing"
-    description="Listing record connected to this bid."
-    icon={<Home className="h-5 w-5" aria-hidden="true" />}
-    columns="compact"
-  >
-    <DetailItem label="Listing" value={propertyTitle} featured />
+          <DetailItem
+            label="Created"
+            value={property ? formatDate(property.createdAt) : "-"}
+          />
 
-    <DetailItem label="Listing Status">
-      {property ? (
-        <StatusBadge
-          label={formatLabel(listingStatus)}
-          variant={getStatusVariant(listingStatus)}
-        />
-      ) : (
-        "-"
-      )}
-    </DetailItem>
-
-    <DetailItem
-      label="Created"
-      value={property ? formatDate(property.createdAt) : "-"}
-    />
-
-    <DetailItem
-      label="Updated"
-      value={property ? formatDate(property.updatedAt) : "-"}
-    />
-  </SectionBlock>
-</main>
+          <DetailItem
+            label="Updated"
+            value={property ? formatDate(property.updatedAt) : "-"}
+          />
+        </SectionBlock>
+      </main>
     </div>
   );
 }

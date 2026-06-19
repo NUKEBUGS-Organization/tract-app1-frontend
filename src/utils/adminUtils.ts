@@ -7,76 +7,50 @@ export function getApiPayload(response: any) {
 export function getApiDoc(response: any) {
   const payload = getApiPayload(response);
 
+  // Needed only because current single detail APIs sometimes return Mongoose document:
+  // { "$__": ..., "$isNew": false, "_doc": {...} }
   return payload?._doc ?? payload;
 }
 
 export function getApiList(response: any) {
   if (!response) return [];
 
+  // Some RTK endpoints may return the list directly.
   if (Array.isArray(response)) return response;
 
-  if (Array.isArray(response?.data)) return response.data;
-
-  if (Array.isArray(response?.data?.data)) return response.data.data;
-
-  if (Array.isArray(response?.data?.data?.data)) {
-    return response.data.data.data;
+  // Raw backend shape:
+  // { success, data: { data: [...], pagination: {...} } }
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
   }
 
-  // Only support numeric object lists:
-  // { "0": {...}, "1": {...} }
-  function getNumericObjectList(value: any) {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      return [];
-    }
-
-    const keys = Object.keys(value);
-    const values = Object.values(value);
-
-    const looksLikeNumericObjectList =
-      keys.length > 0 &&
-      keys.every((key) => /^\d+$/.test(key)) &&
-      values.every((item) => item && typeof item === "object");
-
-    return looksLikeNumericObjectList ? values : [];
+  // RTK/unwrapped shape:
+  // { data: [...], pagination: {...} }
+  if (Array.isArray(response?.data)) {
+    return response.data;
   }
-
-  const directObjectList = getNumericObjectList(response);
-  if (directObjectList.length > 0) return directObjectList;
-
-  const dataObjectList = getNumericObjectList(response?.data);
-  if (dataObjectList.length > 0) return dataObjectList;
-
-  const nestedDataObjectList = getNumericObjectList(response?.data?.data);
-  if (nestedDataObjectList.length > 0) return nestedDataObjectList;
 
   return [];
 }
 
 export function getApiPagination(response: any) {
   const pagination =
-    response?.pagination ??
     response?.data?.pagination ??
-    response?.data?.data?.pagination ??
+    response?.pagination ??
     {};
 
   return {
     page: pagination.page ?? 1,
     limit: pagination.limit ?? 20,
     total: pagination.total ?? 0,
-    totalPages:
-      pagination.totalPages ??
-      pagination.total_pages ??
-      pagination.totalPagesCount ??
-      1,
-    hasNext: pagination.has_next ?? pagination.hasNext ?? false,
+    totalPages: pagination.totalPages ?? 1,
   };
 }
 
 export function getMongoId(item: any) {
   const data = getApiDoc(item);
 
-  return data?._id ?? data?.id ?? "";
+  return data?._id ?? "";
 }
 
 export function normalizeValue(value?: string | null) {
@@ -110,36 +84,19 @@ export function formatDateTime(value?: string | Date | null) {
 export function getPersonName(user: any) {
   const data = getApiDoc(user);
 
-  return data?.full_name || data?.fullName || data?.name || data?.email || "-";
+  return data?.full_name || "-";
 }
 
 export function getListingTitle(listing: any) {
   const data = getApiDoc(listing);
 
-  return (
-    data?.title ||
-    data?.property_address ||
-    data?.address ||
-    data?.street_address ||
-    data?.propertyAddress ||
-    "Listing"
-  );
+  return data?.address || "Listing";
 }
 
 export function getBidAmount(bid: any) {
   const data = getApiDoc(bid);
 
-  return (
-    data?.bid_price ??
-    data?.amount ??
-    data?.bidPrice ??
-    data?.offer_price ??
-    data?.offerPrice ??
-    data?.purchase_price ??
-    data?.purchasePrice ??
-    data?.price ??
-    null
-  );
+  return data?.bid_price ?? null;
 }
 
 export function formatMoney(value: any) {
@@ -160,29 +117,27 @@ export function getStatusVariant(status?: string | null) {
   const normalizedStatus = normalizeValue(status);
 
   if (
-    normalizedStatus.includes("verified") ||
-    normalizedStatus.includes("approved") ||
-    normalizedStatus.includes("accepted") ||
-    normalizedStatus.includes("live") ||
-    normalizedStatus.includes("signed") ||
-    normalizedStatus.includes("completed") ||
-    normalizedStatus.includes("closed") ||
-    normalizedStatus.includes("active") ||
-    normalizedStatus.includes("selected")
+    normalizedStatus === "verified" ||
+    normalizedStatus === "approved" ||
+    normalizedStatus === "live" ||
+    normalizedStatus === "signed" ||
+    normalizedStatus === "completed" ||
+    normalizedStatus === "closed" ||
+    normalizedStatus === "active" ||
+    normalizedStatus === "selected"
   ) {
     return "success";
   }
 
   if (
-    normalizedStatus.includes("rejected") ||
-    normalizedStatus.includes("cancelled") ||
-    normalizedStatus.includes("canceled") ||
-    normalizedStatus.includes("banned") ||
-    normalizedStatus.includes("deleted")
+    normalizedStatus === "rejected" ||
+    normalizedStatus === "cancelled" ||
+    normalizedStatus === "canceled" ||
+    normalizedStatus === "banned" ||
+    normalizedStatus === "deleted"
   ) {
     return "danger";
   }
 
   return "warning";
 }
-

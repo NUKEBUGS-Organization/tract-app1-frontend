@@ -19,40 +19,45 @@ export const listingService = baseApi.injectEndpoints({
     }),
 
     getListingsDashboard: builder.query<any, void>({
-      query: () => ({
-        url: "listings/dashboard",
-        method: "GET",
-      }),
-    }),
+  query: () => ({
+    url: "listings/dashboard",
+    method: "GET",
+  }),
+  providesTags: ["Property"],
+}),
 
-    getListingById: builder.query<any, string>({
-      query: (id) => ({
-        url: `listings/${id}`,
-        method: "GET",
-      }),
-    }),
+getListingById: builder.query<any, string>({
+  query: (id) => ({
+    url: `listings/${id}`,
+    method: "GET",
+  }),
+  providesTags: ["Property"],
+}),
 
-    updateListing: builder.mutation<any, { id: string; body: any }>({
-      query: ({ id, body }) => ({
-        url: `listings/${id}`,
-        method: "PATCH",
-        body,
-      }),
-    }),
+updateListing: builder.mutation<any, { id: string; body: any }>({
+  query: ({ id, body }) => ({
+    url: `listings/${id}`,
+    method: "PATCH",
+    body,
+  }),
+  invalidatesTags: ["Property"],
+}),
 
-    deleteListing: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `listings/${id}`,
-        method: "DELETE",
-      }),
-    }),
+deleteListing: builder.mutation<any, string>({
+  query: (id) => ({
+    url: `listings/${id}`,
+    method: "DELETE",
+  }),
+  invalidatesTags: ["Property"],
+}),
 
-    submitListing: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `listings/${id}/submit`,
-        method: "POST",
-      }),
-    }),
+submitListing: builder.mutation<any, string>({
+  query: (id) => ({
+    url: `listings/${id}/submit`,
+    method: "POST",
+  }),
+  invalidatesTags: ["Property"],
+}),
 
     uploadListingDocuments: builder.mutation<
       any,
@@ -226,6 +231,7 @@ export const {
   useSubmitListingMutation,
   useUploadListingDocumentsMutation,
   useGetListingDocumentsQuery,
+ 
 
   useSubmitBidMutation,
   useGetListingBidsQuery,

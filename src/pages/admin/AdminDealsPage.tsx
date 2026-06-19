@@ -1,18 +1,14 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import {
-  Calendar,
   CheckCircle,
   Clock3,
   Eye,
   FilterX,
   Handshake,
-  Home,
   LockKeyhole,
   RefreshCcw,
   Search,
-  UserRound,
-  UsersRound,
 } from "lucide-react";
 
 import {
@@ -28,52 +24,48 @@ import {
   formatDate,
   getApiList,
   getApiPagination,
-  getListingTitle,
-  getMongoId,
-  getPersonName,
   getStatusVariant,
   normalizeValue,
 } from "../../utils/adminUtils";
 
 type DealFilter = "all" | string;
 
-function getDealDoc(deal: any) {
-  return deal?._doc ?? deal?.data?._doc ?? deal;
-}
-
 function getDealId(deal: any) {
-  const doc = getDealDoc(deal);
-  return getMongoId(doc) || doc?._id || "";
+  return deal?._id || "";
 }
 
 function getDealStatus(deal: any) {
-  const doc = getDealDoc(deal);
-  return doc?.status || "unknown";
+  return deal?.status || "unknown";
 }
 
 function getDealProperty(deal: any) {
-  const doc = getDealDoc(deal);
-  return doc?.listing_id ?? doc?.property_id ?? null;
+  return deal?.listing_id || null;
+}
+
+function getDealPropertyTitle(deal: any) {
+  return getDealProperty(deal)?.address || "Listing";
 }
 
 function getDealPropertyLocation(deal: any) {
   const property = getDealProperty(deal);
 
-  return (
-    [property?.city, property?.state_code || property?.state]
-      .filter(Boolean)
-      .join(", ") || ""
-  );
+  return [property?.city, property?.state_code].filter(Boolean).join(", ");
 }
 
 function getDealSeller(deal: any) {
-  const doc = getDealDoc(deal);
-  return doc?.seller_id ?? null;
+  return deal?.seller_id || null;
 }
 
 function getDealBuyer(deal: any) {
-  const doc = getDealDoc(deal);
-  return doc?.buyer_id ?? null;
+  return deal?.buyer_id || null;
+}
+
+function getDealSellerName(deal: any) {
+  return getDealSeller(deal)?.full_name || "-";
+}
+
+function getDealBuyerName(deal: any) {
+  return getDealBuyer(deal)?.full_name || "-";
 }
 
 function formatStatusLabel(status: string) {
@@ -114,40 +106,45 @@ function SummaryCard({
 }) {
   return (
     <div
-      className={`min-w-0 rounded-3xl border p-4 shadow-[var(--shadow-card)] transition-all duration-200 ${featured
+      className={`min-w-0 rounded-3xl border p-4 shadow-[var(--shadow-card)] transition-all duration-200 ${
+        featured
           ? "border-[var(--color-primary)]/20 bg-[var(--color-primary)] text-white"
           : "border-[var(--color-border-light)] bg-white"
-        }`}
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p
-            className={`text-[9px] font-black uppercase tracking-[0.2em] ${featured ? "text-white/65" : "text-[var(--color-text-muted)]"
-              }`}
+            className={`text-[9px] font-black uppercase tracking-[0.2em] ${
+              featured ? "text-white/65" : "text-[var(--color-text-muted)]"
+            }`}
           >
             {label}
           </p>
 
           <p
-            className={`mt-2 break-words text-lg font-black leading-tight ${featured ? "text-white" : "text-[var(--color-primary)]"
-              }`}
+            className={`mt-2 break-words text-lg font-black leading-tight ${
+              featured ? "text-white" : "text-[var(--color-primary)]"
+            }`}
           >
             {value}
           </p>
 
           <p
-            className={`mt-1 text-xs font-semibold ${featured ? "text-white/65" : "text-[var(--color-text-muted)]"
-              }`}
+            className={`mt-1 text-xs font-semibold ${
+              featured ? "text-white/65" : "text-[var(--color-text-muted)]"
+            }`}
           >
             {helper}
           </p>
         </div>
 
         <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${featured
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
+            featured
               ? "bg-white/10 text-white"
               : "bg-[var(--color-bg-soft)] text-[var(--color-primary)]"
-            }`}
+          }`}
         >
           {icon}
         </div>
@@ -326,7 +323,6 @@ function AdminDealCard({
 }) {
   const dealId = getDealId(deal);
   const status = normalizeValue(getDealStatus(deal));
-  const property = getDealProperty(deal);
   const propertyLocation = getDealPropertyLocation(deal);
 
   return (
@@ -338,7 +334,7 @@ function AdminDealCard({
             state={{ deal }}
             className="break-words text-base font-black leading-6 text-[var(--color-primary)] transition-colors hover:text-[var(--color-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)]/40"
           >
-            {getListingTitle(property)}
+            {getDealPropertyTitle(deal)}
           </Link>
 
           {propertyLocation ? (
@@ -365,7 +361,7 @@ function AdminDealCard({
           </p>
 
           <p className="mt-1 break-words text-sm font-black text-[var(--color-text-main)]">
-            {getPersonName(getDealSeller(deal))}
+            {getDealSellerName(deal)}
           </p>
         </div>
 
@@ -375,7 +371,7 @@ function AdminDealCard({
           </p>
 
           <p className="mt-1 break-words text-sm font-black text-[var(--color-text-main)]">
-            {getPersonName(getDealBuyer(deal))}
+            {getDealBuyerName(deal)}
           </p>
         </div>
       </div>
@@ -387,7 +383,7 @@ function AdminDealCard({
           </p>
 
           <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
-            {formatDate(getDealDoc(deal)?.createdAt)}
+            {formatDate(deal.createdAt)}
           </p>
         </div>
 
@@ -438,12 +434,7 @@ function AdminDealsPage() {
   const [closeTarget, setCloseTarget] = useState<any | null>(null);
   const [processingDealId, setProcessingDealId] = useState("");
 
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-  } = useGetAdminDealsQuery({
+  const { data, isLoading, isError, refetch } = useGetAdminDealsQuery({
     page,
     limit: 20,
   });
@@ -475,8 +466,8 @@ function AdminDealsPage() {
     filter === "all"
       ? allDeals
       : allDeals.filter(
-        (deal: any) => normalizeValue(getDealStatus(deal)) === filter
-      );
+          (deal: any) => normalizeValue(getDealStatus(deal)) === filter
+        );
 
   const deals = useMemo(() => {
     const normalizedSearch = searchValue.trim().toLowerCase();
@@ -484,14 +475,12 @@ function AdminDealsPage() {
     if (!normalizedSearch) return statusFilteredDeals;
 
     return statusFilteredDeals.filter((deal: any) => {
-      const property = getDealProperty(deal);
-
       const searchText = [
         getDealId(deal),
-        getListingTitle(property),
+        getDealPropertyTitle(deal),
         getDealPropertyLocation(deal),
-        getPersonName(getDealSeller(deal)),
-        getPersonName(getDealBuyer(deal)),
+        getDealSellerName(deal),
+        getDealBuyerName(deal),
         formatStatusLabel(getDealStatus(deal)),
       ]
         .join(" ")
@@ -743,7 +732,6 @@ function AdminDealsPage() {
                 {deals.map((deal: any) => {
                   const dealId = getDealId(deal);
                   const status = normalizeValue(getDealStatus(deal));
-                  const property = getDealProperty(deal);
                   const propertyLocation = getDealPropertyLocation(deal);
 
                   const isThisClosing =
@@ -760,7 +748,7 @@ function AdminDealsPage() {
                           state={{ deal }}
                           className="line-clamp-1 font-black text-[var(--color-primary)] transition-colors hover:text-[var(--color-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary)]/40"
                         >
-                          {getListingTitle(property)}
+                          {getDealPropertyTitle(deal)}
                         </Link>
 
                         <p className="mt-1 line-clamp-1 text-xs font-semibold text-[var(--color-text-muted)]">
@@ -770,13 +758,13 @@ function AdminDealsPage() {
 
                       <td className="px-6 py-5">
                         <p className="line-clamp-1 text-sm font-bold text-[var(--color-text-main)]">
-                          {getPersonName(getDealSeller(deal))}
+                          {getDealSellerName(deal)}
                         </p>
                       </td>
 
                       <td className="px-6 py-5">
                         <p className="line-clamp-1 text-sm font-bold text-[var(--color-text-main)]">
-                          {getPersonName(getDealBuyer(deal))}
+                          {getDealBuyerName(deal)}
                         </p>
                       </td>
 
@@ -788,30 +776,30 @@ function AdminDealsPage() {
                       </td>
 
                       <td className="px-6 py-5 text-sm font-semibold text-[var(--color-text-muted)]">
-                        {formatDate(getDealDoc(deal)?.createdAt)}
+                        {formatDate(deal.createdAt)}
                       </td>
 
-                     <td className="px-4 py-5">
-  <div className="flex min-w-[92px] items-center justify-center gap-2">
-    <ViewDealButton deal={deal} />
+                      <td className="px-4 py-5">
+                        <div className="flex min-w-[92px] items-center justify-center gap-2">
+                          <ViewDealButton deal={deal} />
 
-    {canCloseDeal(status) && (
-      <ActionIconButton
-        label="Close Deal"
-        variant="danger"
-        isLoading={isThisClosing}
-        disabled={isThisClosing}
-        onClick={() => setCloseTarget(deal)}
-        icon={
-          <LockKeyhole
-            className="h-4 w-4 shrink-0"
-            aria-hidden="true"
-          />
-        }
-      />
-    )}
-  </div>
-</td>
+                          {canCloseDeal(status) && (
+                            <ActionIconButton
+                              label="Close Deal"
+                              variant="danger"
+                              isLoading={isThisClosing}
+                              disabled={isThisClosing}
+                              onClick={() => setCloseTarget(deal)}
+                              icon={
+                                <LockKeyhole
+                                  className="h-4 w-4 shrink-0"
+                                  aria-hidden="true"
+                                />
+                              }
+                            />
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -860,10 +848,9 @@ function AdminDealsPage() {
         isOpen={Boolean(closeTarget)}
         variant="danger"
         title="Force close deal?"
-        description={`Are you sure you want to close "${closeTarget
-            ? getListingTitle(getDealProperty(closeTarget))
-            : "this deal"
-          }"?`}
+        description={`Are you sure you want to close "${
+          closeTarget ? getDealPropertyTitle(closeTarget) : "this deal"
+        }"?`}
         icon={<LockKeyhole className="h-5 w-5" />}
         confirmLabel="Close Deal"
         loadingLabel="Closing..."

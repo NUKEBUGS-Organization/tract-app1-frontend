@@ -1,23 +1,19 @@
-import { formatDate } from "./adminUtils";
+import { formatDate, formatMoney } from "./adminUtils";
 
 export function getDoc(value: any) {
-  return (
-    value?.data?.data?._doc ??
-    value?.data?._doc ??
-    value?._doc ??
-    value?.data?.data ??
-    value?.data ??
-    value
-  );
+  const payload = value?.data?.data ?? value?.data ?? value;
+
+  return payload?._doc ?? payload;
 }
 
 export function getId(value: any) {
   if (!value) return "";
+
   if (typeof value === "string") return value;
 
   const doc = getDoc(value);
 
-  return doc?._id || doc?.id || "";
+  return doc?._id || "";
 }
 
 export function formatLabel(value: any) {
@@ -33,115 +29,83 @@ export function hasReadableValue(value: any) {
   return value !== undefined && value !== null && value !== "" && value !== "-";
 }
 
-export function formatMoney(value: any) {
-  if (value === undefined || value === null || value === "") return "-";
-
-  const numberValue = Number(value);
-
-  if (!Number.isFinite(numberValue)) return String(value);
-
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(numberValue);
-}
-
 export function getPersonName(person: any) {
   const doc = getDoc(person);
 
-  return (
-    doc?.full_name ||
-    doc?.fullName ||
-    doc?.name ||
-    [doc?.first_name, doc?.last_name].filter(Boolean).join(" ") ||
-    "-"
-  );
+  return doc?.full_name || "-";
 }
 
 export function getEmail(person: any) {
   const doc = getDoc(person);
+
   return doc?.email || "-";
 }
 
 export function getPhone(person: any) {
   const doc = getDoc(person);
-  return doc?.phone || doc?.phone_number || doc?.phoneNumber || "-";
+
+  return doc?.phone || "-";
 }
 
 export function getRole(person: any) {
   const doc = getDoc(person);
+
   return doc?.role || "-";
 }
 
 export function getPropertyId(contract: any) {
   const doc = getDoc(contract);
+
   return getId(doc?.property_id);
 }
 
-export function getSellerId(contract: any, property: any) {
-  const contractDoc = getDoc(contract);
-  const propertyDoc = getDoc(property);
+export function getSellerId(contract: any) {
+  const doc = getDoc(contract);
 
-  return getId(contractDoc?.seller_id) || getId(propertyDoc?.seller_id);
+  return getId(doc?.seller_id);
 }
 
 export function getBuyerId(contract: any) {
   const doc = getDoc(contract);
+
   return getId(doc?.buyer_id);
 }
 
 export function getBidId(contract: any) {
   const doc = getDoc(contract);
+
   return getId(doc?.bid_id);
 }
 
 export function getContractStatus(contract: any) {
   const doc = getDoc(contract);
+
   return doc?.status || "unknown";
 }
 
 export function getPdfUrl(contract: any) {
   const doc = getDoc(contract);
 
-  return (
-    doc?.pdf_url ||
-    doc?.pdfUrl ||
-    doc?.contract_pdf_url ||
-    doc?.contractPdfUrl ||
-    doc?.signed_pdf_url ||
-    doc?.signedPdfUrl ||
-    doc?.document_url ||
-    doc?.documentUrl ||
-    doc?.docuseal_pdf_url ||
-    doc?.docusealPdfUrl ||
-    ""
-  );
+  return doc?.pdf_url || "";
 }
 
 export function getContractPageImages(contract: any) {
   const doc = getDoc(contract);
-
-  const images =
-    doc?.page_images ||
-    doc?.pageImages ||
-    doc?.contract_images ||
-    doc?.contractImages ||
-    doc?.document_images ||
-    doc?.documentImages ||
-    [];
+  const images = doc?.page_images || [];
 
   return Array.isArray(images) ? images.filter(Boolean) : [];
 }
 
 export function getSellerSignedAt(contract: any) {
   const doc = getDoc(contract);
-  return doc?.seller_signed_at || doc?.sellerSignedAt || null;
+
+  return doc?.seller_signed_at || null;
 }
 
 export function getBuyerSignedAt(contract: any) {
   const doc = getDoc(contract);
-  return doc?.buyer_signed_at || doc?.buyerSignedAt || null;
+
+  return doc?.buyer_signed_at || null;
 }
 
 export function isSellerSigned(contract: any) {
@@ -155,68 +119,43 @@ export function isBuyerSigned(contract: any) {
 export function getPropertyName(property: any) {
   const doc = getDoc(property);
 
-  return (
-    doc?.address ||
-    doc?.property_address ||
-    doc?.street_address ||
-    doc?.title ||
-    doc?.propertyTitle ||
-    "Linked Property"
-  );
+  return doc?.address || "Linked Property";
 }
 
 export function getStreetAddress(property: any) {
   const doc = getDoc(property);
 
-  return (
-    doc?.address ||
-    doc?.property_address ||
-    doc?.street_address ||
-    doc?.streetAddress ||
-    doc?.address_line_1 ||
-    doc?.addressLine1 ||
-    "-"
-  );
+  return doc?.address || "-";
 }
 
 export function getCity(property: any) {
   const doc = getDoc(property);
+
   return doc?.city || "-";
 }
 
 export function getState(property: any) {
   const doc = getDoc(property);
-  return doc?.state_code || doc?.stateCode || doc?.state || "-";
+
+  return doc?.state_code || "-";
 }
 
 export function getZipCode(property: any) {
   const doc = getDoc(property);
 
-  return (
-    doc?.zip_code ||
-    doc?.zipCode ||
-    doc?.postal_code ||
-    doc?.postalCode ||
-    "-"
-  );
+  return doc?.zip_code || "-";
 }
 
 export function getPropertyStatus(property: any) {
   const doc = getDoc(property);
+
   return doc?.status || "unknown";
 }
 
 export function getPropertyPrice(property: any) {
   const doc = getDoc(property);
 
-  return (
-    doc?.market_price ??
-    doc?.marketPrice ??
-    doc?.asking_price ??
-    doc?.askingPrice ??
-    doc?.price ??
-    null
-  );
+  return doc?.market_price ?? null;
 }
 
 export function getFullAddress(property: any) {
@@ -251,27 +190,32 @@ export function getSigningVariant(contract: any) {
 }
 
 export function getSigningProgress(contract: any) {
-  const sellerSigned = isSellerSigned(contract);
-  const buyerSigned = isBuyerSigned(contract);
+  const doc = getDoc(contract);
+
+  const sellerSigned = isSellerSigned(doc);
+  const buyerSigned = isBuyerSigned(doc);
   const fullySigned = sellerSigned && buyerSigned;
+
+  const sellerSignedAt = getSellerSignedAt(doc);
+  const buyerSignedAt = getBuyerSignedAt(doc);
 
   const steps = [
     {
       title: "Generated",
       description: "Contract document was created",
-      helper: contract?.createdAt ? formatDate(contract.createdAt) : "-",
-      isComplete: Boolean(contract?.createdAt),
+      helper: doc?.createdAt ? formatDate(doc.createdAt) : "-",
+      isComplete: Boolean(doc?.createdAt),
     },
     {
       title: "Seller Signed",
       description: "Seller completed signature",
-      helper: sellerSigned ? formatDate(getSellerSignedAt(contract)) : "Pending",
+      helper: sellerSigned ? formatDate(sellerSignedAt) : "Pending",
       isComplete: sellerSigned,
     },
     {
       title: "Buyer Signed",
       description: "Buyer completed signature",
-      helper: buyerSigned ? formatDate(getBuyerSignedAt(contract)) : "Pending",
+      helper: buyerSigned ? formatDate(buyerSignedAt) : "Pending",
       isComplete: buyerSigned,
     },
     {
@@ -293,3 +237,6 @@ export function getSigningProgress(contract: any) {
     progress,
   };
 }
+
+export { formatMoney };
+

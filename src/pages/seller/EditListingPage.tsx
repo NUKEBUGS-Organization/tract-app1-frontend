@@ -1,10 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
-import { ArrowLeft, Check, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Check, Loader2 } from "lucide-react";
 
 import {
   useGetListingByIdQuery,
   useUpdateListingMutation,
+   useSubmitListingMutation,
 } from "../../services/listingService";
 
 const PROPERTY_TYPES = ["sfh", "multi_family", "land"];
@@ -48,8 +49,19 @@ function getListingFromResponse(response: any) {
   return payload?.listing ?? payload;
 }
 
-function isDraftListing(listing: any) {
-  return String(listing?.status || "").toLowerCase() === "draft";
+
+function getListingStatus(listing: any) {
+  return String(listing?.status || "").toLowerCase();
+}
+
+function isEditableListing(listing: any) {
+  const status = getListingStatus(listing);
+
+  return status === "draft" || status === "withdrawn";
+}
+
+function isWithdrawnListing(listing: any) {
+  return getListingStatus(listing) === "withdrawn";
 }
 
 function numberOrUndefined(value: string) {
@@ -127,7 +139,7 @@ function buildPayload(form: any) {
     year_built: requiredNumber(form.year_built),
     zoning: form.zoning.trim(),
     market_price: requiredNumber(form.market_price),
-    hidden_reserve: numberOrUndefined(form.hidden_reserve),
+    // hidden_reserve: numberOrUndefined(form.hidden_reserve),
     has_liens: form.has_liens,
     lien_disclosure: form.lien_disclosure.trim() || undefined,
     is_preforeclosure: form.is_preforeclosure,
@@ -161,7 +173,13 @@ export default function EditListingPage() {
     skip: !id,
   });
 
-  const [updateListing, { isLoading: isSaving }] = useUpdateListingMutation();
+  const [updateListing, { isLoading: isUpdating }] =
+  useUpdateListingMutation();
+
+const [submitListing, { isLoading: isSubmitting }] =
+  useSubmitListingMutation();
+
+const isSaving = isUpdating || isSubmitting;
 
   const listing = getListingFromResponse(data);
 
@@ -206,7 +224,7 @@ export default function EditListingPage() {
     );
   }
 
-  if (!isDraftListing(listing)) {
+if (!isEditableListing(listing)) {
     return (
       <div className="rounded-2xl border border-[var(--color-secondary)]/30 bg-white p-8 shadow-[var(--shadow-card)]">
         <Link
@@ -222,8 +240,8 @@ export default function EditListingPage() {
         </h1>
 
         <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-          This listing is no longer in draft status. Only draft listings can be
-          edited.
+         This listing cannot be edited in its current status. Only draft or withdrawn
+  listings can be edited.
         </p>
       </div>
     );
@@ -248,33 +266,46 @@ export default function EditListingPage() {
     }));
   };
 
-  const handleSave = async () => {
-    const validationError = validateForm(form);
+const handleSave = async () => {
+  if (!id) return;
 
-    if (validationError) {
-      setApiError(validationError);
-      return;
+  const validationError = validateForm(form);
+
+  if (validationError) {
+    setApiError(validationError);
+    return;
+  }
+
+  try {
+    setApiError(null);
+
+    const payload = buildPayload(form);
+
+    await updateListing({
+      id,
+      body: payload,
+    }).unwrap();
+
+    if (isWithdrawnListing(listing)) {
+      await submitListing(id).unwrap();
     }
 
-    try {
-      setApiError(null);
+    navigate(`/listings/${id}`, {
+      replace: true,
+      state: {
+        refreshListing: Date.now(),
+      },
+    });
+  } catch (error: any) {
+    const message =
+      error?.data?.message ||
+      error?.data?.error ||
+      error?.error ||
+      "Unable to update listing.";
 
-      await updateListing({
-        id,
-        body: buildPayload(form),
-      }).unwrap();
-
-      navigate(`/listings/${id}`);
-    } catch (error: any) {
-      const message =
-        error?.data?.message ||
-        error?.data?.error ||
-        error?.error ||
-        "Unable to update listing. Please try again.";
-
-      setApiError(Array.isArray(message) ? message.join(", ") : message);
-    }
-  };
+    setApiError(Array.isArray(message) ? message.join(", ") : message);
+  }
+};
 
   return (
     <div className="space-y-8">
@@ -288,16 +319,18 @@ export default function EditListingPage() {
         </Link>
 
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
-          Draft Listing
-        </p>
+  {isWithdrawnListing(listing) ? "Withdrawn Listing" : "Draft Listing"}
+</p>
 
         <h1 className="mt-1 font-serif text-3xl font-black text-[var(--color-primary)]">
           Edit Listing
         </h1>
 
-        <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-          Update listing information before it is submitted or moved forward.
-        </p>
+       <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+  {isWithdrawnListing(listing)
+    ? "Update this withdrawn listing. After saving, it will be submitted again for admin review."
+    : "Update listing information before it is submitted or moved forward."}
+</p>
       </div>
 
       {apiError && (
@@ -566,19 +599,18 @@ export default function EditListingPage() {
       </section>
 
       <div className="flex justify-end border-t border-[var(--color-border-light)] pt-6">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving}
-          className="inline-flex items-center gap-2 bg-[var(--color-secondary)] px-8 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          {isSaving ? "Saving..." : "Save Changes"}
-        </button>
+       <button
+  type="button"
+  onClick={handleSave}
+  disabled={isSaving}
+  className="bg-[var(--color-primary)] px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[var(--shadow-card)] disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {isSaving
+    ? "Saving..."
+    : isWithdrawnListing(listing)
+      ? "Save & Submit for Review"
+      : "Save Changes"}
+</button>
       </div>
     </div>
   );

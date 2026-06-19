@@ -8,7 +8,6 @@ import {
   Search,
   ShieldCheck,
   UserCheck,
-  UserRound,
   UsersRound,
   XCircle,
 } from "lucide-react";
@@ -131,60 +130,54 @@ function SummaryCard({
     tone === "danger"
       ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
       : tone === "warning"
-      ? "bg-[var(--color-warning)]/10 text-[var(--color-warning)]"
-      : tone === "success"
-      ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
-      : "bg-[var(--color-bg-soft)] text-[var(--color-primary)]";
+        ? "bg-[var(--color-warning)]/10 text-[var(--color-warning)]"
+        : tone === "success"
+          ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+          : "bg-[var(--color-bg-soft)] text-[var(--color-primary)]";
 
   return (
-  <div
-  className={`relative min-w-0 overflow-hidden rounded-3xl border p-4 shadow-[var(--shadow-card)] ${
-    featured
-      ? "border-[var(--color-primary)]/20 bg-[var(--color-primary)] text-white"
-      : "border-[var(--color-border-light)] bg-white"
-  }`}
->
+    <div
+      className={`relative min-w-0 overflow-hidden rounded-3xl border p-4 shadow-[var(--shadow-card)] ${featured
+          ? "border-[var(--color-primary)]/20 bg-[var(--color-primary)] text-white"
+          : "border-[var(--color-border-light)] bg-white"
+        }`}
+    >
       <div
-  className={`pointer-events-none absolute -right-12 -top-14 h-36 w-36 rounded-full blur-2xl ${
-    featured
-      ? "bg-[var(--color-secondary)]/20"
-      : "bg-[var(--color-secondary)]/10"
-  }`}
-/>
+        className={`pointer-events-none absolute -right-12 -top-14 h-36 w-36 rounded-full blur-2xl ${featured
+            ? "bg-[var(--color-secondary)]/20"
+            : "bg-[var(--color-secondary)]/10"
+          }`}
+      />
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p
-            className={`text-[9px] font-black uppercase tracking-[0.2em] ${
-              featured ? "text-white/65" : "text-[var(--color-text-muted)]"
-            }`}
+            className={`text-[9px] font-black uppercase tracking-[0.2em] ${featured ? "text-white/65" : "text-[var(--color-text-muted)]"
+              }`}
           >
             {label}
           </p>
 
           <p
-            className={`mt-2 break-words text-lg font-black leading-tight ${
-              featured ? "text-white" : "text-[var(--color-primary)]"
-            }`}
+            className={`mt-2 break-words text-lg font-black leading-tight ${featured ? "text-white" : "text-[var(--color-primary)]"
+              }`}
           >
             {value}
           </p>
 
           <p
-            className={`mt-1 text-xs font-semibold ${
-              featured ? "text-white/65" : "text-[var(--color-text-muted)]"
-            }`}
+            className={`mt-1 text-xs font-semibold ${featured ? "text-white/65" : "text-[var(--color-text-muted)]"
+              }`}
           >
             {helper}
           </p>
         </div>
 
-      <div
-  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-    featured ? "bg-white/10 text-white" : toneClasses
-  }`}
->
-  {icon}
-</div>
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${featured ? "bg-white/10 text-white" : toneClasses
+            }`}
+        >
+          {icon}
+        </div>
       </div>
     </div>
   );
@@ -209,8 +202,8 @@ function ActionIconButton({
     variant === "danger"
       ? "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:border-[var(--color-danger)] hover:bg-[var(--color-danger)] hover:text-white"
       : variant === "success"
-      ? "border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white"
-      : "border-[var(--color-border-light)] bg-white text-[var(--color-primary)] hover:border-[var(--color-secondary)] hover:bg-[var(--color-bg-soft)]";
+        ? "border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white"
+        : "border-[var(--color-border-light)] bg-white text-[var(--color-primary)] hover:border-[var(--color-secondary)] hover:bg-[var(--color-bg-soft)]";
 
   return (
     <button
@@ -887,9 +880,8 @@ function AdminUsersPage() {
         isOpen={Boolean(banTarget)}
         variant="danger"
         title="Ban user?"
-        description={`This will block ${
-          banTarget ? getPersonName(banTarget) : "this user"
-        } from platform access until an admin removes the ban.`}
+        description={`This will block ${banTarget ? getPersonName(banTarget) : "this user"
+          } from platform access until an admin removes the ban.`}
         icon={<Ban className="h-5 w-5" />}
         confirmLabel="Ban User"
         loadingLabel="Banning..."

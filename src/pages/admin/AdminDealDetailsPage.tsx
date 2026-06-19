@@ -1,14 +1,12 @@
+
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
-  CalendarClock,
   CheckCircle2,
   Clock3,
   DollarSign,
   ExternalLink,
-  FileText,
-  Gavel,
   Handshake,
   Home,
   LockKeyhole,
@@ -35,20 +33,13 @@ import StatusBadge from "../../components/common/StatusBadge";
 import {
   formatDate,
   getApiDoc,
-  getMongoId,
+  getPersonName,
   getStatusVariant,
   normalizeValue,
 } from "../../utils/adminUtils";
 
 function getDoc(value: any) {
-  return (
-    value?.data?.data?._doc ??
-    value?.data?._doc ??
-    value?._doc ??
-    value?.data?.data ??
-    value?.data ??
-    value
-  );
+  return getApiDoc(value);
 }
 
 function getId(value: any) {
@@ -57,7 +48,7 @@ function getId(value: any) {
 
   const doc = getDoc(value);
 
-  return doc?._id || doc?.id || "";
+  return doc?._id || "";
 }
 
 function formatLabel(value: any) {
@@ -87,18 +78,6 @@ function formatMoney(value: any) {
   }).format(numberValue);
 }
 
-function getPersonName(person: any) {
-  const doc = getDoc(person);
-
-  return (
-    doc?.full_name ||
-    doc?.fullName ||
-    doc?.name ||
-    [doc?.first_name, doc?.last_name].filter(Boolean).join(" ") ||
-    "-"
-  );
-}
-
 function getEmail(person: any) {
   const doc = getDoc(person);
 
@@ -108,14 +87,7 @@ function getEmail(person: any) {
 function getPhone(person: any) {
   const doc = getDoc(person);
 
-  return (
-    doc?.phone ||
-    doc?.phone_number ||
-    doc?.phoneNumber ||
-    doc?.mobile ||
-    doc?.mobile_number ||
-    "-"
-  );
+  return doc?.phone || "-";
 }
 
 function getRole(person: any) {
@@ -133,90 +105,55 @@ function getDealStatus(deal: any) {
 function getDealPropertyId(deal: any) {
   const doc = getDoc(deal);
 
-  return getId(doc?.property_id) || getId(doc?.listing_id);
+  return getId(doc?.listing_id);
 }
 
 function getDealBidId(deal: any) {
   const doc = getDoc(deal);
 
-  return getId(doc?.bid_id) || getId(doc?.selected_bid_id);
+  return getId(doc?.bid_id);
 }
 
 function getDealContractId(deal: any) {
   const doc = getDoc(deal);
 
-  return getId(doc?.contract_id) || getId(doc?.contract);
+  return getId(doc?.contract_id);
 }
 
-function getDealSellerId(deal: any, property: any) {
-  const dealDoc = getDoc(deal);
-  const propertyDoc = getDoc(property);
+function getDealSellerId(deal: any) {
+  const doc = getDoc(deal);
 
-  return getId(dealDoc?.seller_id) || getId(propertyDoc?.seller_id);
+  return getId(doc?.seller_id);
 }
 
-function getDealBuyerId(deal: any, bid: any) {
-  const dealDoc = getDoc(deal);
+function getDealBuyerId(deal: any) {
+  const doc = getDoc(deal);
+
+  return getId(doc?.buyer_id);
+}
+
+function getDealAmount(bid: any) {
   const bidDoc = getDoc(bid);
 
-  return (
-    getId(dealDoc?.buyer_id) ||
-    getId(dealDoc?.wholesaler_id) ||
-    getId(dealDoc?.realtor_id) ||
-    getId(bidDoc?.bidder_id)
-  );
-}
-
-function getDealAmount(deal: any, bid: any) {
-  const dealDoc = getDoc(deal);
-  const bidDoc = getDoc(bid);
-
-  return (
-    dealDoc?.purchase_price ??
-    dealDoc?.purchasePrice ??
-    dealDoc?.deal_price ??
-    dealDoc?.dealPrice ??
-    dealDoc?.final_price ??
-    dealDoc?.finalPrice ??
-    dealDoc?.amount ??
-    bidDoc?.bid_price ??
-    bidDoc?.bidPrice ??
-    bidDoc?.amount ??
-    null
-  );
+  return bidDoc?.bid_price ?? null;
 }
 
 function getClosedAt(deal: any) {
   const doc = getDoc(deal);
 
-  return doc?.closed_at || doc?.closedAt || null;
+  return doc?.closed_at || null;
 }
 
 function getPropertyTitle(property: any) {
   const doc = getDoc(property);
 
-  return (
-    doc?.address ||
-    doc?.property_address ||
-    doc?.street_address ||
-    doc?.title ||
-    doc?.propertyTitle ||
-    "Linked Property"
-  );
+  return doc?.address || "Linked Property";
 }
 
 function getStreetAddress(property: any) {
   const doc = getDoc(property);
 
-  return (
-    doc?.address ||
-    doc?.property_address ||
-    doc?.street_address ||
-    doc?.streetAddress ||
-    doc?.address_line_1 ||
-    doc?.addressLine1 ||
-    "-"
-  );
+  return doc?.address || "-";
 }
 
 function getCity(property: any) {
@@ -228,19 +165,13 @@ function getCity(property: any) {
 function getState(property: any) {
   const doc = getDoc(property);
 
-  return doc?.state_code || doc?.stateCode || doc?.state || "-";
+  return doc?.state_code || "-";
 }
 
 function getZipCode(property: any) {
   const doc = getDoc(property);
 
-  return (
-    doc?.zip_code ||
-    doc?.zipCode ||
-    doc?.postal_code ||
-    doc?.postalCode ||
-    "-"
-  );
+  return doc?.zip_code || "-";
 }
 
 function getFullAddress(property: any) {
@@ -263,28 +194,19 @@ function getPropertyStatus(property: any) {
 function getPropertyPrice(property: any) {
   const doc = getDoc(property);
 
-  return (
-    doc?.market_price ??
-    doc?.marketPrice ??
-    doc?.asking_price ??
-    doc?.askingPrice ??
-    doc?.price ??
-    null
-  );
+  return doc?.market_price ?? null;
 }
 
 function isDealClosed(status: string) {
   const normalized = normalizeValue(status);
 
-  return ["closed", "completed", "complete"].includes(normalized);
+  return normalized === "closed";
 }
 
 function canCloseDeal(status: string) {
   const normalized = normalizeValue(status);
 
-  return !["closed", "completed", "complete", "cancelled", "canceled"].includes(
-    normalized
-  );
+  return normalized !== "closed";
 }
 
 function getDealProgress(deal: any, bid: any, contractId: string) {
@@ -443,7 +365,15 @@ function RecordLink({
   );
 }
 
-function DealTimeline({ deal, bid, contractId }: { deal: any; bid: any; contractId: string }) {
+function DealTimeline({
+  deal,
+  bid,
+  contractId,
+}: {
+  deal: any;
+  bid: any;
+  contractId: string;
+}) {
   const { steps, completedCount, totalSteps, progress } = getDealProgress(
     deal,
     bid,
@@ -629,9 +559,7 @@ function AdminDealDetailsPage() {
   const contractId = getDealContractId(deal);
 
   const stateProperty =
-    deal?.property_id && typeof deal.property_id === "object"
-      ? deal.property_id
-      : deal?.listing_id && typeof deal.listing_id === "object"
+    deal?.listing_id && typeof deal.listing_id === "object"
       ? deal.listing_id
       : null;
 
@@ -653,22 +581,16 @@ function AdminDealDetailsPage() {
   const property = getDoc(getApiDoc(listingResponse)) || stateProperty;
   const bid = getDoc(getApiDoc(bidResponse)) || stateBid;
 
-  const sellerId = getDealSellerId(deal, property);
-  const buyerId = getDealBuyerId(deal, bid);
+  const sellerId = getDealSellerId(deal);
+  const buyerId = getDealBuyerId(deal);
 
   const stateSeller =
     deal?.seller_id && typeof deal.seller_id === "object"
       ? deal.seller_id
-      : property?.seller_id && typeof property.seller_id === "object"
-      ? property.seller_id
       : null;
 
   const stateBuyer =
-    deal?.buyer_id && typeof deal.buyer_id === "object"
-      ? deal.buyer_id
-      : bid?.bidder_id && typeof bid.bidder_id === "object"
-      ? bid.bidder_id
-      : null;
+    deal?.buyer_id && typeof deal.buyer_id === "object" ? deal.buyer_id : null;
 
   const { data: sellerResponse } = useGetAdminUserQuery(sellerId, {
     skip: !sellerId,
@@ -686,7 +608,7 @@ function AdminDealDetailsPage() {
   async function handleCloseDeal() {
     if (!deal) return;
 
-    await closeDeal(getMongoId(deal)).unwrap();
+    await closeDeal(getId(deal)).unwrap();
 
     setIsCloseOpen(false);
     refetch();
@@ -726,7 +648,7 @@ function AdminDealDetailsPage() {
 
   const dealStatus = getDealStatus(deal);
   const normalizedDealStatus = normalizeValue(dealStatus);
-  const dealAmount = getDealAmount(deal, bid);
+  const dealAmount = getDealAmount(bid);
   const closedAt = getClosedAt(deal);
 
   const propertyTitle = isListingLoading

@@ -11,14 +11,9 @@ export type ListingTimelineStep = {
 };
 
 export function getDoc(value: any) {
-  return (
-    value?.data?.data?._doc ??
-    value?.data?._doc ??
-    value?._doc ??
-    value?.data?.data ??
-    value?.data ??
-    value
-  );
+  const payload = value?.data ?? value;
+
+  return payload?._doc ?? payload;
 }
 
 export function displayAdminValue(value: any) {
@@ -28,6 +23,7 @@ export function displayAdminValue(value: any) {
 
   if (Array.isArray(value)) {
     if (value.length === 0) return "-";
+
     return value
       .map((item) =>
         typeof item === "object" ? JSON.stringify(item) : String(item)
@@ -43,17 +39,13 @@ export function displayAdminValue(value: any) {
 }
 
 export function getApiPayload(response: any) {
-  return response?.data?.data ?? response?.data ?? response;
+  return response?.data ?? response;
 }
 
 export function getDocumentsFromResponse(response: any) {
   const payload = getApiPayload(response);
 
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.documents)) return payload.documents;
-  if (Array.isArray(payload?.data)) return payload.data;
-
-  return [];
+  return Array.isArray(payload) ? payload : [];
 }
 
 export function formatMoney(value: any) {
@@ -84,6 +76,7 @@ export function formatLabel(value: any) {
 
 export function formatStatusLabel(status: any) {
   if (!status) return "Unknown";
+
   return formatLabel(status);
 }
 
@@ -93,7 +86,7 @@ export function getRelationIdValue(value: any) {
 
   const doc = getDoc(value);
 
-  return doc?._id || doc?.id || "";
+  return doc?._id || "";
 }
 
 export function getRelationId(value: any) {
@@ -113,14 +106,7 @@ export function getRelationPhone(value: any) {
 
   const doc = getDoc(value);
 
-  return (
-    doc?.phone ||
-    doc?.phone_number ||
-    doc?.phoneNumber ||
-    doc?.mobile ||
-    doc?.mobile_number ||
-    "-"
-  );
+  return doc?.phone || "-";
 }
 
 export function hasCompletePerson(value: any) {
@@ -128,16 +114,9 @@ export function hasCompletePerson(value: any) {
 
   const doc = getDoc(value);
 
-  const hasName = Boolean(doc?.full_name || doc?.fullName || doc?.name);
+  const hasName = Boolean(doc?.full_name);
   const hasEmail = Boolean(doc?.email);
-
-  const hasPhone = Boolean(
-    doc?.phone ||
-      doc?.phone_number ||
-      doc?.phoneNumber ||
-      doc?.mobile ||
-      doc?.mobile_number
-  );
+  const hasPhone = Boolean(doc?.phone);
 
   return hasName && hasEmail && hasPhone;
 }
@@ -148,42 +127,25 @@ export function mergePerson(primary: any, fallback: any) {
   const primaryDoc = typeof primary === "object" ? getDoc(primary) || {} : {};
   const fallbackDoc = typeof fallback === "object" ? getDoc(fallback) || {} : {};
 
-  const primaryId =
-    typeof primary === "string" ? primary : primaryDoc?._id || primaryDoc?.id;
+  const primaryId = typeof primary === "string" ? primary : primaryDoc?._id;
 
   return {
     ...fallbackDoc,
     ...primaryDoc,
-    _id: primaryId || fallbackDoc?._id || fallbackDoc?.id,
-    id: primaryId || fallbackDoc?.id || fallbackDoc?._id,
-    full_name:
-      primaryDoc?.full_name ||
-      primaryDoc?.fullName ||
-      primaryDoc?.name ||
-      fallbackDoc?.full_name ||
-      fallbackDoc?.fullName ||
-      fallbackDoc?.name,
+    _id: primaryId || fallbackDoc?._id || "",
+    full_name: primaryDoc?.full_name || fallbackDoc?.full_name,
     email: primaryDoc?.email || fallbackDoc?.email,
-    phone:
-      primaryDoc?.phone ||
-      primaryDoc?.phone_number ||
-      primaryDoc?.phoneNumber ||
-      primaryDoc?.mobile ||
-      primaryDoc?.mobile_number ||
-      fallbackDoc?.phone ||
-      fallbackDoc?.phone_number ||
-      fallbackDoc?.phoneNumber ||
-      fallbackDoc?.mobile ||
-      fallbackDoc?.mobile_number,
+    phone: primaryDoc?.phone || fallbackDoc?.phone,
+    role: primaryDoc?.role || fallbackDoc?.role,
   };
 }
 
 export function getAddressLine(listing: any) {
   return [
-    listing.address || listing.property_address || listing.street_address,
-    listing.city,
-    listing.state_code || listing.state,
-    listing.zip_code || listing.zipCode,
+    listing?.address,
+    listing?.city,
+    listing?.state_code,
+    listing?.zip_code,
   ]
     .filter(Boolean)
     .join(", ");
@@ -192,59 +154,33 @@ export function getAddressLine(listing: any) {
 export function getDocumentTitle(document: any) {
   if (typeof document === "string") return "Property image";
 
-  return (
-    document.title ||
-    document.name ||
-    document.file_name ||
-    document.filename ||
-    document.document_type ||
-    document.type ||
-    "Document"
-  );
+  return document?.title || "Property image";
 }
 
 export function getDocumentUrl(document: any) {
   if (typeof document === "string") return document;
 
-  return (
-    document.url ||
-    document.file_url ||
-    document.fileUrl ||
-    document.document_url ||
-    document.documentUrl ||
-    document.secure_url ||
-    document.path ||
-    ""
-  );
+  return document?.url || document?.file_url || "";
 }
 
 export function getDocumentMimeType(document: any) {
   if (typeof document === "string") return "";
 
-  return (
-    document.mime_type ||
-    document.mimeType ||
-    document.file_type ||
-    document.fileType ||
-    ""
-  );
+  return document?.mime_type || "";
 }
 
 export function isImageDocument(document: any) {
   const mimeType = getDocumentMimeType(document).toLowerCase();
-  const title = getDocumentTitle(document).toLowerCase();
   const url = getDocumentUrl(document).toLowerCase();
 
   if (mimeType.startsWith("image/")) return true;
 
-  return /\.(jpg|jpeg|png|webp|gif|bmp|avif|svg)(\?.*)?$/i.test(title || url);
+  return /\.(jpg|jpeg|png|webp|gif|bmp|avif|svg)(\?.*)?$/i.test(url);
 }
 
 export function getListingImageItems(listing: any, documents: any[]) {
   const pictureUrls = Array.isArray(listing?.picture_urls)
     ? listing.picture_urls
-    : Array.isArray(listing?.pictureUrls)
-    ? listing.pictureUrls
     : [];
 
   const pictureItems = pictureUrls.map((url: string, index: number) => ({
@@ -255,9 +191,9 @@ export function getListingImageItems(listing: any, documents: any[]) {
     source: "listing",
   }));
 
-  const documentImages = documents.filter(
-    (document: any) => isImageDocument(document) && Boolean(getDocumentUrl(document))
-  );
+  const documentImages = documents
+    .filter((document: any) => isImageDocument(document))
+    .filter((document: any) => Boolean(getDocumentUrl(document)));
 
   const uniqueImages = new Map<string, any>();
 
@@ -273,49 +209,31 @@ export function getListingImageItems(listing: any, documents: any[]) {
 }
 
 export function getListingPrice(listing: any) {
-  return (
-    listing?.asking_price ??
-    listing?.askingPrice ??
-    listing?.market_price ??
-    listing?.marketPrice ??
-    listing?.suggested_price ??
-    listing?.suggestedPrice ??
-    listing?.price ??
-    listing?.list_price ??
-    listing?.listPrice
-  );
+  return listing?.market_price ?? listing?.suggested_price ?? null;
 }
 
 export function getListingReservePrice(listing: any) {
-  return (
-    listing?.hidden_reserve ??
-    listing?.hiddenReserve ??
-    listing?.reserve_price ??
-    listing?.reservePrice
-  );
+  return listing?.hidden_reserve ?? null;
 }
 
 export function getApprovedAt(listing: any) {
-  return (
-    listing?.approved_at ??
-    listing?.approvedAt ??
-    listing?.reviewed_at ??
-    listing?.reviewedAt ??
-    listing?.live_at ??
-    listing?.liveAt
-  );
+  return listing?.reviewed_at ?? listing?.live_at ?? null;
 }
 
 export function getRejectedAt(listing: any) {
-  return listing?.rejected_at ?? listing?.rejectedAt;
+  const status = normalizeValue(listing?.status);
+
+  if (status !== "rejected") return null;
+
+  return listing?.reviewed_at ?? listing?.updatedAt ?? null;
 }
 
 export function getDeletedAt(listing: any) {
-  return listing?.deleted_at ?? listing?.deletedAt;
+  return listing?.deleted_at ?? null;
 }
 
 export function getSubmittedAt(listing: any) {
-  return listing?.submitted_at ?? listing?.submittedAt ?? listing?.createdAt;
+  return listing?.createdAt ?? null;
 }
 
 export function getListingTimelineSteps(listing: any): ListingTimelineStep[] {
@@ -327,7 +245,7 @@ export function getListingTimelineSteps(listing: any): ListingTimelineStep[] {
   const submittedAt = getSubmittedAt(listing);
 
   const isDraft = status === "draft";
-  const isSubmitted = ["submitted", "pending"].includes(status);
+  const isSubmitted = status === "submitted";
   const isRejected = status === "rejected";
   const isDeleted = Boolean(deletedAt) || status === "deleted";
   const isLive = status === "live";
@@ -378,7 +296,7 @@ export function getListingTimelineSteps(listing: any): ListingTimelineStep[] {
   if (isLive) {
     finalLabel = "Live";
     finalDescription = "Listing is visible to buyers";
-    finalDate = formatDate(approvedAt || listing?.live_at || listing?.updatedAt);
+    finalDate = formatDate(listing?.live_at || listing?.updatedAt);
     finalState = "complete";
   }
 

@@ -99,7 +99,7 @@ function getDoc(value: any) {
 }
 
 function formatLabel(value: string) {
-  if (!value) return "-";
+  if (!value || value === "-") return "-";
 
   return value
     .split("_")
@@ -113,6 +113,7 @@ function hasReadableValue(value: any) {
 
 function getEmail(user: any) {
   const doc = getDoc(user);
+
   return doc?.email || "-";
 }
 
@@ -125,13 +126,13 @@ function getPhone(user: any) {
 function getRole(user: any) {
   const doc = getDoc(user);
 
-  return doc?.role || "unknown";
+  return doc?.role || "-";
 }
 
 function getKycStatus(user: any) {
   const doc = getDoc(user);
 
-  return doc?.kyc_status || doc?.kycStatus || "unknown";
+  return doc?.kyc_status || doc?.kycStatus || "-";
 }
 
 function getBanReason(user: any) {
@@ -286,16 +287,18 @@ function UserAvatar({ name, isBanned }: { name: string; isBanned: boolean }) {
 
   return (
     <div
-      className={`relative flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl text-xl font-black text-white shadow-lg sm:h-20 sm:w-20 ${isBanned ? "bg-[var(--color-danger)]" : "bg-[var(--color-primary)]"
-        }`}
+      className={`relative flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl text-xl font-black text-white shadow-lg sm:h-20 sm:w-20 ${
+        isBanned ? "bg-[var(--color-danger)]" : "bg-[var(--color-primary)]"
+      }`}
     >
       <div className="pointer-events-none absolute inset-0 rounded-3xl bg-white/10" />
 
       {initials || <UserRound className="h-8 w-8" aria-hidden="true" />}
 
       <span
-        className={`absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-4 border-white ${isBanned ? "bg-[var(--color-danger)]" : "bg-[var(--color-primary)]"
-          }`}
+        className={`absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-4 border-white ${
+          isBanned ? "bg-[var(--color-danger)]" : "bg-[var(--color-primary)]"
+        }`}
       />
     </div>
   );
@@ -316,10 +319,11 @@ function DetailItem({
 }) {
   return (
     <div
-      className={`group min-w-0 rounded-2xl border px-4 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-secondary)]/40 hover:shadow-sm ${featured
+      className={`group min-w-0 rounded-2xl border px-4 py-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--color-secondary)]/40 hover:shadow-sm ${
+        featured
           ? "border-[var(--color-primary)]/15 bg-[var(--color-primary)]/5"
           : "border-[var(--color-border-light)] bg-white hover:bg-[var(--color-bg-soft)]/60"
-        }`}
+      }`}
     >
       <div className="flex items-center gap-2">
         {icon && (
@@ -332,10 +336,11 @@ function DetailItem({
       </div>
 
       <div
-        className={`mt-1.5 break-words text-sm font-bold leading-6 ${featured
+        className={`mt-1.5 break-words text-sm font-bold leading-6 ${
+          featured
             ? "text-[var(--color-primary)]"
             : "text-[var(--color-text-main)]"
-          }`}
+        }`}
       >
         {children ?? displayValue(value)}
       </div>
@@ -377,10 +382,11 @@ function SectionBlock({
       </div>
 
       <div
-        className={`grid grid-cols-1 gap-3 ${columns === "compact"
+        className={`grid grid-cols-1 gap-3 ${
+          columns === "compact"
             ? "sm:grid-cols-1"
             : "sm:grid-cols-2 xl:grid-cols-3"
-          }`}
+        }`}
       >
         {children}
       </div>
@@ -399,17 +405,18 @@ function AdminControlPanel({
   onBanClick: () => void;
   onUnban: () => void;
 }) {
-  const isBanned = Boolean(user?.is_banned);
+  const isBanned = user?.is_banned === true;
   const banReason = getBanReason(user);
 
   return (
     <aside className="rounded-3xl border border-[var(--color-border-light)] bg-white p-4 shadow-[var(--shadow-card)] xl:sticky xl:top-6">
       <div className="flex items-start gap-3">
         <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${isBanned
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
+            isBanned
               ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
               : "bg-[var(--color-primary)]/8 text-[var(--color-primary)]"
-            }`}
+          }`}
         >
           {isBanned ? (
             <ShieldAlert className="h-5 w-5" aria-hidden="true" />
@@ -562,7 +569,7 @@ function AdminUserDetailsPage() {
   const fullAddress = getFullAddress(user);
   const role = normalizeValue(getRole(user));
   const kycStatus = normalizeValue(getKycStatus(user));
-  const isBanned = Boolean(user.is_banned);
+  const isBanned = user?.is_banned === true;
 
   return (
     <div className="min-w-0 space-y-6 overflow-x-hidden">
@@ -635,7 +642,6 @@ function AdminUserDetailsPage() {
       </section>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
-
         <main className="min-w-0 space-y-6">
           <SectionBlock
             title="Contact"

@@ -466,37 +466,37 @@ function AdminVerificationPage() {
             </p>
           </div>
 
-        <div className="rounded-3xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-5 py-4">
-  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-    Pending Users
-  </p>
+          <div className="rounded-3xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-5 py-4">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+              Pending Users
+            </p>
 
-  <p className="mt-1 font-serif text-2xl font-black leading-none text-[var(--color-primary)]">
-    {pendingUsersCount}
-  </p>
+            <p className="mt-1 font-serif text-2xl font-black leading-none text-[var(--color-primary)]">
+              {pendingUsersCount}
+            </p>
 
-  <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
-    Waiting for KYC review
-  </p>
-</div>
+            <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
+              Waiting for KYC review
+            </p>
+          </div>
         </div>
       </section>
 
-     {!activeQuery.isLoading && !activeQuery.isError && viewUsers.length > 0 && (
-  <AdminVerificationFilters
-    searchValue={searchValue}
-    filter={filter}
-    shownCount={users.length}
-    totalCount={viewUsers.length}
-    hasActiveFilters={hasActiveFilters}
-    onSearchChange={setSearchValue}
-    onFilterChange={(value) => {
-      setFilter(value);
-      setSearchValue("");
-    }}
-    onClear={clearFilters}
-  />
-)}
+      {!activeQuery.isLoading && !activeQuery.isError && viewUsers.length > 0 && (
+        <AdminVerificationFilters
+          searchValue={searchValue}
+          filter={filter}
+          shownCount={users.length}
+          totalCount={viewUsers.length}
+          hasActiveFilters={hasActiveFilters}
+          onSearchChange={setSearchValue}
+          onFilterChange={(value) => {
+            setFilter(value);
+            setSearchValue("");
+          }}
+          onClear={clearFilters}
+        />
+      )}
 
       {activeQuery.isLoading ? (
         <div className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
@@ -540,8 +540,8 @@ function AdminVerificationPage() {
             {hasActiveFilters
               ? "No users match your current search or filter selection."
               : filter === "pending"
-              ? "There are no pending KYC users right now."
-              : "No users were found."}
+                ? "There are no pending KYC users right now."
+                : "No users were found."}
           </p>
 
           {hasActiveFilters && (
@@ -703,9 +703,8 @@ function AdminVerificationPage() {
         isOpen={Boolean(approveTarget)}
         variant="success"
         title="Approve KYC?"
-        description={`Are you sure you want to approve KYC for ${
-          approveTarget ? getPersonName(approveTarget) : "this user"
-        }?`}
+        description={`Are you sure you want to approve KYC for ${approveTarget ? getPersonName(approveTarget) : "this user"
+          }?`}
         icon={<CheckCircle className="h-5 w-5" />}
         confirmLabel="Approve KYC"
         loadingLabel="Approving..."
@@ -718,9 +717,8 @@ function AdminVerificationPage() {
         isOpen={Boolean(rejectTarget)}
         variant="danger"
         title="Reject KYC?"
-        description={`This will mark ${
-          rejectTarget ? getPersonName(rejectTarget) : "this user"
-        }'s KYC as rejected.`}
+        description={`This will mark ${rejectTarget ? getPersonName(rejectTarget) : "this user"
+          }'s KYC as rejected.`}
         icon={<XCircle className="h-5 w-5" />}
         confirmLabel="Reject KYC"
         loadingLabel="Rejecting..."

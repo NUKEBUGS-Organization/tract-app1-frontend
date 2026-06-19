@@ -24,9 +24,6 @@ import {
   formatDate,
   getApiList,
   getApiPagination,
-  getListingTitle,
-  getMongoId,
-  getPersonName,
   getStatusVariant,
   normalizeValue,
 } from "../../utils/adminUtils";
@@ -48,6 +45,18 @@ const LISTING_STATUS_OPTIONS = [
   { label: "Withdrawn", value: "withdrawn" },
 ];
 
+function getListingId(listing: any) {
+  return listing?._id || "";
+}
+
+function getListingTitle(listing: any) {
+  return listing?.address || "Listing";
+}
+
+function getSellerName(listing: any) {
+  return listing?.seller_id?.full_name || "-";
+}
+
 function formatStatusLabel(status: string) {
   if (!status) return "Unknown";
 
@@ -58,7 +67,7 @@ function formatStatusLabel(status: string) {
 }
 
 function getListingStatus(listing: any, localStatuses: Record<string, string>) {
-  const listingId = getMongoId(listing);
+  const listingId = getListingId(listing);
 
   return localStatuses[listingId] || listing.status || "unknown";
 }
@@ -66,7 +75,7 @@ function getListingStatus(listing: any, localStatuses: Record<string, string>) {
 function isPendingListing(status: string) {
   const normalized = normalizeValue(status);
 
-  return normalized === "submitted" || normalized === "pending";
+  return normalized === "submitted";
 }
 
 function canMakeLive(status: string) {
@@ -90,11 +99,7 @@ function canDeleteListing(status: string) {
 }
 
 function getListingLocation(listing: any) {
-  return (
-    [listing.city, listing.state_code || listing.state]
-      .filter(Boolean)
-      .join(", ") || "-"
-  );
+  return [listing?.city, listing?.state_code].filter(Boolean).join(", ") || "-";
 }
 
 function AdminListingsPage() {
@@ -140,26 +145,26 @@ function AdminListingsPage() {
   const [deleteListing, { isLoading: isDeleting }] =
     useDeleteAdminListingMutation();
 
-const rawListings = getApiList(activeQuery.data) as any[];
+  const rawListings = getApiList(activeQuery.data) as any[];
 
-const tabListings: any[] =
-  tab === "pending"
-    ? rawListings.filter((listing: any) =>
-        isPendingListing(getListingStatus(listing, localStatuses))
-      )
-    : rawListings;
+  const tabListings: any[] =
+    tab === "pending"
+      ? rawListings.filter((listing: any) =>
+          isPendingListing(getListingStatus(listing, localStatuses))
+        )
+      : rawListings;
 
-const cityOptions = useMemo<string[]>(() => {
-  const locations = tabListings
-    .map((listing: any): string => getListingLocation(listing))
-    .filter((location: string) => {
-      return location.trim().length > 0 && location !== "-";
-    });
+  const cityOptions = useMemo<string[]>((() => {
+    const locations = tabListings
+      .map((listing: any): string => getListingLocation(listing))
+      .filter((location: string) => {
+        return location.trim().length > 0 && location !== "-";
+      });
 
-  return Array.from(new Set(locations)).sort((a, b) =>
-    a.localeCompare(b)
-  );
-}, [tabListings]);
+    return Array.from(new Set(locations)).sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }) as any, [tabListings]);
 
   const hasActiveFilters =
     searchValue.trim().length > 0 ||
@@ -173,7 +178,7 @@ const cityOptions = useMemo<string[]>(() => {
       const status = getListingStatus(listing, localStatuses);
       const normalizedStatus = normalizeValue(status);
       const formattedStatus = formatStatusLabel(status);
-      const seller = getPersonName(listing.seller_id);
+      const seller = getSellerName(listing);
       const title = getListingTitle(listing);
       const location = getListingLocation(listing);
 
@@ -217,7 +222,7 @@ const cityOptions = useMemo<string[]>(() => {
   async function handleChangeStatus() {
     if (!statusTarget || !statusValue) return;
 
-    const listingId = getMongoId(statusTarget);
+    const listingId = getListingId(statusTarget);
 
     try {
       setProcessingListingId(listingId);
@@ -246,7 +251,7 @@ const cityOptions = useMemo<string[]>(() => {
   async function handleMakeLive() {
     if (!makeLiveTarget) return;
 
-    const listingId = getMongoId(makeLiveTarget);
+    const listingId = getListingId(makeLiveTarget);
 
     try {
       setProcessingListingId(listingId);
@@ -273,7 +278,7 @@ const cityOptions = useMemo<string[]>(() => {
   async function handleReject() {
     if (!rejectTarget || rejectReason.trim().length < 3) return;
 
-    const listingId = getMongoId(rejectTarget);
+    const listingId = getListingId(rejectTarget);
 
     try {
       setProcessingListingId(listingId);
@@ -300,7 +305,7 @@ const cityOptions = useMemo<string[]>(() => {
   async function handleDelete() {
     if (!deleteTarget) return;
 
-    const listingId = getMongoId(deleteTarget);
+    const listingId = getListingId(deleteTarget);
 
     try {
       setProcessingListingId(listingId);
@@ -315,10 +320,10 @@ const cityOptions = useMemo<string[]>(() => {
     }
   }
 
-  const statusTargetId = statusTarget ? getMongoId(statusTarget) : "";
-  const makeLiveTargetId = makeLiveTarget ? getMongoId(makeLiveTarget) : "";
-  const rejectTargetId = rejectTarget ? getMongoId(rejectTarget) : "";
-  const deleteTargetId = deleteTarget ? getMongoId(deleteTarget) : "";
+  const statusTargetId = statusTarget ? getListingId(statusTarget) : "";
+  const makeLiveTargetId = makeLiveTarget ? getListingId(makeLiveTarget) : "";
+  const rejectTargetId = rejectTarget ? getListingId(rejectTarget) : "";
+  const deleteTargetId = deleteTarget ? getListingId(deleteTarget) : "";
 
   return (
     <div className="min-w-0 space-y-6 overflow-x-hidden">
@@ -459,10 +464,9 @@ const cityOptions = useMemo<string[]>(() => {
         </div>
       ) : (
         <>
-          {/* Cards used below 2xl to avoid horizontal scroll in admin sidebar layout */}
           <div className="grid grid-cols-1 gap-4 2xl:hidden">
             {listings.map((listing: any) => {
-              const listingId = getMongoId(listing);
+              const listingId = getListingId(listing);
               const status = getListingStatus(listing, localStatuses);
 
               return (
@@ -489,7 +493,6 @@ const cityOptions = useMemo<string[]>(() => {
             })}
           </div>
 
-          {/* Table only on very large screens. No overflow-x and no min-width. */}
           <div className="hidden rounded-3xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)] 2xl:block">
             <div className="border-b border-[var(--color-border-light)] px-6 py-4">
               <div className="flex items-center justify-between gap-4">
@@ -537,9 +540,8 @@ const cityOptions = useMemo<string[]>(() => {
 
               <tbody>
                 {listings.map((listing: any) => {
-                  const listingId = getMongoId(listing);
+                  const listingId = getListingId(listing);
                   const status = getListingStatus(listing, localStatuses);
-                  const seller = listing.seller_id;
 
                   const isThisStatusUpdating =
                     isStatusUpdating && processingListingId === listingId;
@@ -574,7 +576,7 @@ const cityOptions = useMemo<string[]>(() => {
 
                       <td className="px-6 py-5 text-sm font-bold text-[var(--color-text-main)]">
                         <span className="line-clamp-2">
-                          {getPersonName(seller)}
+                          {getSellerName(listing)}
                         </span>
                       </td>
 
