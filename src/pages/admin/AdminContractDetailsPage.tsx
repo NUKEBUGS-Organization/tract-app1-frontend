@@ -95,7 +95,7 @@ function AdminContractDetailsPage() {
   const apiProperty = getDoc(getApiDoc(listingResponse));
   const property = getDoc(apiProperty || stateProperty);
 
-  const sellerId = getSellerId(contract, property);
+  const sellerId = getSellerId(contract);
   const buyerId = getBuyerId(contract);
 
   const stateSeller =

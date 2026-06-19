@@ -9,9 +9,6 @@ import {
   MessagesSquare,
   RefreshCcw,
   Search,
-  ShieldCheck,
-  UserRound,
-  UsersRound,
 } from "lucide-react";
 
 import {

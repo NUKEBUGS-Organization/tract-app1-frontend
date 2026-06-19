@@ -71,9 +71,6 @@ function getUserBanStatus(user: any) {
   return user?.is_banned ? "banned" : "active";
 }
 
-function isAdminUser(user: any) {
-  return normalizeValue(user?.role) === "admin";
-}
 
 function isVerifiedKyc(status: string) {
   const normalized = normalizeValue(status);

@@ -11,7 +11,6 @@ import {
   Mail,
   MessageSquare,
   Search,
-  ShieldCheck,
   UnlockKeyhole,
   UserRound,
   UsersRound,
@@ -144,10 +143,6 @@ function getDealId(deal: any) {
   return getId(deal);
 }
 
-function getRoomDealId(room: AdminRoom | null) {
-  const doc = getDoc(room);
-  return getId(doc?.deal_id);
-}
 
 function getListingFromDeal(deal: AdminDeal | undefined | null) {
   if (!deal) return null;
