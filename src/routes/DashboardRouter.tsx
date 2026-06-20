@@ -32,7 +32,6 @@ const partnerNav = [
   { label: "My Bids", path: "/my-bids" },
   { label: "Active Deals", path: "/deals" },
   { label: "Chat", path: "/chat" },
-  { label: "Score", path: "/score" },
 ];
 
 const realtorNav = [

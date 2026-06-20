@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -7,6 +8,7 @@ import {
   Bath,
   Bed,
   Building2,
+  Camera,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -18,6 +20,7 @@ import {
   MapPin,
   Maximize2,
   TrendingUp,
+  X,
 } from "lucide-react";
 import {
   useGetListingByIdQuery,
@@ -25,7 +28,7 @@ import {
 } from "../../services/listingService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
 
-/* ─── Helpers ─────────────────────────────────────────────────────── */
+
 function formatMoney(value: any) {
   const num = Number(value);
   if (!Number.isFinite(num) || num === 0) return "—";
@@ -166,6 +169,54 @@ function getListingImages(listing: any) {
     );
 }
 
+function isPlaceholderValue(value: any) {
+  if (value === undefined || value === null || value === "") return true;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    return ["", "string", "n/a", "null", "undefined"].includes(normalized);
+  }
+  return false;
+}
+
+function displayValue(value: any) {
+  return isPlaceholderValue(value) ? "-" : value;
+}
+
+function formatCondition(value?: string) {
+  if (isPlaceholderValue(value)) return "-";
+  return String(value)
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function Detail({ label, value, isDark }: { label: string; value: any; isDark: boolean }) {
+  return (
+    <div>
+      <p className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"}`}>
+        {label}
+      </p>
+      <p className={`mt-1 text-[13px] font-bold capitalize ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
+        {displayValue(value)}
+      </p>
+    </div>
+  );
+}
+
+function NotesBox({ label, value, isDark }: { label: string; value: any; isDark: boolean }) {
+  if (isPlaceholderValue(value)) return null;
+  return (
+    <div className={`mt-5 rounded-xl p-4 ${isDark ? "bg-white/[0.03] border border-white/5" : "bg-[var(--color-bg-soft)]"}`}>
+      <p className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"}`}>
+        {label}
+      </p>
+      <p className={`mt-2 text-[13px] leading-6 ${isDark ? "text-white/70" : "text-[var(--color-text-main)]"}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
 function StatPill({
   icon: Icon,
   label,
@@ -214,6 +265,202 @@ function StatPill({
   );
 }
 
+function PropertyImageGallery({ listing, isDark }: { listing: any; isDark: boolean }) {
+  const images = getListingImages(listing);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    if (!previewOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [previewOpen]);
+
+  const hasImages = images.length > 0;
+  const activeImage = hasImages ? images[activeIndex]?.url : null;
+
+  function goPrevious() {
+    if (!hasImages) return;
+    setActiveIndex((current) => (current === 0 ? images.length - 1 : current - 1));
+  }
+
+  function goNext() {
+    if (!hasImages) return;
+    setActiveIndex((current) => (current === images.length - 1 ? 0 : current + 1));
+  }
+
+  return (
+    <>
+      <section className={`overflow-hidden rounded-3xl border shadow-[var(--shadow-card)] ${isDark ? "border-white/10 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-white"}`}>
+        <div className={`flex flex-col gap-3 border-b px-6 py-5 sm:flex-row sm:items-center sm:justify-between ${isDark ? "border-white/10 bg-black/20" : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"}`}>
+          <div>
+            <p className={`text-[10px] font-black uppercase tracking-[0.28em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
+              Media Gallery
+            </p>
+            <h2 className={`mt-1 flex items-center gap-2 font-serif text-2xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
+              <Camera className="h-5 w-5 text-[var(--color-secondary)]" />
+              Property Photos
+            </h2>
+          </div>
+          <div className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] shadow-sm ${isDark ? "bg-white/10 text-white" : "bg-[var(--color-primary)] text-white"}`}>
+            {images.length} {images.length === 1 ? "Photo" : "Photos"}
+          </div>
+        </div>
+
+        {!hasImages ? (
+          <div className={`flex min-h-[320px] flex-col items-center justify-center bg-gradient-to-br px-6 py-12 text-center ${isDark ? "from-white/5 to-transparent" : "from-[var(--color-bg-soft)] to-white"}`}>
+            <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${isDark ? "bg-white/5" : "bg-[var(--color-primary)]/10"}`}>
+              <ImageIcon className={`h-8 w-8 ${isDark ? "text-white/40" : "text-[var(--color-primary)]"}`} />
+            </div>
+            <h3 className={`mt-4 font-serif text-xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
+              No property photos uploaded yet
+            </h3>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-0 lg:grid-cols-[1fr_280px]">
+            <div className="relative bg-black">
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(true)}
+                className="group block h-[420px] w-full overflow-hidden"
+              >
+                <img
+                  src={activeImage}
+                  alt="Selected property view"
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/5 to-transparent" />
+                <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/70">
+                      Featured View
+                    </p>
+                    <h3 className="mt-1 font-serif text-2xl font-black text-white">
+                      Photo {activeIndex + 1} of {images.length}
+                    </h3>
+                  </div>
+                  <div className="hidden items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white backdrop-blur-md sm:flex">
+                    <Maximize2 className="h-4 w-4" />
+                    View Large
+                  </div>
+                </div>
+              </button>
+
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={goPrevious}
+                    className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[var(--color-primary)] shadow-lg transition hover:scale-105 hover:bg-white"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[var(--color-primary)] shadow-lg transition hover:scale-105 hover:bg-white"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className={`border-t p-4 lg:border-l lg:border-t-0 ${isDark ? "border-white/10 bg-black/20" : "border-[var(--color-border-light)] bg-white"}`}>
+              <div className="mb-3 flex items-center justify-between">
+                <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
+                  Gallery
+                </p>
+                <p className={`text-[10px] font-bold ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"}`}>
+                  Click to preview
+                </p>
+              </div>
+
+              <div className="grid max-h-[370px] grid-cols-3 gap-3 overflow-y-auto pr-1 lg:grid-cols-2">
+                {images.map((image: any, index: number) => {
+                  const active = index === activeIndex;
+                  return (
+                    <button
+                      key={image.id}
+                      type="button"
+                      onClick={() => setActiveIndex(index)}
+                      className={`relative aspect-square overflow-hidden rounded-2xl border transition ${active
+                          ? "border-[var(--color-secondary)] ring-2 ring-[var(--color-secondary)]/40"
+                          : isDark
+                            ? "border-white/10 hover:border-[var(--color-secondary)]"
+                            : "border-[var(--color-border-light)] hover:border-[var(--color-primary)]"
+                        }`}
+                    >
+                      <img
+                        src={image.url}
+                        alt={`Property thumbnail ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                      {active && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/25">
+                          <span className="rounded-full bg-white px-3 py-1 text-[9px] font-black uppercase tracking-wider text-[var(--color-primary)]">
+                            Selected
+                          </span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {previewOpen &&
+        activeImage &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex h-screen w-screen items-center justify-center overflow-hidden bg-black/80 p-6 backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(false)}
+              className="absolute right-6 top-6 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[var(--color-primary)] shadow-xl transition hover:scale-105"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            {images.length > 1 && (
+              <button
+                type="button"
+                onClick={goPrevious}
+                className="absolute left-6 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[var(--color-primary)] shadow-xl transition hover:scale-105"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            )}
+            <div className="relative flex max-h-[88vh] max-w-[88vw] items-center justify-center rounded-3xl bg-white p-3 shadow-2xl">
+              <img
+                src={activeImage}
+                alt="Large property preview"
+                className="max-h-[82vh] max-w-[84vw] rounded-2xl object-contain"
+              />
+              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-5 py-2 text-sm font-bold text-white shadow-lg">
+                {activeIndex + 1} / {images.length}
+              </div>
+            </div>
+            {images.length > 1 && (
+              <button
+                type="button"
+                onClick={goNext}
+                className="absolute right-6 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[var(--color-primary)] shadow-xl transition hover:scale-105"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            )}
+          </div>,
+          document.body
+        )}
+    </>
+  );
+}
+
 export default function PropertyDetailPage() {
   const theme = usePartnerTheme();
   const isDark = theme === "dark";
@@ -230,11 +477,8 @@ export default function PropertyDetailPage() {
     skip: !propertyId,
   });
 
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-
   const listing = normalizeListingData(rawData);
   const documents = normalizeDocuments(rawDocs);
-  const images = getListingImages(listing);
 
   if (isLoading) {
     return (
@@ -295,7 +539,6 @@ export default function PropertyDetailPage() {
 
   return (
     <div className="space-y-8">
-      {/* Back + Header */}
       <div>
         <Link
           to="/properties"
@@ -347,7 +590,6 @@ export default function PropertyDetailPage() {
             )}
           </div>
 
-          {/* Timer */}
           {hoursLeft !== null && (
             <div
               className={`flex items-center gap-2 rounded-2xl border px-5 py-3 ${isUrgent
@@ -375,111 +617,8 @@ export default function PropertyDetailPage() {
 
         <div className="space-y-6">
 
-          <div className="space-y-3">
-            <div
-              className={`relative h-64 overflow-hidden rounded-2xl border lg:h-80 flex items-center justify-center ${isDark
-                ? "border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02]"
-                : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
-                }`}
-            >
-              {images.length > 0 ? (
-                <>
-                  <img
-                    src={images[selectedImageIndex]?.url}
-                    alt={images[selectedImageIndex]?.name || "Property photo"}
-                    className="h-full w-full object-cover transition-all duration-300"
-                  />
-
-                  {images.length > 1 && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedImageIndex((prev) =>
-                            prev === 0 ? images.length - 1 : prev - 1
-                          )
-                        }
-                        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 hover:bg-black/75 text-white transition-all backdrop-blur"
-                        aria-label="Previous image"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedImageIndex((prev) =>
-                            prev === images.length - 1 ? 0 : prev + 1
-                          )
-                        }
-                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 hover:bg-black/75 text-white transition-all backdrop-blur"
-                        aria-label="Next image"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </button>
-                    </>
-                  )}
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center text-center p-6 space-y-2">
-                  <ImageIcon
-                    className={`h-10 w-10 ${isDark ? "text-white/20" : "text-[var(--color-text-muted)]"
-                      }`}
-                  />
-                  <span
-                    className={`text-sm font-semibold ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
-                      }`}
-                  >
-                    No property photos uploaded yet
-                  </span>
-                </div>
-              )}
-
-
-              <div className="absolute bottom-4 left-4 right-4 flex justify-between pointer-events-none">
-                <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1.5 text-[10px] font-black text-white/60 backdrop-blur pointer-events-auto">
-                  {[
-                    listing?.beds_count && `${listing.beds_count} Beds`,
-                    listing?.baths_count && `${listing.baths_count} Baths`,
-                    listing?.square_footage && `${Number(listing.square_footage).toLocaleString()} sqft`,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
-
-                {images.length > 1 && (
-                  <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1.5 text-[10px] font-black text-white/60 backdrop-blur">
-                    {selectedImageIndex + 1} / {images.length}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
-                {images.map((image: any, index: number) => {
-                  const isActive = index === selectedImageIndex;
-                  return (
-                    <button
-                      key={image.id}
-                      type="button"
-                      onClick={() => setSelectedImageIndex(index)}
-                      className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${isActive
-                        ? "border-[var(--color-secondary)] scale-95"
-                        : isDark
-                          ? "border-white/10 hover:border-white/30"
-                          : "border-[var(--color-border-light)] hover:border-[var(--color-secondary)]/40"
-                        }`}
-                    >
-                      <img
-                        src={image.url}
-                        alt={`Thumbnail ${index + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+          <div className="mb-6">
+            <PropertyImageGallery listing={listing} isDark={isDark} />
           </div>
 
           {(listing?.beds_count ||
@@ -602,7 +741,7 @@ export default function PropertyDetailPage() {
             </div>
 
             {/* Margin / Cap Rate / Rent row */}
-            {(marginPct || capRate || grossRent) && (
+            {(!!marginPct || capRate > 0 || grossRent > 0) && (
               <div className="mt-4 grid grid-cols-3 gap-3">
                 {marginPct && (
                   <div
@@ -731,11 +870,78 @@ export default function PropertyDetailPage() {
                 ))}
             </div>
           </div>
+
+
+          <div
+            className={`rounded-2xl border p-6 ${isDark
+              ? "border-white/10 bg-white/[0.04]"
+              : "border-[var(--color-border-light)] bg-white"
+              }`}
+          >
+            <h2
+              className={`mb-4 text-sm font-black uppercase tracking-[0.2em] ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                }`}
+            >
+              Legal Disclosures
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Detail label="Active Liens or Mortgages" value={listing?.has_liens ? "Yes" : "No"} isDark={isDark} />
+              <Detail label="Pre-Foreclosure" value={listing?.is_preforeclosure ? "Yes" : "No"} isDark={isDark} />
+              <Detail label="Mortgage Amount" value={formatMoney(listing?.mortgage_amount)} isDark={isDark} />
+              <Detail label="Vacant" value={listing?.is_vacant ? "Yes" : "No"} isDark={isDark} />
+              <Detail label="Off Market" value={listing?.is_off_market ? "Yes" : "No"} isDark={isDark} />
+              <Detail label="Proof of Funds Required" value={listing?.proof_of_funds_required ? "Yes" : "No"} isDark={isDark} />
+            </div>
+            <NotesBox label="Lien Disclosure" value={listing?.lien_disclosure} isDark={isDark} />
+          </div>
+
+
+          <div
+            className={`rounded-2xl border p-6 ${isDark
+              ? "border-white/10 bg-white/[0.04]"
+              : "border-[var(--color-border-light)] bg-white"
+              }`}
+          >
+            <h2
+              className={`mb-4 font-serif text-xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                }`}
+            >
+              Condition Report
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Detail label="Roof" value={formatCondition(listing?.condition_report?.roof)} isDark={isDark} />
+              <Detail label="HVAC" value={formatCondition(listing?.condition_report?.hvac)} isDark={isDark} />
+              <Detail label="Wetlands" value={listing?.condition_report?.wetlands ? "Yes" : "No"} isDark={isDark} />
+              <Detail label="Overall" value={formatCondition(listing?.condition_report?.overall)} isDark={isDark} />
+            </div>
+            <NotesBox label="Notes" value={listing?.condition_report?.notes} isDark={isDark} />
+          </div>
+
+
+          <div
+            className={`rounded-2xl border p-6 ${isDark
+              ? "border-white/10 bg-white/[0.04]"
+              : "border-[var(--color-border-light)] bg-white"
+              }`}
+          >
+            <h2
+              className={`mb-4 font-serif text-xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                }`}
+            >
+              Motivation
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Detail label="Motivation" value={listing?.motivation} isDark={isDark} />
+              <Detail label="Sell Timeline" value={listing?.sell_timeline} isDark={isDark} />
+              <Detail label="Realtor Commission" value={listing?.realtor_commission} isDark={isDark} />
+              <Detail label="Suggested Price" value={formatMoney(listing?.suggested_price)} isDark={isDark} />
+            </div>
+          </div>
         </div>
 
-        {/* Right sticky column */}
+
         <div className="lg:sticky lg:top-[110px] lg:self-start space-y-4">
-          {/* Bid CTA panel */}
+
           <div
             className={`rounded-2xl border p-6 ${isDark
               ? "border-white/10 bg-white/[0.05] shadow-2xl backdrop-blur"
@@ -752,7 +958,7 @@ export default function PropertyDetailPage() {
               <TrendingUp className="h-5 w-5 text-[var(--color-secondary)]" />
             </div>
 
-            {/* Price */}
+
             <div
               className={`mb-4 rounded-xl border p-4 ${isDark
                 ? "border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/8"
@@ -767,7 +973,7 @@ export default function PropertyDetailPage() {
               </p>
             </div>
 
-            {/* Bid cap */}
+
             <div className="mb-4">
               <div className="mb-1.5 flex items-center justify-between">
                 <span
@@ -841,7 +1047,7 @@ export default function PropertyDetailPage() {
             </p>
           </div>
 
-          {/* Documents */}
+
           {documents.length > 0 && (
             <div
               className={`rounded-2xl border p-5 ${isDark

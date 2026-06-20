@@ -30,7 +30,6 @@ import ContractsPage from "../pages/seller/ContractsPage";
 import PropertyStreamPage from "../pages/partner/PropertyStreamPage";
 import ActiveDealsPage from "../pages/partner/ActiveDealsPage";
 import MyBidsPage from "../pages/partner/MyBidsPage";
-import ScorePage from "../pages/partner/ScorePage";
 import PropertyDetailPage from "../pages/partner/PropertyDetailPage";
 import SubmitBidPage from "../pages/partner/submit-bid";
 import ProofOfActivityPage from "../pages/partner/ProofOfActivityPage";
@@ -274,14 +273,6 @@ function AppRoutes() {
           />
 
           {/* Partner-only routes */}
-          <Route
-            path="/score"
-            element={
-              <RoleRoute allowedRoles={PARTNER_ROLES}>
-                <ScorePage />
-              </RoleRoute>
-            }
-          />
 
           {/* Realtor-only routes */}
           {/* <Route

@@ -1,4 +1,4 @@
-import { AlertCircle, Clock, FileText, Link } from "lucide-react";
+import { AlertCircle, Clock, FileText, Upload } from "lucide-react";
 import type { BidFormState } from "../types";
 import { INSPECTION_PERIODS, DUE_DILIGENCE_PERIODS } from "../constants";
 import { usePartnerTheme } from "../../../../hooks/usePartnerTheme";
@@ -143,41 +143,54 @@ export default function DueDiligence({
           className={`block text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/60" : "text-[var(--color-text-muted)]"
             }`}
         >
-          Letter of Intent (LOI) URL{" "}
-          <span
+          Letter of Intent (LOI){" "}
+          {/* <span
             className={`text-[10px] normal-case tracking-normal ${isDark ? "text-white/25" : "text-[var(--color-text-muted)]/50"
               }`}
           >
             (Optional)
-          </span>
+          </span> */}
         </label>
         <p
           className={`mt-0.5 text-[11px] ${isDark ? "text-white/35" : "text-[var(--color-text-muted)]/70"
             }`}
         >
-          Paste a link to your LOI document (Google Drive, Dropbox, etc.). LOI
-          is active for 10 days.
+          Upload your LOI document. LOI is active for 10 days.
         </p>
-        <div
-          className={`mt-2 flex items-center gap-3 rounded-xl border px-4 py-3 focus-within:border-[var(--color-secondary)] ${isDark
-            ? "border-white/10 bg-white/5"
-            : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
-            }`}
-        >
-          <Link
-            className={`h-4 w-4 shrink-0 ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
-              }`}
-          />
-          <input
-            type="url"
-            value={form.loi_url}
-            onChange={(e) => set("loi_url", e.target.value)}
-            placeholder="https://drive.google.com/..."
-            className={`w-full bg-transparent text-sm font-bold outline-none ${isDark
-              ? "text-white placeholder-white/20"
-              : "text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/50"
-              }`}
-          />
+        <div className={`mt-2 rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"}`}>
+          {form.loi_url ? (
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <FileText className={`h-4 w-4 shrink-0 ${isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"}`} />
+                <a href={form.loi_url} target="_blank" rel="noreferrer" className={`truncate text-sm font-bold underline ${isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"}`}>
+                  {decodeURIComponent(form.loi_url.split('/').pop() || "Document uploaded")}
+                </a>
+              </div>
+              <button
+                type="button"
+                onClick={() => set("loi_url", "")}
+                className={`shrink-0 text-[10px] font-black uppercase tracking-wider transition ${isDark ? "text-white/40 hover:text-[var(--color-danger)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"}`}
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <label className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed py-3.5 transition hover:border-[var(--color-secondary)] ${isDark ? "border-white/20 bg-white/5" : "border-[var(--color-border-light)] bg-white"}`}>
+              <Upload className="h-4 w-4 text-[var(--color-secondary)]" />
+              <span className={`text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
+                Upload File
+              </span>
+              <input
+                type="file"
+                className="hidden"
+                accept="application/pdf,image/png,image/jpeg"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) set("loi_url", `https://mock-storage.com/docs/${encodeURIComponent(file.name)}`);
+                }}
+              />
+            </label>
+          )}
         </div>
       </div>
 
@@ -187,40 +200,54 @@ export default function DueDiligence({
           className={`block text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/60" : "text-[var(--color-text-muted)]"
             }`}
         >
-          Proof of Funds URL{" "}
-          <span
+          Proof of Funds{" "}
+          {/* <span
             className={`text-[10px] normal-case tracking-normal ${isDark ? "text-white/25" : "text-[var(--color-text-muted)]/50"
               }`}
           >
             (Optional)
-          </span>
+          </span> */}
         </label>
         <p
           className={`mt-0.5 text-[11px] ${isDark ? "text-white/35" : "text-[var(--color-text-muted)]/70"
             }`}
         >
-          Link to bank statement, LOC, or other proof of funds document.
+          Upload a bank statement, LOC, or other proof of funds document.
         </p>
-        <div
-          className={`mt-2 flex items-center gap-3 rounded-xl border px-4 py-3 focus-within:border-[var(--color-secondary)] ${isDark
-            ? "border-white/10 bg-white/5"
-            : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
-            }`}
-        >
-          <FileText
-            className={`h-4 w-4 shrink-0 ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
-              }`}
-          />
-          <input
-            type="url"
-            value={form.proof_of_funds_url}
-            onChange={(e) => set("proof_of_funds_url", e.target.value)}
-            placeholder="https://drive.google.com/..."
-            className={`w-full bg-transparent text-sm font-bold outline-none ${isDark
-              ? "text-white placeholder-white/20"
-              : "text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/50"
-              }`}
-          />
+        <div className={`mt-2 rounded-xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"}`}>
+          {form.proof_of_funds_url ? (
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <FileText className={`h-4 w-4 shrink-0 ${isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"}`} />
+                <a href={form.proof_of_funds_url} target="_blank" rel="noreferrer" className={`truncate text-sm font-bold underline ${isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"}`}>
+                  {decodeURIComponent(form.proof_of_funds_url.split('/').pop() || "Document uploaded")}
+                </a>
+              </div>
+              <button
+                type="button"
+                onClick={() => set("proof_of_funds_url", "")}
+                className={`shrink-0 text-[10px] font-black uppercase tracking-wider transition ${isDark ? "text-white/40 hover:text-[var(--color-danger)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"}`}
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <label className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed py-3.5 transition hover:border-[var(--color-secondary)] ${isDark ? "border-white/20 bg-white/5" : "border-[var(--color-border-light)] bg-white"}`}>
+              <Upload className="h-4 w-4 text-[var(--color-secondary)]" />
+              <span className={`text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
+                Upload File
+              </span>
+              <input
+                type="file"
+                className="hidden"
+                accept="application/pdf,image/png,image/jpeg"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) set("proof_of_funds_url", `https://mock-storage.com/docs/${encodeURIComponent(file.name)}`);
+                }}
+              />
+            </label>
+          )}
         </div>
       </div>
 

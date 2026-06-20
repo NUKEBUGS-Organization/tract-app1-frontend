@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import {
-  BarChart3,
   Building2,
   ClipboardList,
   FileCheck,
@@ -41,7 +40,6 @@ function getNavIcon(label: string) {
   if (lowerLabel.includes("document")) return FolderLock;
   if (lowerLabel.includes("bid")) return Gavel;
   if (lowerLabel.includes("deal")) return Handshake;
-  if (lowerLabel.includes("score")) return BarChart3;
   if (lowerLabel.includes("profile")) return UserRound;
   if (lowerLabel.includes("state")) return MapPinned;
   if (lowerLabel.includes("user")) return Users;
