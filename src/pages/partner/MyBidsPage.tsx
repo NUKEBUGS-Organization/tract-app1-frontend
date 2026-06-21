@@ -5,6 +5,7 @@ import {
     Clock,
     FileText,
     Gavel,
+    History,
     Loader2,
     ShieldCheck,
     XCircle,
@@ -354,30 +355,39 @@ export default function MyBidsPage() {
                             {
                                 label: "Active Bids",
                                 value: isLoading ? "—" : activeBids.length,
-                                color: "text-[var(--color-secondary)]",
+                                color: "text-white",
+                                iconColor: isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]",
+                                icon: Clock,
                             },
                             {
                                 label: "Past Bids",
                                 value: isLoading ? "—" : pastBids.length,
-                                color: isDark ? "text-white/60" : "text-white/70",
+                                color: "text-white",
+                                iconColor: isDark ? "text-white/40" : "text-white/50",
+                                icon: History,
                             },
                         ].map((stat) => (
                             <div
                                 key={stat.label}
-                                className={`rounded-2xl border px-5 py-3 ${isDark
-                                    ? "border-white/10 bg-white/5"
-                                    : "border-white/20 bg-white/10"
+                                className={`group flex items-center gap-3 rounded-2xl border px-5 py-3 transition hover:scale-[1.02] hover:shadow-lg ${isDark
+                                    ? "border-white/10 bg-white/5 hover:bg-white/10 hover:border-[#d4af37]/30"
+                                    : "border-white/20 bg-white/10 hover:bg-white/20"
                                     }`}
                             >
-                                <p
-                                    className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-white/35" : "text-white/50"
-                                        }`}
-                                >
-                                    {stat.label}
-                                </p>
-                                <p className={`text-2xl font-black ${stat.color}`}>
-                                    {stat.value}
-                                </p>
+                                <stat.icon
+                                    className={`h-5 w-5 ${stat.iconColor}`}
+                                />
+                                <div>
+                                    <p
+                                        className={`text-[9px] font-black uppercase tracking-wider ${isDark ? "text-white/40" : "text-white/50"
+                                            }`}
+                                    >
+                                        {stat.label}
+                                    </p>
+                                    <p className="text-xl font-black text-white tabular-nums">
+                                        {stat.value}
+                                    </p>
+                                </div>
                             </div>
                         ))}
                     </div>

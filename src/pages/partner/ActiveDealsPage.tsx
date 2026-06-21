@@ -1539,7 +1539,7 @@ export default function ActiveDealsPage() {
                       <p
                         className={`mt-1 font-bold ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}
                       >
-                        {activeEntry?.chatUnlocked ? "Unlocked" : "Locked"}
+                        {activeEntry?.chatUnlocked && !isCancelled && entryStatus !== "closed" ? "Unlocked" : "Locked"}
                       </p>
                     </div>
                   </div>
@@ -1709,7 +1709,7 @@ export default function ActiveDealsPage() {
                 </button>
               )}
 
-              {activeEntry?.chatUnlocked && (
+              {activeEntry?.chatUnlocked && !isCancelled && entryStatus !== "closed" && (
                 <Link
                   to={
                     getDealChatRoomId(activeEntry.dealId)

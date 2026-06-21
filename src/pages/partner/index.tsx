@@ -81,13 +81,12 @@ interface StatCardProps {
   icon: LucideIcon;
   isDark: boolean;
 }
-
 function StatCard({ label, value, note, icon: Icon, isDark }: StatCardProps) {
   return (
     <div
       className={`group relative overflow-hidden rounded-2xl border p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 ${isDark
-          ? "border-white/10 bg-white/[0.06] hover:bg-white/[0.09] backdrop-blur shadow-xl"
-          : "border-[var(--color-border-light)] bg-white hover:shadow-xl"
+        ? "border-white/10 bg-white/[0.06] backdrop-blur shadow-xl hover:border-[var(--color-secondary)]/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] hover:bg-white/[0.12]"
+        : "border-[var(--color-border-light)] bg-white hover:shadow-xl"
         }`}
     >
       <div className="mb-5 flex items-start justify-between">
@@ -98,20 +97,12 @@ function StatCard({ label, value, note, icon: Icon, isDark }: StatCardProps) {
           {label}
         </p>
 
-        <div
-          className={
-            isDark
-              ? ""
-              : "flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary)]/8"
-          }
-        >
-          <Icon
-            className={`h-5 w-5 ${isDark
-                ? "text-[var(--color-secondary)]"
-                : "text-[var(--color-primary)]"
-              }`}
-          />
-        </div>
+        <Icon
+          className={`h-5 w-5 ${isDark
+            ? "text-[var(--color-secondary)]"
+            : "text-[var(--color-primary)]"
+            }`}
+        />
       </div>
 
       <div
@@ -123,8 +114,8 @@ function StatCard({ label, value, note, icon: Icon, isDark }: StatCardProps) {
 
       <p
         className={`mt-2 text-xs font-semibold ${isDark
-            ? "text-[var(--color-secondary)]"
-            : "text-[var(--color-primary)]/70"
+          ? "text-[var(--color-secondary)]"
+          : "text-[var(--color-primary)]/70"
           }`}
       >
         {note}
@@ -132,8 +123,8 @@ function StatCard({ label, value, note, icon: Icon, isDark }: StatCardProps) {
 
       <div
         className={`absolute bottom-0 left-0 h-0.5 w-0 transition-all duration-500 group-hover:w-full ${isDark
-            ? "bg-gradient-to-r from-[var(--color-secondary)] to-transparent"
-            : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]"
+          ? "bg-gradient-to-r from-[var(--color-secondary)] to-transparent"
+          : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]"
           }`}
       />
     </div>
@@ -241,14 +232,14 @@ export default function PartnerDashboard() {
       <div className="flex min-h-[50vh] items-center justify-center">
         <div
           className={`rounded-2xl border px-8 py-6 text-center shadow-[var(--shadow-card)] ${isDark
-              ? "border-white/10 bg-white/[0.04]"
-              : "border-[var(--color-border-light)] bg-white"
+            ? "border-white/10 bg-white/[0.04]"
+            : "border-[var(--color-border-light)] bg-white"
             }`}
         >
           <Loader2
             className={`mx-auto h-8 w-8 animate-spin ${isDark
-                ? "text-[var(--color-secondary)]"
-                : "text-[var(--color-primary)]"
+              ? "text-[var(--color-secondary)]"
+              : "text-[var(--color-primary)]"
               }`}
           />
           <p
@@ -266,8 +257,8 @@ export default function PartnerDashboard() {
     <div className="space-y-8">
       <section
         className={`relative overflow-hidden rounded-2xl p-8 ${isDark
-            ? "bg-transparent border border-white/5"
-            : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary)]/90"
+          ? "bg-transparent border border-white/5"
+          : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary)]/90"
           }`}
       >
         {/* Dot-grid texture */}
@@ -287,14 +278,14 @@ export default function PartnerDashboard() {
         {/* Golden Rings */}
         <div
           className={`pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-2 ${isDark
-              ? "border-[#d4af37]/20 shadow-[0_0_60px_rgba(212,175,55,0.1)]"
-              : "border-white/10 shadow-[0_0_40px_rgba(255,255,255,0.05)]"
+            ? "border-[#d4af37]/20 shadow-[0_0_60px_rgba(212,175,55,0.1)]"
+            : "border-white/10 shadow-[0_0_40px_rgba(255,255,255,0.05)]"
             }`}
         />
         <div
           className={`pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border-2 ${isDark
-              ? "border-[#d4af37]/30 shadow-[0_0_50px_rgba(212,175,55,0.15)]"
-              : "border-[var(--color-secondary)]/20 shadow-[0_0_30px_rgba(212,175,55,0.15)]"
+            ? "border-[#d4af37]/30 shadow-[0_0_50px_rgba(212,175,55,0.15)]"
+            : "border-[var(--color-secondary)]/20 shadow-[0_0_30px_rgba(212,175,55,0.15)]"
             }`}
         />
         {isDark && (
@@ -305,8 +296,8 @@ export default function PartnerDashboard() {
           <div>
             <div
               className={`mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 backdrop-blur-sm ${isDark
-                  ? "border-[#d4af37]/30 bg-[#d4af37]/10"
-                  : "border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/15"
+                ? "border-[#d4af37]/30 bg-[#d4af37]/10"
+                : "border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/15"
                 }`}
             >
               <div
@@ -342,7 +333,7 @@ export default function PartnerDashboard() {
           <div className="flex flex-wrap gap-3">
             <Link
               to="/properties"
-              className="inline-flex items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02]"
+              className="inline-flex items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_8px_20px_rgba(212,175,55,0.25)]"
             >
               <Flame className="h-4 w-4" />
               Browse Stream
@@ -351,7 +342,7 @@ export default function PartnerDashboard() {
             <button
               type="button"
               onClick={() => refetchListings()}
-              className="inline-flex items-center gap-2 border border-white/20 bg-white/10 px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:bg-white/15"
+              className="inline-flex items-center gap-2 border border-white/20 bg-white/10 px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white transition-all duration-200 hover:bg-white/15 hover:border-white/35"
             >
               <RefreshCw className="h-4 w-4" />
               Refresh
@@ -364,22 +355,22 @@ export default function PartnerDashboard() {
         {/* Score & Activity Rule Column */}
         <div className="flex flex-col gap-6">
           <section
-            className={`flex-1 rounded-2xl border p-6 shadow-[var(--shadow-card)] flex flex-col justify-center ${isDark
-                ? "border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/5 to-transparent"
-                : "border-[var(--color-border-light)] bg-white"
+            className={`flex-1 rounded-2xl border p-6 shadow-[var(--shadow-card)] flex flex-col justify-center transition-all duration-200 ${isDark
+              ? "border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/5 to-transparent hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
+              : "border-[var(--color-border-light)] bg-white hover:border-[rgba(23,77,52,0.2)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
               }`}
           >
             <div className="flex items-center gap-4">
               <div
                 className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border ${isDark
-                    ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
-                    : "border-[var(--color-border-light)] bg-[var(--color-primary)]/8"
+                  ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
+                  : "border-[var(--color-border-light)] bg-[var(--color-primary)]/8"
                   }`}
               >
                 <BarChart3
                   className={`h-7 w-7 ${isDark
-                      ? "text-[var(--color-secondary)]"
-                      : "text-[var(--color-primary)]"
+                    ? "text-[var(--color-secondary)]"
+                    : "text-[var(--color-primary)]"
                     }`}
                 />
               </div>
@@ -388,8 +379,8 @@ export default function PartnerDashboard() {
                 <div className="flex items-center gap-2">
                   <p
                     className={`font-serif text-3xl font-black ${isDark
-                        ? "text-[var(--color-secondary)]"
-                        : "text-[var(--color-primary)]"
+                      ? "text-[var(--color-secondary)]"
+                      : "text-[var(--color-primary)]"
                       }`}
                   >
                     100
@@ -411,9 +402,9 @@ export default function PartnerDashboard() {
 
           {/* 30-day activity rule */}
           <div
-            className={`rounded-2xl border px-6 py-5 shadow-[var(--shadow-card)] ${isDark
-                ? "border-[var(--color-warning)]/25 bg-[var(--color-warning)]/5"
-                : "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10"
+            className={`rounded-2xl border px-6 py-5 shadow-[var(--shadow-card)] transition-all duration-200 ${isDark
+              ? "border-[var(--color-warning)]/25 bg-[var(--color-warning)]/5 hover:border-[var(--color-warning)]/30 hover:bg-[var(--color-warning)]/12 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
+              : "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 hover:border-[var(--color-warning)]/35 hover:bg-[var(--color-warning)]/12 hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
               }`}
           >
             <div className="flex items-start gap-4">
@@ -424,8 +415,8 @@ export default function PartnerDashboard() {
                 </p>
                 <p
                   className={`mt-1.5 text-xs leading-5 ${isDark
-                      ? "text-[var(--color-warning)]/80"
-                      : "text-[var(--color-text-muted)]"
+                    ? "text-[var(--color-warning)]/80"
+                    : "text-[var(--color-text-muted)]"
                     }`}
                 >
                   You must secure at least{" "}
@@ -440,9 +431,9 @@ export default function PartnerDashboard() {
 
         {/* Penalty Table Column */}
         <section
-          className={`rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark
-              ? "border-white/10 bg-white/[0.04]"
-              : "border-[var(--color-border-light)] bg-white"
+          className={`rounded-2xl border p-6 shadow-[var(--shadow-card)] transition-all duration-200 ${isDark
+            ? "border-white/10 bg-white/[0.04] hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
+            : "border-[var(--color-border-light)] bg-white hover:border-[rgba(23,77,52,0.2)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
             }`}
         >
           <div className="mb-4 flex items-center justify-between">
@@ -464,17 +455,17 @@ export default function PartnerDashboard() {
               return (
                 <div
                   key={row.violation}
-                  className={`flex items-center justify-between rounded-xl border px-5 py-4 ${isDark
-                      ? "border-[var(--color-danger)]/15 bg-[var(--color-danger)]/5"
-                      : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10"
+                  className={`flex items-center justify-between rounded-xl border px-5 py-4 transition-all duration-200 ${isDark
+                    ? "border-[var(--color-danger)]/15 bg-[var(--color-danger)]/5 hover:border-[var(--color-danger)]/30 hover:bg-[var(--color-danger)]/12"
+                    : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 hover:border-[var(--color-danger)]/35 hover:bg-[var(--color-danger)]/12"
                     }`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="h-5 w-5 text-[var(--color-danger)]/80" />
                     <span
                       className={`text-sm font-bold ${isDark
-                          ? "text-white/80"
-                          : "text-[var(--color-text-main)]"
+                        ? "text-white/80"
+                        : "text-[var(--color-text-main)]"
                         }`}
                     >
                       {row.violation}
@@ -497,9 +488,9 @@ export default function PartnerDashboard() {
       </section>
 
       <section
-        className={`rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark
-            ? "border-white/10 bg-white/[0.04]"
-            : "border-[var(--color-border-light)] bg-white"
+        className={`rounded-2xl border p-6 shadow-[var(--shadow-card)] transition-all duration-200 ${isDark
+          ? "border-white/10 bg-white/[0.04] hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
+          : "border-[var(--color-border-light)] bg-white hover:border-[rgba(23,77,52,0.2)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
           }`}
       >
         <div className="mb-5 flex items-center justify-between gap-4">
@@ -553,20 +544,20 @@ export default function PartnerDashboard() {
               <div
                 key={step.id}
                 className={`group relative flex items-start gap-4 py-4 ${index < journeySteps.length - 1
-                    ? isDark
-                      ? "border-b border-white/6"
-                      : "border-b border-[var(--color-border-light)]"
-                    : ""
+                  ? isDark
+                    ? "border-b border-white/6"
+                    : "border-b border-[var(--color-border-light)]"
+                  : ""
                   }`}
               >
                 <div
                   className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition-all ${step.done
-                      ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
-                      : isNext
-                        ? "border-[var(--color-secondary)] bg-white shadow-[0_0_0_4px_rgba(212,175,55,0.12)]"
-                        : isDark
-                          ? "border-white/15 bg-white/5"
-                          : "border-[var(--color-border-light)] bg-white"
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
+                    : isNext
+                      ? "border-[var(--color-secondary)] bg-white shadow-[0_0_0_4px_rgba(212,175,55,0.12)]"
+                      : isDark
+                        ? "border-white/15 bg-white/5"
+                        : "border-[var(--color-border-light)] bg-white"
                     }`}
                 >
                   {step.done ? (
@@ -576,8 +567,8 @@ export default function PartnerDashboard() {
                   ) : (
                     <Circle
                       className={`h-4 w-4 ${isDark
-                          ? "text-white/20"
-                          : "text-[var(--color-border-light)]"
+                        ? "text-white/20"
+                        : "text-[var(--color-border-light)]"
                         }`}
                     />
                   )}
@@ -587,16 +578,16 @@ export default function PartnerDashboard() {
                   <div className="min-w-0">
                     <p
                       className={`text-sm font-black ${step.done
+                        ? isDark
+                          ? "text-[var(--color-secondary)]"
+                          : "text-[var(--color-primary)]"
+                        : isNext
                           ? isDark
-                            ? "text-[var(--color-secondary)]"
-                            : "text-[var(--color-primary)]"
-                          : isNext
-                            ? isDark
-                              ? "text-white"
-                              : "text-[var(--color-text-main)]"
-                            : isDark
-                              ? "text-white/40"
-                              : "text-[var(--color-text-muted)]"
+                            ? "text-white"
+                            : "text-[var(--color-text-main)]"
+                          : isDark
+                            ? "text-white/40"
+                            : "text-[var(--color-text-muted)]"
                         }`}
                     >
                       {step.label}
@@ -604,8 +595,8 @@ export default function PartnerDashboard() {
                       {step.done && (
                         <span
                           className={`ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${isDark
-                              ? "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)]"
-                              : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                            ? "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)]"
+                            : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
                             }`}
                         >
                           Done
@@ -621,8 +612,8 @@ export default function PartnerDashboard() {
 
                     <p
                       className={`mt-0.5 text-xs ${isDark
-                          ? "text-white/30"
-                          : "text-[var(--color-text-muted)]"
+                        ? "text-white/30"
+                        : "text-[var(--color-text-muted)]"
                         }`}
                     >
                       {step.desc}
@@ -662,9 +653,9 @@ export default function PartnerDashboard() {
         </div>
 
         <div
-          className={`overflow-hidden rounded-2xl border shadow-[var(--shadow-card)] ${isDark
-              ? "border-white/10 bg-white/[0.04]"
-              : "border-[var(--color-border-light)] bg-white"
+          className={`overflow-hidden rounded-2xl border shadow-[var(--shadow-card)] transition-all duration-200 ${isDark
+            ? "border-white/10 bg-white/[0.04] hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
+            : "border-[var(--color-border-light)] bg-white hover:border-[rgba(23,77,52,0.2)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
             }`}
         >
           {allDeals.length === 0 ? (
@@ -706,8 +697,8 @@ export default function PartnerDashboard() {
                       <th
                         key={heading}
                         className={`px-5 py-4 text-[10px] font-black uppercase tracking-[0.2em] ${isDark
-                            ? "text-white/35"
-                            : "text-[var(--color-text-muted)]"
+                          ? "text-white/35"
+                          : "text-[var(--color-text-muted)]"
                           }`}
                       >
                         {heading}
@@ -740,17 +731,17 @@ export default function PartnerDashboard() {
                     return (
                       <tr
                         key={id}
-                        className={`border-t transition ${isDark
-                            ? "border-white/8 hover:bg-white/[0.03]"
-                            : "border-[var(--color-border-light)] hover:bg-[var(--color-bg-soft)]/50"
+                        className={`border-t transition-colors duration-200 ${isDark
+                          ? "border-white/8 hover:bg-white/[0.08]"
+                          : "border-[var(--color-border-light)] hover:bg-[rgba(245,245,241,0.6)]"
                           }`}
                       >
                         <td className="px-5 py-5">
                           <div className="flex items-center gap-3">
                             <div
                               className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl ${isDark
-                                  ? "bg-white/8"
-                                  : "bg-[var(--color-bg-soft)]"
+                                ? "bg-white/8"
+                                : "bg-[var(--color-bg-soft)]"
                                 }`}
                             >
                               🤝
@@ -759,16 +750,16 @@ export default function PartnerDashboard() {
                               <Link
                                 to={`/deals?listingId=${listingId}`}
                                 className={`text-sm font-black transition hover:text-[var(--color-secondary)] ${isDark
-                                    ? "text-white"
-                                    : "text-[var(--color-primary)]"
+                                  ? "text-white"
+                                  : "text-[var(--color-primary)]"
                                   }`}
                               >
                                 {listing?.address || "—"}
                               </Link>
                               <p
                                 className={`text-xs ${isDark
-                                    ? "text-white/35"
-                                    : "text-[var(--color-text-muted)]"
+                                  ? "text-white/35"
+                                  : "text-[var(--color-text-muted)]"
                                   }`}
                               >
                                 {listing?.state_code || ""}
@@ -779,8 +770,8 @@ export default function PartnerDashboard() {
 
                         <td
                           className={`px-5 py-5 text-sm font-bold ${isDark
-                              ? "text-white/80"
-                              : "text-[var(--color-text-main)]"
+                            ? "text-white/80"
+                            : "text-[var(--color-text-main)]"
                             }`}
                         >
                           {statusLabel}
@@ -792,10 +783,10 @@ export default function PartnerDashboard() {
 
                         <td
                           className={`px-5 py-5 text-sm font-black ${isUrgent
-                              ? "text-[var(--color-danger)]"
-                              : isDark
-                                ? "text-white/50"
-                                : "text-[var(--color-text-muted)]"
+                            ? "text-[var(--color-danger)]"
+                            : isDark
+                              ? "text-white/50"
+                              : "text-[var(--color-text-muted)]"
                             }`}
                         >
                           {deadlineDate ? (
@@ -827,8 +818,8 @@ export default function PartnerDashboard() {
 
           <div
             className={`border-t px-5 py-4 ${isDark
-                ? "border-white/8 bg-white/[0.03]"
-                : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+              ? "border-white/8 bg-white/[0.03]"
+              : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
               }`}
           >
             <Link
