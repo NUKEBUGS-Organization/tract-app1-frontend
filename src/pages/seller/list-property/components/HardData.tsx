@@ -121,6 +121,7 @@ const ZONING_GROUPS = [
     label: "Industrial / Manufacturing",
     options: [
       {
+ 
         value: "M1",
         label: "M1 — Light Manufacturing",
       },

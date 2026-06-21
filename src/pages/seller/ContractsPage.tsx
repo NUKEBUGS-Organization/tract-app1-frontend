@@ -15,6 +15,8 @@ import {
   X,
 } from "lucide-react";
 
+import DocuSealSignButton from "./contracts/DocuSealSignButton";
+
 import StatusBadge from "../../components/common/StatusBadge";
 import {
   useGetListingBidsQuery,
@@ -25,7 +27,6 @@ import {
   useCreateContractMutation,
   useGetContractByIdQuery,
   useGetContractsByListingQuery,
-  useSignContractAsSellerMutation,
 } from "../../services/contractService";
 
 type BadgeVariant =
@@ -36,7 +37,7 @@ type BadgeVariant =
   | "neutral"
   | "dark";
 
-type ModalAction = "seller-sign" | "cancel";
+type ModalAction = "cancel";
 
 function unwrapApiPayload(response: any) {
   let payload = response?.data?.data ?? response?.data ?? response;
@@ -335,22 +336,19 @@ function ConfirmationModal({
 }) {
   const isCancel = action === "cancel";
 
-  const title = isCancel ? "Cancel Contract" : "Sign Contract as Seller";
+  const title = "Cancel Contract";
 
-  const description = isCancel
-    ? "This will mark the contract as cancelled. This action should only be used when the deal is no longer moving forward."
-    : "This will record the seller signature timestamp on this contract.";
+  const description = "This will mark the contract as cancelled. This action should only be used when the deal is no longer moving forward.";
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex min-h-screen w-screen items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl border border-[var(--color-border-light)] bg-white p-8 shadow-2xl">
         <div className="mb-6 flex items-start justify-between">
           <div
-            className={`flex h-12 w-12 items-center justify-center rounded-full ${
-              isCancel
-                ? "bg-[var(--color-danger)]/10"
-                : "bg-[var(--color-primary)]/10"
-            }`}
+            className={`flex h-12 w-12 items-center justify-center rounded-full ${isCancel
+              ? "bg-[var(--color-danger)]/10"
+              : "bg-[var(--color-primary)]/10"
+              }`}
           >
             {isCancel ? (
               <AlertTriangle className="h-6 w-6 text-[var(--color-danger)]" />
@@ -391,13 +389,12 @@ function ConfirmationModal({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className={`flex-1 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
-              isCancel
-                ? "bg-[var(--color-danger)]"
-                : "bg-[var(--color-primary)]"
-            }`}
+            className={`flex-1 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${isCancel
+              ? "bg-[var(--color-danger)]"
+              : "bg-[var(--color-primary)]"
+              }`}
           >
-            {isLoading ? "Working..." : isCancel ? "Cancel Contract" : "Sign"}
+            {isLoading ? "Working..." : "Cancel Contract"}
           </button>
         </div>
       </div>
@@ -498,8 +495,7 @@ export default function ContractsPage() {
   const [createContract, { isLoading: isCreatingContract }] =
     useCreateContractMutation();
 
-  const [signContractAsSeller, { isLoading: isSigningSeller }] =
-    useSignContractAsSellerMutation();
+  const[isDocuSealRefreshing, setIsDocuSealRefreshing] = useState(false);
 
   const [cancelContract, { isLoading: isCancellingContract }] =
     useCancelContractMutation();
@@ -515,9 +511,9 @@ export default function ContractsPage() {
   const canCreateContract = Boolean(activeListingId && selectedBid);
   const canSignSeller = Boolean(
     getId(activeContract) &&
-      !signedBySeller &&
-      !contractCancelled &&
-      !contractSigned
+    !signedBySeller &&
+    !contractCancelled &&
+    !contractSigned
   );
   const canCancelContract = Boolean(getId(activeContract) && !contractCancelled);
 
@@ -542,15 +538,15 @@ export default function ContractsPage() {
   );
 
   useEffect(() => {
-  if (!confirmAction) return;
+    if (!confirmAction) return;
 
-  const originalOverflow = document.body.style.overflow;
-  document.body.style.overflow = "hidden";
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
-  return () => {
-    document.body.style.overflow = originalOverflow;
-  };
-}, [confirmAction]);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [confirmAction]);
   useEffect(() => {
     setManualContractId(contractIdFromUrl);
   }, [contractIdFromUrl]);
@@ -672,22 +668,12 @@ export default function ContractsPage() {
 
   async function handleConfirmAction() {
     if (!confirmAction || !getId(activeContract)) {
-      setConfirmAction(null);
-      return;
+      setConfirmAction(null); return;
     }
 
     try {
       setApiError(null);
       setApiSuccess(null);
-
-      if (confirmAction === "seller-sign") {
-        const response = await signContractAsSeller(getId(activeContract)).unwrap();
-        const contract = getContractFromResponse(response);
-
-        setCreatedContract(contract);
-        setApiSuccess("Contract signed by seller.");
-      }
-
       if (confirmAction === "cancel") {
         const response = await cancelContract(getId(activeContract)).unwrap();
         const contract = getContractFromResponse(response);
@@ -695,15 +681,12 @@ export default function ContractsPage() {
         setCreatedContract(contract);
         setApiSuccess("Contract cancelled.");
       }
-
       setConfirmAction(null);
-
       if (activeContractId) {
         await refetchContract();
       }
 
       await refetchDashboard();
-
       if (activeListingId) {
         await refetchBids();
         await refetchContractsByListing();
@@ -711,6 +694,26 @@ export default function ContractsPage() {
     } catch (error: any) {
       setApiError(getErrorMessage(error, "Unable to update contract."));
       setConfirmAction(null);
+    }
+  }
+
+  async function handleDocuSealReturn() {
+    try {
+      setIsDocuSealRefreshing(true);
+      setApiError(null);
+
+      if (activeContractId) {
+        await refetchContract();
+      }
+      await refetchDashboard();
+
+      if (activeListingId) {
+        await refetchBids();
+        await refetchContractsByListing();
+      }
+      setApiSuccess("Contract refreshed. If signing is not updated yet, wait a few seconds and refresh again.");
+    } finally {
+      setIsDocuSealRefreshing(false);
     }
   }
 
@@ -729,14 +732,13 @@ export default function ContractsPage() {
     }
   }
 
-  const isWorking =
-    isCreatingContract || isSigningSeller || isCancellingContract;
+  const isWorking = isCreatingContract || isCancellingContract;
 
-  const isFetchingAnything =
-    isFetchingDashboard ||
+  const isFetchingAnything = isFetchingDashboard ||
     isFetchingBids ||
     isFetchingContract ||
-    isFetchingContractsByListing;
+    isFetchingContractsByListing ||
+    isDocuSealRefreshing;
 
   return (
     <div className="space-y-8">
@@ -926,11 +928,10 @@ export default function ContractsPage() {
                               contractId,
                             });
                           }}
-                          className={`flex w-full items-center justify-between gap-4 rounded-xl border p-4 text-left transition ${
-                            isActive
-                              ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5"
-                              : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] hover:border-[var(--color-secondary)]"
-                          }`}
+                          className={`flex w-full items-center justify-between gap-4 rounded-xl border p-4 text-left transition ${isActive
+                            ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5"
+                            : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] hover:border-[var(--color-secondary)]"
+                            }`}
                         >
                           <div>
                             <p className="break-all text-xs font-black text-[var(--color-primary)]">
@@ -1170,11 +1171,10 @@ export default function ContractsPage() {
             <div className="mt-5 space-y-4">
               <div className="flex items-start gap-3 rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-4">
                 <UserCheck
-                  className={`mt-0.5 h-5 w-5 ${
-                    signedBySeller
-                      ? "text-[var(--color-primary)]"
-                      : "text-[var(--color-text-muted)]"
-                  }`}
+                  className={`mt-0.5 h-5 w-5 ${signedBySeller
+                    ? "text-[var(--color-primary)]"
+                    : "text-[var(--color-text-muted)]"
+                    }`}
                 />
 
                 <div>
@@ -1185,8 +1185,8 @@ export default function ContractsPage() {
                   <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                     {signedBySeller
                       ? `Signed at ${formatDateTime(
-                          activeContract?.seller_signed_at
-                        )}`
+                        activeContract?.seller_signed_at
+                      )}`
                       : "Not signed yet"}
                   </p>
                 </div>
@@ -1194,11 +1194,10 @@ export default function ContractsPage() {
 
               <div className="flex items-start gap-3 rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] p-4">
                 <UserCheck
-                  className={`mt-0.5 h-5 w-5 ${
-                    signedByBuyer
-                      ? "text-[var(--color-primary)]"
-                      : "text-[var(--color-text-muted)]"
-                  }`}
+                  className={`mt-0.5 h-5 w-5 ${signedByBuyer
+                    ? "text-[var(--color-primary)]"
+                    : "text-[var(--color-text-muted)]"
+                    }`}
                 />
 
                 <div>
@@ -1216,19 +1215,24 @@ export default function ContractsPage() {
             </div>
 
             <div className="mt-6 space-y-3">
-              <button
-                type="button"
-                onClick={() => setConfirmAction("seller-sign")}
-                disabled={!canSignSeller || isSigningSeller}
-                className="flex w-full items-center justify-center gap-2 bg-[var(--color-primary)] px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSigningSeller ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <FileSignature className="h-4 w-4" />
-                )}
-                Sign as Seller
-              </button>
+
+              {canSignSeller && (
+                <DocuSealSignButton
+                  contractId={getId(activeContract)}
+                  label="Sign As Seller"
+                  loadingLabel="Opening DocuSeal..."
+                  disabled={isDocuSealRefreshing}
+                  onError={(message) => {
+                    if (message) setApiError(message);
+                  }}
+                  onSigningOpened={() => {
+                    setApiError(null);
+                    setApiSuccess("DocuSeal signing screen opened in a new tab.");
+                  }}
+                  onReturnFromSigning={handleDocuSealReturn}
+                  className="flex w-full items-center justify-center gap-2 bg-[var(--color-primary)] px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              )}
 
               <button
                 type="button"
@@ -1243,6 +1247,7 @@ export default function ContractsPage() {
                 )}
                 Cancel Contract
               </button>
+
             </div>
           </div>
         </aside>
