@@ -985,13 +985,13 @@ export default function ListingDetailsPage() {
 
         <aside className="space-y-4">
           <SideAction
-            to={`/listings/${id}/documents`}
+               to={`/document-vault?listingId=${id}`}
             icon={FileText}
             label="Document Vault"
           />
 
           <SideAction
-            to={`/listings/${id}/bids`}
+             to={`/bids?listingId=${id}`}
             icon={Gavel}
             label="View Bids"
           />

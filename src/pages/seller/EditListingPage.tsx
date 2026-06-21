@@ -139,7 +139,7 @@ function buildPayload(form: any) {
     year_built: requiredNumber(form.year_built),
     zoning: form.zoning.trim(),
     market_price: requiredNumber(form.market_price),
-    // hidden_reserve: numberOrUndefined(form.hidden_reserve),
+    hidden_reserve: numberOrUndefined(form.hidden_reserve),
     has_liens: form.has_liens,
     lien_disclosure: form.lien_disclosure.trim() || undefined,
     is_preforeclosure: form.is_preforeclosure,

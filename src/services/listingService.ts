@@ -8,6 +8,7 @@ export const listingService = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
+      invalidatesTags: ["Property"],
     }),
 
     getListings: builder.query<any, any>({
@@ -16,48 +17,49 @@ export const listingService = baseApi.injectEndpoints({
         method: "GET",
         params,
       }),
+      providesTags: ["Property"],
     }),
 
     getListingsDashboard: builder.query<any, void>({
-  query: () => ({
-    url: "listings/dashboard",
-    method: "GET",
-  }),
-  providesTags: ["Property"],
-}),
+      query: () => ({
+        url: "listings/dashboard",
+        method: "GET",
+      }),
+      providesTags: ["Property"],
+    }),
 
-getListingById: builder.query<any, string>({
-  query: (id) => ({
-    url: `listings/${id}`,
-    method: "GET",
-  }),
-  providesTags: ["Property"],
-}),
+    getListingById: builder.query<any, string>({
+      query: (id) => ({
+        url: `listings/${id}`,
+        method: "GET",
+      }),
+      providesTags: ["Property"],
+    }),
 
-updateListing: builder.mutation<any, { id: string; body: any }>({
-  query: ({ id, body }) => ({
-    url: `listings/${id}`,
-    method: "PATCH",
-    body,
-  }),
-  invalidatesTags: ["Property"],
-}),
+    updateListing: builder.mutation<any, { id: string; body: any }>({
+      query: ({ id, body }) => ({
+        url: `listings/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Property"],
+    }),
 
-deleteListing: builder.mutation<any, string>({
-  query: (id) => ({
-    url: `listings/${id}`,
-    method: "DELETE",
-  }),
-  invalidatesTags: ["Property"],
-}),
+    deleteListing: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `listings/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Property"],
+    }),
 
-submitListing: builder.mutation<any, string>({
-  query: (id) => ({
-    url: `listings/${id}/submit`,
-    method: "POST",
-  }),
-  invalidatesTags: ["Property"],
-}),
+    submitListing: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `listings/${id}/submit`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Property"],
+    }),
 
     uploadListingDocuments: builder.mutation<
       any,
@@ -84,6 +86,7 @@ submitListing: builder.mutation<any, string>({
           body: formData,
         };
       },
+      invalidatesTags: ["Property"],
     }),
 
     getListingDocuments: builder.query<any, string>({
@@ -91,6 +94,7 @@ submitListing: builder.mutation<any, string>({
         url: `listings/${listingId}/documents`,
         method: "GET",
       }),
+      providesTags: ["Property"],
     }),
 
     // ─────────────────────────────────────────────
@@ -103,6 +107,7 @@ submitListing: builder.mutation<any, string>({
         method: "POST",
         body,
       }),
+      invalidatesTags: ["Property", "Bid"],
     }),
 
     getListingBids: builder.query<any[], string>({
@@ -110,6 +115,8 @@ submitListing: builder.mutation<any, string>({
         url: `listings/${listingId}/bids`,
         method: "GET",
       }),
+
+      providesTags: ["Property", "Bid"],
 
       transformResponse: (response: any) => {
         function unwrapBid(item: any): any {
@@ -173,6 +180,7 @@ submitListing: builder.mutation<any, string>({
         url: "bids/my-bids",
         method: "GET",
       }),
+      providesTags: ["Bid"],
     }),
 
     getBidById: builder.query<any, string>({
@@ -180,6 +188,7 @@ submitListing: builder.mutation<any, string>({
         url: `bids/${bidId}`,
         method: "GET",
       }),
+      providesTags: ["Bid"],
     }),
 
     deleteOwnBid: builder.mutation<any, string>({
@@ -187,6 +196,7 @@ submitListing: builder.mutation<any, string>({
         url: `bids/${bidId}`,
         method: "DELETE",
       }),
+      invalidatesTags: ["Bid", "Property"],
     }),
 
     selectBid: builder.mutation<
@@ -204,6 +214,7 @@ submitListing: builder.mutation<any, string>({
           selection,
         },
       }),
+      invalidatesTags: ["Bid", "Property"],
     }),
 
     rejectBid: builder.mutation<
@@ -217,6 +228,7 @@ submitListing: builder.mutation<any, string>({
         url: `listings/${listingId}/bids/${bidId}`,
         method: "DELETE",
       }),
+      invalidatesTags: ["Bid", "Property"],
     }),
   }),
 });
@@ -231,7 +243,6 @@ export const {
   useSubmitListingMutation,
   useUploadListingDocumentsMutation,
   useGetListingDocumentsQuery,
- 
 
   useSubmitBidMutation,
   useGetListingBidsQuery,
