@@ -10,7 +10,6 @@ import {
   Loader2,
   MessageSquare,
   RefreshCw,
-  ShieldCheck,
   Upload,
   XCircle,
 } from "lucide-react";
@@ -487,7 +486,6 @@ export default function RealtorActiveDealsPage() {
 
   const {
     data: myContractsData,
-    isFetching: isFetchingContractByBid,
     refetch: refetchContractByBid,
   } = useGetMyContractsQuery();
 
