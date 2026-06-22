@@ -33,6 +33,11 @@ import MyBidsPage from "../pages/partner/MyBidsPage";
 import PropertyDetailPage from "../pages/partner/PropertyDetailPage";
 import SubmitBidPage from "../pages/partner/submit-bid";
 import ProofOfActivityPage from "../pages/partner/ProofOfActivityPage";
+
+// Realtor pages
+import RealtorActiveDealsPage from "../pages/realtor/ActiveDealsPage";
+import RealtorMyOffersPage from "../pages/realtor/MyOffersPage";
+import RealtorSubmitOfferPage from "../pages/realtor/SubmitOfferPage";
 import ProfilePage from "../pages/profile";
 
 import ChatRoomsPage from "../pages/chat";
@@ -275,17 +280,32 @@ function AppRoutes() {
           {/* Partner-only routes */}
 
           {/* Realtor-only routes */}
-          {/* <Route
-            path="/profile"
+          <Route
+            path="/realtor/deals"
             element={
               <RoleRoute allowedRoles={REALTOR_ROLES}>
-                <PlaceholderPage
-                  title="Profile Setup"
-                  description="Realtor profile setup and verification flow."
-                />
+                <RealtorActiveDealsPage />
               </RoleRoute>
             }
-          /> */}
+          />
+
+          <Route
+            path="/realtor/my-offers"
+            element={
+              <RoleRoute allowedRoles={REALTOR_ROLES}>
+                <RealtorMyOffersPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/properties/:id/offer"
+            element={
+              <RoleRoute allowedRoles={REALTOR_ROLES}>
+                <RealtorSubmitOfferPage />
+              </RoleRoute>
+            }
+          />
 
           {/* Admin-only routes */}
           <Route

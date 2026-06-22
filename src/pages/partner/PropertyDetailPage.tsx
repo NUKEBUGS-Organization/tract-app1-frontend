@@ -27,7 +27,8 @@ import {
   useGetListingDocumentsQuery,
 } from "../../services/listingService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
-
+import { useAuthContext } from "../../contexts/AuthContext";
+import { isAllowedRole, normalizeRole, REALTOR_ROLES } from "../../constants/roles";
 
 function formatMoney(value: any) {
   const num = Number(value);
@@ -464,6 +465,8 @@ function PropertyImageGallery({ listing, isDark }: { listing: any; isDark: boole
 export default function PropertyDetailPage() {
   const theme = usePartnerTheme();
   const isDark = theme === "dark";
+  const { role } = useAuthContext();
+  const isRealtor = isAllowedRole(normalizeRole(role), REALTOR_ROLES);
 
   const { id: propertyId } = useParams<{ id: string }>();
 
@@ -1029,6 +1032,14 @@ export default function PropertyDetailPage() {
               >
                 Bid Cap Reached — No More Offers
               </div>
+            ) : isRealtor ? (
+              <Link
+                to={`/properties/${propertyId}/offer`}
+                className="flex w-full items-center justify-center gap-2 bg-[var(--color-danger)] py-4 text-[11px] font-black uppercase tracking-[0.25em] text-white shadow-[var(--shadow-premium)] transition hover:scale-[1.02] rounded-xl"
+              >
+                <DollarSign className="h-4 w-4" />
+                Submit Representation Offer
+              </Link>
             ) : (
               <Link
                 to={`/properties/${propertyId}/bid`}

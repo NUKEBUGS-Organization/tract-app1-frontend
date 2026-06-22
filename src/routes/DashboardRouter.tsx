@@ -37,7 +37,8 @@ const partnerNav = [
 const realtorNav = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Properties", path: "/properties" },
-  { label: "Deals", path: "/deals" },
+  { label: "My Offers", path: "/realtor/my-offers" },
+  { label: "Active Deals", path: "/realtor/deals" },
   { label: "Chat", path: "/chat" },
 ];
 
@@ -57,8 +58,10 @@ export default function DashboardRouter() {
   const userRole = normalizeRole(role || getRoleFromToken(token));
 
   const isPartner = isAllowedRole(userRole, PARTNER_ROLES);
+  const isRealtor = isAllowedRole(userRole, REALTOR_ROLES);
+  const showToggle = isPartner || isRealtor;
 
-  const { mode, toggleMode } = useThemeMode(isPartner ? "partner" : "other");
+  const { mode, toggleMode } = useThemeMode(showToggle ? (isPartner ? "partner" : "partner") : "other");
 
   if (isAllowedRole(userRole, SELLER_ROLES)) {
     return (
@@ -82,12 +85,14 @@ export default function DashboardRouter() {
     );
   }
 
-  if (isAllowedRole(userRole, REALTOR_ROLES)) {
+  if (isRealtor) {
     return (
       <DashboardLayout
         title="Licensed Partner Portal"
         navItems={realtorNav}
-        mode="light"
+        mode={mode}
+        onToggleTheme={toggleMode}
+        showThemeToggle
       />
     );
   }

@@ -20,12 +20,12 @@ import {
 } from "../../services/dealService";
 import { useGetMyBidsQuery } from "../../services/listingService";
 import {
-  useSignContractAsBuyerMutation,
   useGetMyContractsQuery,
   useCancelContractMutation,
 } from "../../services/contractService";
 import { useGetChatRoomsQuery } from "../../services/chatService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
+import DocuSealSignButton from "../../components/contracts/DocuSealSignButton";
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
 function formatMoney(value: any) {
@@ -353,15 +353,14 @@ function TrackerStep({
     <div className={`group relative flex gap-5 ${locked ? "opacity-40" : ""}`}>
       <div className="flex flex-col items-center">
         <div
-          className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
-            done
-              ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]"
-              : current
-                ? "border-[var(--color-danger)] bg-[var(--color-danger)] shadow-[0_0_0_5px_rgba(220,38,38,0.18)]"
-                : isDark
-                  ? "border-white/10 bg-transparent"
-                  : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
-          }`}
+          className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all ${done
+            ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]"
+            : current
+              ? "border-[var(--color-danger)] bg-[var(--color-danger)] shadow-[0_0_0_5px_rgba(220,38,38,0.18)]"
+              : isDark
+                ? "border-white/10 bg-transparent"
+                : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+            }`}
         >
           {done && (
             <CheckCircle2 className="h-4 w-4 text-[var(--color-dark-main)]" />
@@ -371,39 +370,36 @@ function TrackerStep({
           )}
         </div>
         <div
-          className={`w-[2px] flex-1 my-1 transition-all min-h-[30px] ${
-            done
-              ? "bg-[var(--color-secondary)]"
-              : isDark
-                ? "bg-white/10"
-                : "bg-[var(--color-border-light)]"
-          }`}
+          className={`w-[2px] flex-1 my-1 transition-all min-h-[30px] ${done
+            ? "bg-[var(--color-secondary)]"
+            : isDark
+              ? "bg-white/10"
+              : "bg-[var(--color-border-light)]"
+            }`}
         />
       </div>
       <div className="pb-8 pt-1">
         <p
-          className={`text-[13px] font-black uppercase tracking-wider transition-all ${
-            done
-              ? "text-[var(--color-secondary)]"
-              : current
-                ? "text-[var(--color-danger)]"
-                : isDark
-                  ? "text-white/40"
-                  : "text-[var(--color-text-muted)]"
-          }`}
+          className={`text-[13px] font-black uppercase tracking-wider transition-all ${done
+            ? "text-[var(--color-secondary)]"
+            : current
+              ? "text-[var(--color-danger)]"
+              : isDark
+                ? "text-white/40"
+                : "text-[var(--color-text-muted)]"
+            }`}
         >
           {title}
         </p>
         <p
-          className={`mt-1.5 text-sm leading-relaxed transition-all ${
-            done || current
-              ? isDark
-                ? "text-white/70"
-                : "text-[var(--color-text-main)]"
-              : isDark
-                ? "text-white/30"
-                : "text-[var(--color-text-muted)]"
-          }`}
+          className={`mt-1.5 text-sm leading-relaxed transition-all ${done || current
+            ? isDark
+              ? "text-white/70"
+              : "text-[var(--color-text-main)]"
+            : isDark
+              ? "text-white/30"
+              : "text-[var(--color-text-muted)]"
+            }`}
         >
           {description}
         </p>
@@ -466,9 +462,6 @@ export default function ActiveDealsPage() {
     return room?._id || room?.id;
   }
 
-  const [signContractMutation, { isLoading: isSigningBuyer }] =
-    useSignContractAsBuyerMutation();
-
   const [cancelContractMutation, { isLoading: isCancellingContract }] =
     useCancelContractMutation();
 
@@ -482,6 +475,8 @@ export default function ActiveDealsPage() {
     useCancelDealMutation();
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [docuSealError, setDocuSealError] = useState("");
+  const [isDocuSealRefreshing, setIsDocuSealRefreshing] = useState(false);
 
   const isLoading = isLoadingDeals || isLoadingBids;
 
@@ -667,8 +662,8 @@ export default function ActiveDealsPage() {
   // Due Diligence: 10 business days (~14 calendar days) after marketing deadline
   const ddDeadline = marketingDeadline
     ? new Date(
-        new Date(marketingDeadline).getTime() + 14 * 24 * 60 * 60 * 1000,
-      ).toISOString()
+      new Date(marketingDeadline).getTime() + 14 * 24 * 60 * 60 * 1000,
+    ).toISOString()
     : undefined;
   const ddCountdown = getCountdownParts(ddDeadline, now);
   const ddActive = Boolean(proofUrl && !proceedToClosing);
@@ -677,8 +672,8 @@ export default function ActiveDealsPage() {
   // Inspection Period: 7 days, starts after DD deadline
   const inspectionDeadline = ddDeadline
     ? new Date(
-        new Date(ddDeadline).getTime() + 7 * 24 * 60 * 60 * 1000,
-      ).toISOString()
+      new Date(ddDeadline).getTime() + 7 * 24 * 60 * 60 * 1000,
+    ).toISOString()
     : undefined;
   const inspectionCountdown = getCountdownParts(inspectionDeadline, now);
   const inspectionActive = Boolean(proofUrl && ddDone && !proceedToClosing);
@@ -731,16 +726,16 @@ export default function ActiveDealsPage() {
     }
   }
 
-  async function handleBuyerSign() {
-    if (!contractId) return;
+  async function handleDocuSealReturn() {
     try {
-      await signContractMutation(contractId).unwrap();
+      setIsDocuSealRefreshing(true);
+      setDocuSealError("");
       await refetchDeals();
       if (_pendingBidId) {
         await refetchContractByBid();
       }
-    } catch (err: any) {
-      console.error("Error signing contract:", err);
+    } finally {
+      setIsDocuSealRefreshing(false);
     }
   }
 
@@ -774,221 +769,221 @@ export default function ActiveDealsPage() {
 
   const trackerSteps = isPendingContract
     ? [
-        {
-          title: "Offer Accepted",
-          description:
-            "You were selected as the primary partner for this listing.",
-          done: true,
-          current: false,
-          locked: false,
-        },
-        {
-          title: "Contract Created",
-          description: pendingHasContract
-            ? `Contract ID: ${contractId}`
-            : "Waiting for the seller to create the contract.",
-          done: pendingHasContract,
-          current: !pendingHasContract,
-          locked: false,
-        },
-        {
-          title: "Seller Signature",
-          description: pendingSellerSigned
-            ? `Seller signed at ${formatDateTime(contract?.seller_signed_at)}.`
-            : pendingHasContract
-              ? "Waiting for seller to sign the contract."
-              : "Waiting for contract to be created first.",
-          done: pendingSellerSigned,
-          current: Boolean(pendingHasContract && !pendingSellerSigned),
-          locked: !pendingHasContract,
-        },
-        {
-          title: "Your Signature",
-          description: pendingBuyerSigned
-            ? `You signed at ${formatDateTime(contract?.buyer_signed_at)}.`
-            : pendingSellerSigned
-              ? "Action required: Please sign the contract."
-              : "Waiting for seller signature first.",
-          done: pendingBuyerSigned,
-          current: Boolean(pendingSellerSigned && !pendingBuyerSigned),
-          locked: !pendingSellerSigned,
-        },
-        {
-          title: "Partnership Secured",
-          description: pendingIsSigned
-            ? "Both parties signed. Deal is officially active."
-            : "Both parties must sign to activate the deal.",
-          done: pendingIsSigned,
-          current: false,
-          locked: !pendingIsSigned,
-        },
-        {
-          title: "Marketing Proof Submitted",
-          description: "72-hour marketing window starts after both signatures.",
-          done: false,
-          current: false,
-          locked: !pendingIsSigned,
-        },
-        {
-          title: "Inspection Period Active",
-          description: "Review property condition and repair estimates.",
-          done: false,
-          current: false,
-          locked: true,
-        },
-        {
-          title: "Due Diligence Active",
-          description:
-            "Verify title, liens, taxes, ownership and deal viability.",
-          done: false,
-          current: false,
-          locked: true,
-        },
-        {
-          title: "Proceed to Closing Confirmed",
-          description: "Commits the wholesaler to move forward.",
-          done: false,
-          current: false,
-          locked: true,
-        },
-        {
-          title: "Title & Escrow Opened",
-          description: "Title Company Assigned · Escrow File Created",
-          done: false,
-          current: false,
-          locked: true,
-        },
-        {
-          title: "Clear to Close",
-          description: "Title Search Complete · Documents Approved",
-          done: false,
-          current: false,
-          locked: true,
-        },
-        {
-          title: "Funded & Closed",
-          description: "Final payout and transfer.",
-          done: false,
-          current: false,
-          locked: true,
-        },
-      ]
+      {
+        title: "Offer Accepted",
+        description:
+          "You were selected as the primary partner for this listing.",
+        done: true,
+        current: false,
+        locked: false,
+      },
+      {
+        title: "Contract Created",
+        description: pendingHasContract
+          ? `Contract ID: ${contractId}`
+          : "Waiting for the seller to create the contract.",
+        done: pendingHasContract,
+        current: !pendingHasContract,
+        locked: false,
+      },
+      {
+        title: "Seller Signature",
+        description: pendingSellerSigned
+          ? `Seller signed at ${formatDateTime(contract?.seller_signed_at)}.`
+          : pendingHasContract
+            ? "Waiting for seller to sign the contract."
+            : "Waiting for contract to be created first.",
+        done: pendingSellerSigned,
+        current: Boolean(pendingHasContract && !pendingSellerSigned),
+        locked: !pendingHasContract,
+      },
+      {
+        title: "Your Signature",
+        description: pendingBuyerSigned
+          ? `You signed at ${formatDateTime(contract?.buyer_signed_at)}.`
+          : pendingSellerSigned
+            ? "Action required: Please sign the contract."
+            : "Waiting for seller signature first.",
+        done: pendingBuyerSigned,
+        current: Boolean(pendingSellerSigned && !pendingBuyerSigned),
+        locked: !pendingSellerSigned,
+      },
+      {
+        title: "Partnership Secured",
+        description: pendingIsSigned
+          ? "Both parties signed. Deal is officially active."
+          : "Both parties must sign to activate the deal.",
+        done: pendingIsSigned,
+        current: false,
+        locked: !pendingIsSigned,
+      },
+      {
+        title: "Marketing Proof Submitted",
+        description: "72-hour marketing window starts after both signatures.",
+        done: false,
+        current: false,
+        locked: !pendingIsSigned,
+      },
+      {
+        title: "Inspection Period Active",
+        description: "Review property condition and repair estimates.",
+        done: false,
+        current: false,
+        locked: true,
+      },
+      {
+        title: "Due Diligence Active",
+        description:
+          "Verify title, liens, taxes, ownership and deal viability.",
+        done: false,
+        current: false,
+        locked: true,
+      },
+      {
+        title: "Proceed to Closing Confirmed",
+        description: "Commits the wholesaler to move forward.",
+        done: false,
+        current: false,
+        locked: true,
+      },
+      {
+        title: "Title & Escrow Opened",
+        description: "Title Company Assigned · Escrow File Created",
+        done: false,
+        current: false,
+        locked: true,
+      },
+      {
+        title: "Clear to Close",
+        description: "Title Search Complete · Documents Approved",
+        done: false,
+        current: false,
+        locked: true,
+      },
+      {
+        title: "Funded & Closed",
+        description: "Final payout and transfer.",
+        done: false,
+        current: false,
+        locked: true,
+      },
+    ]
     : [
-        {
-          title: "Offer Accepted",
-          description:
-            "You were selected as the primary partner for this listing.",
-          done: true,
-          current: false,
-          locked: false,
-        },
-        {
-          title: "Contract Created",
-          description: contractId
-            ? `Contract ID: ${contractId}`
-            : "Waiting for the seller to create the contract.",
-          done: Boolean(contractId),
-          current: !contractId,
-          locked: false,
-        },
-        {
-          title: "Seller Signature",
-          description: sellerSigned
-            ? `Seller signed at ${formatDateTime(contract?.seller_signed_at)}.`
-            : "Waiting for seller to sign the contract.",
-          done: sellerSigned,
-          current: Boolean(contractId && !sellerSigned),
-          locked: !contractId,
-        },
-        {
-          title: "Your Signature",
-          description: buyerSigned
-            ? `You signed at ${formatDateTime(contract?.buyer_signed_at)}.`
-            : sellerSigned
-              ? "Action required: Please sign the contract."
-              : "Waiting for seller signature first.",
-          done: buyerSigned,
-          current: Boolean(sellerSigned && !buyerSigned),
-          locked: !sellerSigned,
-        },
-        {
-          title: "Partnership Secured",
-          description: isSigned
-            ? "Both parties signed. Deal is officially active."
-            : "Pending signatures from both parties.",
-          done: isSigned,
-          current: false,
-          locked: !isSigned,
-        },
-        {
-          title: "Marketing Proof Submitted",
-          description: marketingDeadline
-            ? proofUrl
-              ? "Marketing proof uploaded successfully."
-              : `72-hour tracking is active. ${activeCountdown?.compact || ""}. Upload proof required.`
-            : "Starts after the deal is officially secured.",
-          done: Boolean(proofUrl),
-          current: Boolean(isSigned && marketingDeadline && !proofUrl),
-          locked: !isSigned || !marketingDeadline,
-        },
-        {
-          title: "Due Diligence Active",
-          description: ddDone
-            ? "Due Diligence Complete ✓ — Title, liens, taxes & ownership verified."
-            : proofUrl
-              ? `10 Business Days · ${ddCountdown?.compact || "Calculating…"}. Verify title, liens, taxes, ownership and deal viability.`
-              : "Starts after marketing proof is submitted.",
-          done: ddDone,
-          current: Boolean(proofUrl && !ddDone),
-          locked: !proofUrl,
-        },
-        {
-          title: "Inspection Period Active",
-          description: proceedToClosing
-            ? "Inspection Complete ✓ — Property condition reviewed."
-            : inspectionActive
-              ? `7 Days · ${inspectionCountdown?.compact || "Calculating…"}. Review property condition and repair estimates.`
-              : ddDone
-                ? `7 Days Remaining. ${inspectionCountdown?.compact || ""}`
-                : "Starts after Due Diligence window closes.",
-          done: proceedToClosing,
-          current: inspectionActive,
-          locked: !ddDone,
-        },
-        {
-          title: "Proceed to Closing Confirmed",
-          description: proceedToClosing
-            ? `Proceed to closing confirmed ✓ — ${formatDateTime(activeEntry?.proceedToClosingAt)}`
-            : "Commits the wholesaler to move forward after inspection & DD are complete.",
-          done: proceedToClosing,
-          current: Boolean(ddDone && !proceedToClosing),
-          locked: !ddDone,
-        },
-        {
-          title: "Title & Escrow Opened",
-          description: proceedToClosing
-            ? "Title Company Assigned · Escrow File Created · Earnest Money Verified"
-            : "Pending confirmation to proceed.",
-          done: false,
-          current: proceedToClosing,
-          locked: !proceedToClosing,
-        },
-        {
-          title: "Clear to Close",
-          description:
-            "Title Search Complete ✓ · Documents Approved ✓ · Closing Scheduled ✓",
-          done: false,
-          current: false,
-          locked: true,
-        },
-        {
-          title: "Funded & Closed",
-          description: "Final payout and transfer.",
-          done: false,
-          current: false,
-          locked: true,
-        },
-      ];
+      {
+        title: "Offer Accepted",
+        description:
+          "You were selected as the primary partner for this listing.",
+        done: true,
+        current: false,
+        locked: false,
+      },
+      {
+        title: "Contract Created",
+        description: contractId
+          ? `Contract ID: ${contractId}`
+          : "Waiting for the seller to create the contract.",
+        done: Boolean(contractId),
+        current: !contractId,
+        locked: false,
+      },
+      {
+        title: "Seller Signature",
+        description: sellerSigned
+          ? `Seller signed at ${formatDateTime(contract?.seller_signed_at)}.`
+          : "Waiting for seller to sign the contract.",
+        done: sellerSigned,
+        current: Boolean(contractId && !sellerSigned),
+        locked: !contractId,
+      },
+      {
+        title: "Your Signature",
+        description: buyerSigned
+          ? `You signed at ${formatDateTime(contract?.buyer_signed_at)}.`
+          : sellerSigned
+            ? "Action required: Please sign the contract."
+            : "Waiting for seller signature first.",
+        done: buyerSigned,
+        current: Boolean(sellerSigned && !buyerSigned),
+        locked: !sellerSigned,
+      },
+      {
+        title: "Partnership Secured",
+        description: isSigned
+          ? "Both parties signed. Deal is officially active."
+          : "Pending signatures from both parties.",
+        done: isSigned,
+        current: false,
+        locked: !isSigned,
+      },
+      {
+        title: "Marketing Proof Submitted",
+        description: marketingDeadline
+          ? proofUrl
+            ? "Marketing proof uploaded successfully."
+            : `72-hour tracking is active. ${activeCountdown?.compact || ""}. Upload proof required.`
+          : "Starts after the deal is officially secured.",
+        done: Boolean(proofUrl),
+        current: Boolean(isSigned && marketingDeadline && !proofUrl),
+        locked: !isSigned || !marketingDeadline,
+      },
+      {
+        title: "Due Diligence Active",
+        description: ddDone
+          ? "Due Diligence Complete ✓ — Title, liens, taxes & ownership verified."
+          : proofUrl
+            ? `10 Business Days · ${ddCountdown?.compact || "Calculating…"}. Verify title, liens, taxes, ownership and deal viability.`
+            : "Starts after marketing proof is submitted.",
+        done: ddDone,
+        current: Boolean(proofUrl && !ddDone),
+        locked: !proofUrl,
+      },
+      {
+        title: "Inspection Period Active",
+        description: proceedToClosing
+          ? "Inspection Complete ✓ — Property condition reviewed."
+          : inspectionActive
+            ? `7 Days · ${inspectionCountdown?.compact || "Calculating…"}. Review property condition and repair estimates.`
+            : ddDone
+              ? `7 Days Remaining. ${inspectionCountdown?.compact || ""}`
+              : "Starts after Due Diligence window closes.",
+        done: proceedToClosing,
+        current: inspectionActive,
+        locked: !ddDone,
+      },
+      {
+        title: "Proceed to Closing Confirmed",
+        description: proceedToClosing
+          ? `Proceed to closing confirmed ✓ — ${formatDateTime(activeEntry?.proceedToClosingAt)}`
+          : "Commits the wholesaler to move forward after inspection & DD are complete.",
+        done: proceedToClosing,
+        current: Boolean(ddDone && !proceedToClosing),
+        locked: !ddDone,
+      },
+      {
+        title: "Title & Escrow Opened",
+        description: proceedToClosing
+          ? "Title Company Assigned · Escrow File Created · Earnest Money Verified"
+          : "Pending confirmation to proceed.",
+        done: false,
+        current: proceedToClosing,
+        locked: !proceedToClosing,
+      },
+      {
+        title: "Clear to Close",
+        description:
+          "Title Search Complete ✓ · Documents Approved ✓ · Closing Scheduled ✓",
+        done: false,
+        current: false,
+        locked: true,
+      },
+      {
+        title: "Funded & Closed",
+        description: "Final payout and transfer.",
+        done: false,
+        current: false,
+        locked: true,
+      },
+    ];
 
   return (
     <div className="space-y-8 pb-24">
@@ -1015,11 +1010,10 @@ export default function ActiveDealsPage() {
           type="button"
           onClick={handleRefresh}
           disabled={isFetchingDeals}
-          className={`flex items-center gap-2 border px-5 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] transition disabled:cursor-not-allowed disabled:opacity-60 ${
-            isDark
-              ? "border-white/10 bg-white/5 hover:border-white/25"
-              : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]/40"
-          }`}
+          className={`flex items-center gap-2 border px-5 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark
+            ? "border-white/10 bg-white/5 hover:border-white/25"
+            : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]/40"
+            }`}
         >
           <RefreshCw
             className={`h-4 w-4 ${isFetchingDeals ? "animate-spin" : ""}`}
@@ -1060,13 +1054,12 @@ export default function ActiveDealsPage() {
           now={now}
         >
           <label
-            className={`inline-flex items-center gap-2 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition ${
-              isUploadingProof
-                ? isDark
-                  ? "bg-white/20 text-white/50 cursor-not-allowed"
-                  : "bg-[var(--color-border-light)] text-[var(--color-text-muted)] cursor-not-allowed"
-                : "bg-[var(--color-danger)] text-white hover:scale-[1.02] cursor-pointer shadow-[0_0_20px_rgba(220,38,38,0.2)]"
-            }`}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition ${isUploadingProof
+              ? isDark
+                ? "bg-white/20 text-white/50 cursor-not-allowed"
+                : "bg-[var(--color-border-light)] text-[var(--color-text-muted)] cursor-not-allowed"
+              : "bg-[var(--color-danger)] text-white hover:scale-[1.02] cursor-pointer shadow-[0_0_20px_rgba(220,38,38,0.2)]"
+              }`}
           >
             {isUploadingProof ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1124,11 +1117,10 @@ export default function ActiveDealsPage() {
           <select
             value={activeEntryKey}
             onChange={(e) => setSearchParams({ listingId: e.target.value })}
-            className={`mt-3 w-full border px-4 py-3 text-sm font-bold outline-none focus:border-[var(--color-secondary)] ${
-              isDark
-                ? "border-white/10 bg-black/40 text-white"
-                : "border-[var(--color-border-light)] bg-white text-[var(--color-text-main)]"
-            }`}
+            className={`mt-3 w-full border px-4 py-3 text-sm font-bold outline-none focus:border-[var(--color-secondary)] ${isDark
+              ? "border-white/10 bg-black/40 text-white"
+              : "border-[var(--color-border-light)] bg-white text-[var(--color-text-main)]"
+              }`}
           >
             {unifiedEntries.map((entry) => (
               <option key={entry._entryKey} value={entry._entryKey}>
@@ -1136,9 +1128,9 @@ export default function ActiveDealsPage() {
                 {entry._type === "pending_contract"
                   ? "Pending Signature"
                   : entry.status
-                      .split("_")
-                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                      .join(" ")}
+                    .split("_")
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(" ")}
                 )
               </option>
             ))}
@@ -1547,19 +1539,23 @@ export default function ActiveDealsPage() {
               )}
 
               {contractId && sellerSigned && !buyerSigned && !isCancelled && (
-                <button
-                  type="button"
-                  onClick={handleBuyerSign}
-                  disabled={isSigningBuyer}
-                  className="flex w-full items-center justify-center gap-2 bg-[var(--color-danger)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[0_0_20px_rgba(220,38,38,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSigningBuyer ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileSignature className="h-4 w-4" />
+                <div className="space-y-2">
+                  {docuSealError && (
+                    <p className="rounded border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-3 py-2 text-[11px] font-semibold text-[var(--color-danger)]">
+                      {docuSealError}
+                    </p>
                   )}
-                  Sign As Buyer
-                </button>
+                  <DocuSealSignButton
+                    contractId={contractId}
+                    label="Sign Contract (DocuSeal)"
+                    loadingLabel="Opening DocuSeal..."
+                    disabled={isDocuSealRefreshing}
+                    className="flex w-full items-center justify-center gap-2 bg-[var(--color-danger)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[0_0_20px_rgba(220,38,38,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                    onError={(msg) => setDocuSealError(msg)}
+                    onSigningOpened={() => setDocuSealError("")}
+                    onReturnFromSigning={handleDocuSealReturn}
+                  />
+                </div>
               )}
 
               {/* Cancel Deal Button */}
@@ -1569,29 +1565,26 @@ export default function ActiveDealsPage() {
                     <button
                       type="button"
                       onClick={() => setShowCancelConfirm(true)}
-                      className={`flex w-full items-center justify-center gap-2 border px-5 py-3.5 text-[11px] font-black uppercase tracking-[0.2em] transition ${
-                        isDark
-                          ? "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/15"
-                          : "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
-                      }`}
+                      className={`flex w-full items-center justify-center gap-2 border px-5 py-3.5 text-[11px] font-black uppercase tracking-[0.2em] transition ${isDark
+                        ? "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/15"
+                        : "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                        }`}
                     >
                       <XCircle className="h-4 w-4" />
                       Cancel Deal
                     </button>
                   ) : (
                     <div
-                      className={`rounded-xl border p-4 ${
-                        isDark
-                          ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/8"
-                          : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5"
-                      }`}
+                      className={`rounded-xl border p-4 ${isDark
+                        ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/8"
+                        : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5"
+                        }`}
                     >
                       <p
-                        className={`mb-3 text-[12px] font-black leading-5 ${
-                          isDark
-                            ? "text-white/80"
-                            : "text-[var(--color-text-main)]"
-                        }`}
+                        className={`mb-3 text-[12px] font-black leading-5 ${isDark
+                          ? "text-white/80"
+                          : "text-[var(--color-text-main)]"
+                          }`}
                       >
                         Are you sure you want to cancel this deal? This action
                         cannot be undone and may affect your reliability score.
@@ -1613,11 +1606,10 @@ export default function ActiveDealsPage() {
                         <button
                           type="button"
                           onClick={() => setShowCancelConfirm(false)}
-                          className={`flex-1 px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition border ${
-                            isDark
-                              ? "border-white/15 text-white/60 hover:bg-white/5"
-                              : "border-[var(--color-border-light)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-soft)]"
-                          }`}
+                          className={`flex-1 px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition border ${isDark
+                            ? "border-white/15 text-white/60 hover:bg-white/5"
+                            : "border-[var(--color-border-light)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-soft)]"
+                            }`}
                         >
                           Keep Deal
                         </button>

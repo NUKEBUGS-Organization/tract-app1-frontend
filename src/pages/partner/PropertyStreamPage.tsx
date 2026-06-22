@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import { useGetListingsQuery } from "../../services/listingService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
-
+import { useAuthContext } from "../../contexts/AuthContext";
+import { isAllowedRole, normalizeRole, REALTOR_ROLES } from "../../constants/roles";
 
 function formatMoney(value: any) {
   const num = Number(value);
@@ -216,10 +217,12 @@ function PropertyCard({
   listing,
   isDark,
   delay = 0,
+  isRealtor = false,
 }: {
   listing: any;
   isDark: boolean;
   delay?: number;
+  isRealtor?: boolean;
 }) {
   const id = String(listing?._id || listing?.id || "");
   const hoursLeft = getHoursLeft(listing);
@@ -380,6 +383,13 @@ function PropertyCard({
             >
               Cap Reached
             </div>
+          ) : isRealtor ? (
+            <Link
+              to={`/properties/${id}/offer`}
+              className="flex-1 rounded-xl bg-[var(--color-danger)] py-2.5 text-center text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-[var(--shadow-premium)] transition hover:scale-[1.02] hover:shadow-lg"
+            >
+              Submit Offer
+            </Link>
           ) : (
             <Link
               to={`/properties/${id}/bid`}
@@ -442,6 +452,8 @@ const SORT_OPTIONS = [
 export default function PropertyStreamPage() {
   const theme = usePartnerTheme();
   const isDark = theme === "dark";
+  const { role } = useAuthContext();
+  const isRealtor = isAllowedRole(normalizeRole(role), REALTOR_ROLES);
 
   const [selectedType, setSelectedType] = useState("All Types");
   const [selectedState, setSelectedState] = useState("All States");
@@ -894,6 +906,7 @@ export default function PropertyStreamPage() {
               listing={listing}
               isDark={isDark}
               delay={Math.min(i, 8) * 40}
+              isRealtor={isRealtor}
             />
           ))}
         </div>
