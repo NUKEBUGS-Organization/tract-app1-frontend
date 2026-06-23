@@ -52,7 +52,7 @@ export const dealService = baseApi.injectEndpoints({
         },
       }),
       transformResponse: unwrapDeal,
-      invalidatesTags: ["Deal"],
+      invalidatesTags: ["Deal", "Chat"],
     }),
 
     uploadMarketLaunchProof: builder.mutation<
@@ -70,7 +70,7 @@ export const dealService = baseApi.injectEndpoints({
         },
       }),
       transformResponse: unwrapDeal,
-      invalidatesTags: ["Deal"],
+      invalidatesTags: ["Deal", "Chat"],
     }),
 
     proceedToClosing: builder.mutation<any, string>({
@@ -79,7 +79,7 @@ export const dealService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapDeal,
-      invalidatesTags: ["Deal"],
+      invalidatesTags: ["Deal", "Chat"],
     }),
 
     cancelDeal: builder.mutation<any, string>({
@@ -88,7 +88,7 @@ export const dealService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapDeal,
-      invalidatesTags: ["Deal"],
+      invalidatesTags: ["Deal", "Chat"],
     }),
 
     closeDeal: builder.mutation<any, string>({
@@ -97,7 +97,7 @@ export const dealService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapDeal,
-      invalidatesTags: ["Deal"],
+      invalidatesTags: ["Deal", "Chat"],
     }),
   }),
 });

@@ -46,7 +46,7 @@ export const contractService = baseApi.injectEndpoints({
         body,
       }),
       transformResponse: unwrapContract,
-      invalidatesTags: ["Contract", "Deal"],
+      invalidatesTags: ["Contract", "Deal", "Chat"],
     }),
 
     getContractsByListing: builder.query<any[], string>({
@@ -91,7 +91,7 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapContract,
-      invalidatesTags: ["Contract", "Deal"],
+      invalidatesTags: ["Contract", "Deal", "Chat"],
     }),
 
 
@@ -118,7 +118,7 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapContract,
-      invalidatesTags: ["Contract", "Deal"],
+      invalidatesTags: ["Contract", "Deal", "Chat"],
     }),
 
     signContractAsBuyer: builder.mutation<any, string>({
@@ -127,7 +127,7 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapContract,
-      invalidatesTags: ["Contract", "Deal"],
+      invalidatesTags: ["Contract", "Deal", "Chat"],
     }),
   }),
 });

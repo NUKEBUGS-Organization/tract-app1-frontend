@@ -429,6 +429,8 @@ interface UnifiedEntry {
   proceedToClosingAt?: string;
   chatUnlocked?: boolean;
   bidId?: string;
+  inspectionPeriod?: number | null;
+  dueDiligencePeriod?: number | null;
 }
 
 export default function ActiveDealsPage() {
@@ -492,7 +494,7 @@ export default function ActiveDealsPage() {
 
     // 1. Add real deals
     for (const deal of allDeals) {
-      const listing = deal?.listing_id;
+      const listing = deal?.listing || deal?.listing_id || deal?.property_id;
       const listingId =
         typeof listing === "object" ? getId(listing) : String(listing || "");
       if (listingId) dealListingIds.add(listingId);
@@ -500,6 +502,11 @@ export default function ActiveDealsPage() {
       const contract = deal?.contract_id;
       const contractObj =
         typeof contract === "object" && contract !== null ? contract : null;
+
+      const matchingBid = allBids.find((b) => {
+        const bList = b?.listing || b?.property_id || b?.listing_id;
+        return (typeof bList === "object" ? getId(bList) : String(bList || "")) === listingId;
+      });
 
       entries.push({
         _entryKey: listingId,
@@ -518,6 +525,8 @@ export default function ActiveDealsPage() {
         proofUrl: deal?.marketing_proof_url,
         proceedToClosingAt: deal?.proceed_to_closing_at,
         chatUnlocked: deal?.chat_unlocked,
+        inspectionPeriod: matchingBid?.inspection_period ?? null,
+        dueDiligencePeriod: matchingBid?.due_diligence_period ?? null,
       });
     }
 
@@ -526,7 +535,7 @@ export default function ActiveDealsPage() {
       const bidStatus = String(bid?.status || "").toLowerCase();
       if (bidStatus !== "selected") continue;
 
-      const listing = bid?.property_id;
+      const listing = bid?.listing || bid?.property_id || bid?.listing_id;
       const listingId =
         typeof listing === "object" ? getId(listing) : String(listing || "");
 
@@ -543,6 +552,8 @@ export default function ActiveDealsPage() {
         bidPrice: bid?.bid_price,
         marketPrice: typeof listing === "object" ? listing?.market_price : null,
         bidId: getId(bid),
+        inspectionPeriod: bid?.inspection_period ?? null,
+        dueDiligencePeriod: bid?.due_diligence_period ?? null,
       });
     }
 
@@ -659,20 +670,22 @@ export default function ActiveDealsPage() {
   const proofUrl = activeEntry?.proofUrl;
   const proceedToClosing = Boolean(activeEntry?.proceedToClosingAt);
 
-  // Due Diligence: 10 business days (~14 calendar days) after marketing deadline
+  // Due Diligence: uses actual due_diligence_period from the bid (in calendar days)
+  const ddDays = activeEntry?.dueDiligencePeriod ?? 10; // fallback to 10 days
   const ddDeadline = marketingDeadline
     ? new Date(
-      new Date(marketingDeadline).getTime() + 14 * 24 * 60 * 60 * 1000,
+      new Date(marketingDeadline).getTime() + ddDays * 24 * 60 * 60 * 1000,
     ).toISOString()
     : undefined;
   const ddCountdown = getCountdownParts(ddDeadline, now);
   const ddActive = Boolean(proofUrl && !proceedToClosing);
   const ddDone = proceedToClosing || (ddCountdown?.expired ?? false);
 
-  // Inspection Period: 7 days, starts after DD deadline
+  // Inspection Period: uses actual inspection_period from the bid (in calendar days)
+  const inspectionDays = activeEntry?.inspectionPeriod ?? 7; // fallback to 7 days
   const inspectionDeadline = ddDeadline
     ? new Date(
-      new Date(ddDeadline).getTime() + 7 * 24 * 60 * 60 * 1000,
+      new Date(ddDeadline).getTime() + inspectionDays * 24 * 60 * 60 * 1000,
     ).toISOString()
     : undefined;
   const inspectionCountdown = getCountdownParts(inspectionDeadline, now);
@@ -931,7 +944,7 @@ export default function ActiveDealsPage() {
         description: ddDone
           ? "Due Diligence Complete ✓ — Title, liens, taxes & ownership verified."
           : proofUrl
-            ? `10 Business Days · ${ddCountdown?.compact || "Calculating…"}. Verify title, liens, taxes, ownership and deal viability.`
+            ? `${ddDays} Days · ${ddCountdown?.compact || "Calculating…"}. Verify title, liens, taxes, ownership and deal viability.`
             : "Starts after marketing proof is submitted.",
         done: ddDone,
         current: Boolean(proofUrl && !ddDone),
@@ -942,9 +955,9 @@ export default function ActiveDealsPage() {
         description: proceedToClosing
           ? "Inspection Complete ✓ — Property condition reviewed."
           : inspectionActive
-            ? `7 Days · ${inspectionCountdown?.compact || "Calculating…"}. Review property condition and repair estimates.`
+            ? `${inspectionDays} Days · ${inspectionCountdown?.compact || "Calculating…"}. Review property condition and repair estimates.`
             : ddDone
-              ? `7 Days Remaining. ${inspectionCountdown?.compact || ""}`
+              ? `${inspectionDays} Days Remaining. ${inspectionCountdown?.compact || ""}`
               : "Starts after Due Diligence window closes.",
         done: proceedToClosing,
         current: inspectionActive,
@@ -1082,7 +1095,7 @@ export default function ActiveDealsPage() {
       {proofUrl && !ddDone && !isCancelled && (
         <PhaseCountdownBanner
           title="Due Diligence Period Active"
-          subtitle="Verify title, liens, taxes, ownership and overall deal viability. 10 Business Days."
+          subtitle={`Verify title, liens, taxes, ownership and overall deal viability. ${ddDays} Days.`}
           deadline={ddDeadline}
           startAt={marketingDeadline}
           color="warning"
@@ -1095,7 +1108,7 @@ export default function ActiveDealsPage() {
       {proofUrl && ddDone && !proceedToClosing && !isCancelled && (
         <PhaseCountdownBanner
           title="Inspection Period Active"
-          subtitle="Review property condition, structural reports, and repair cost estimates. 7 Days."
+          subtitle={`Review property condition, structural reports, and repair cost estimates. ${inspectionDays} Days.`}
           deadline={inspectionDeadline}
           startAt={ddDeadline}
           color="secondary"
@@ -1203,13 +1216,6 @@ export default function ActiveDealsPage() {
               >
                 {dealTitle}
               </h2>
-              <p
-                className={`mt-1 text-sm ${isDark ? "text-white/55" : "text-[var(--color-text-muted)]"}`}
-              >
-                {isPendingContract
-                  ? `${contractId ? `Contract: ${contractId}` : `Bid ID: ${activeEntry.bidId || "-"}`}${contractId ? " · Via selected bid" : " · Awaiting contract"}`
-                  : `${contractId ? `Contract: ${contractId}` : "No contract yet"}${dealId ? ` · Deal: ${dealId}` : ""}`}
-              </p>
             </div>
 
             <span
@@ -1265,7 +1271,7 @@ export default function ActiveDealsPage() {
                 </h3>
 
                 {/* Real deal contract details */}
-                {contract && (
+                {contract && !isPendingContract && (
                   <div className="mt-5 space-y-4 text-sm">
                     <div>
                       <p
@@ -1323,6 +1329,30 @@ export default function ActiveDealsPage() {
                         {buyerSigned
                           ? formatDateTime(contract?.buyer_signed_at)
                           : "Pending"}
+                      </p>
+                    </div>
+                    <div>
+                      <p
+                        className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}
+                      >
+                        Due Diligence Period
+                      </p>
+                      <p
+                        className={`mt-1 font-bold ${isDark ? "text-white/60" : "text-[var(--color-text-muted)]"}`}
+                      >
+                        {activeEntry.dueDiligencePeriod ? `${activeEntry.dueDiligencePeriod} Days` : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p
+                        className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}
+                      >
+                        Inspection Period
+                      </p>
+                      <p
+                        className={`mt-1 font-bold ${isDark ? "text-white/60" : "text-[var(--color-text-muted)]"}`}
+                      >
+                        {activeEntry.inspectionPeriod ? `${activeEntry.inspectionPeriod} Days` : "—"}
                       </p>
                     </div>
                     {contract?.pdf_url && (
@@ -1410,6 +1440,30 @@ export default function ActiveDealsPage() {
                         {buyerSigned
                           ? formatDateTime(contract?.buyer_signed_at)
                           : "Pending"}
+                      </p>
+                    </div>
+                    <div>
+                      <p
+                        className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}
+                      >
+                        Due Diligence Period
+                      </p>
+                      <p
+                        className={`mt-1 font-bold ${isDark ? "text-white/60" : "text-[var(--color-text-muted)]"}`}
+                      >
+                        {activeEntry.dueDiligencePeriod ? `${activeEntry.dueDiligencePeriod} Days` : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p
+                        className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}
+                      >
+                        Inspection Period
+                      </p>
+                      <p
+                        className={`mt-1 font-bold ${isDark ? "text-white/60" : "text-[var(--color-text-muted)]"}`}
+                      >
+                        {activeEntry.inspectionPeriod ? `${activeEntry.inspectionPeriod} Days` : "—"}
                       </p>
                     </div>
                     <div>
@@ -1623,14 +1677,14 @@ export default function ActiveDealsPage() {
                 <div className="rounded-xl border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 p-6 shadow-[0_0_20px_rgba(34,197,94,0.08)]">
                   <div className="flex items-center gap-2 mb-3">
                     <ShieldCheck className="h-5 w-5 text-[var(--color-secondary)]" />
-                    <h4 className="font-serif text-lg font-black text-white">
+                    <h4 className={`font-serif text-lg font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
                       Proceed to Closing
                     </h4>
                   </div>
                   <p className="text-[12px] font-black uppercase tracking-[0.2em] text-[var(--color-warning)] mb-4">
                     Action Required
                   </p>
-                  <ul className="space-y-2 mb-5 text-sm text-white/70 font-semibold">
+                  <ul className={`space-y-2 mb-5 text-sm font-semibold ${isDark ? "text-white/70" : "text-[var(--color-text-main)]"}`}>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-[var(--color-secondary)]" />{" "}
                       Inspection Complete
@@ -1653,7 +1707,7 @@ export default function ActiveDealsPage() {
                     )}
                     Proceed to Closing
                   </button>
-                  <p className="mt-4 text-xs text-white/50 text-center leading-relaxed">
+                  <p className={`mt-4 text-xs text-center leading-relaxed ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"}`}>
                     This is an important milestone because it commits the
                     wholesaler to move forward.
                   </p>

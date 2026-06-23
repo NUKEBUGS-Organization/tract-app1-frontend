@@ -104,17 +104,15 @@ function BidCard({ bid, isDark }: { bid: any; isDark: boolean }) {
 
     return (
         <div
-            className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 ${isActionRequired
-                ? isDark
-                    ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/5 shadow-[0_0_30px_rgba(212,175,55,0.08)]"
-                    : "border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/10 shadow-[0_0_30px_rgba(212,175,55,0.12)]"
-                : isDark
-                    ? "border-white/10 bg-white/[0.04]"
-                    : "border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)] hover:shadow-xl"
-                } ${isDark
-                    ? "hover:border-white/20"
-                    : "hover:-translate-y-1 hover:border-[var(--color-secondary)]/30"
-                }`}
+            className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 ${
+                isActionRequired
+                    ? isDark
+                        ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/5 shadow-[0_0_30px_rgba(212,175,55,0.08)] hover:border-[var(--color-secondary)]/50"
+                        : "border-[var(--color-secondary)]/40 bg-white shadow-[0_0_30px_rgba(212,175,55,0.12)] hover:border-[var(--color-secondary)]/60 hover:shadow-[0_0_40px_rgba(212,175,55,0.2)] hover:bg-[var(--color-secondary)]/[0.02]"
+                    : isDark
+                        ? "border-white/10 bg-white/[0.04] hover:border-white/20"
+                        : "border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)] hover:border-[var(--color-primary)]/20 hover:shadow-xl"
+            }`}
         >
             <div
                 className={`absolute bottom-0 left-0 h-0.5 w-0 transition-all duration-500 group-hover:w-full ${isDark
@@ -206,7 +204,7 @@ function BidCard({ bid, isDark }: { bid: any; isDark: boolean }) {
                         <Link
                             to={`/properties/${listingId}`}
                             className={`flex items-center gap-1.5 border px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] transition ${isDark
-                                ? "border-white/10 bg-white/5 text-white/60 hover:border-white/25 hover:text-white"
+                                ? "border-white/10 bg-white/5 text-white/60 hover:border-white/25 hover:text-white hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:bg-white/10"
                                 : "border-[var(--color-border-light)] bg-white text-[var(--color-text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-[var(--color-bg-soft)]"
                                 }`}
                         >
@@ -218,7 +216,8 @@ function BidCard({ bid, isDark }: { bid: any; isDark: boolean }) {
                     {status === "selected" && (
                         <Link
                             to={`/deals?listingId=${listingId}`}
-                            className="flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02]"
+                            className={`flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] ${isDark ? "hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]" : ""
+                                }`}
                         >
                             Go to Deal
                             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -270,11 +269,13 @@ export default function MyBidsPage() {
         })
         : rawBids;
 
+    // Active = submitted and awaiting seller response (not yet selected)
     const activeBids = allBids.filter((b) =>
-        ["active", "selected", "backup"].includes(getBidStatus(b)),
+        getBidStatus(b) === "active",
     );
+    // Other = backup, rejected, deleted
     const pastBids = allBids.filter((b) =>
-        ["rejected", "deleted"].includes(getBidStatus(b)),
+        ["backup", "rejected", "deleted"].includes(getBidStatus(b)),
     );
 
     return (
@@ -353,14 +354,14 @@ export default function MyBidsPage() {
                     <div className="flex flex-wrap gap-3">
                         {[
                             {
-                                label: "Active Bids",
+                                label: "Pending Bids",
                                 value: isLoading ? "—" : activeBids.length,
                                 color: "text-white",
                                 iconColor: isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]",
                                 icon: Clock,
                             },
                             {
-                                label: "Past Bids",
+                                label: "Past / Backup",
                                 value: isLoading ? "—" : pastBids.length,
                                 color: "text-white",
                                 iconColor: isDark ? "text-white/40" : "text-white/50",
@@ -424,7 +425,7 @@ export default function MyBidsPage() {
                         className={`mt-3 text-sm font-bold ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
                             }`}
                     >
-                        You haven't submitted any bids yet.
+                        No bids yet. Submit a bid on a property to get started.
                     </p>
                     <Link
                         to="/properties"
@@ -435,14 +436,14 @@ export default function MyBidsPage() {
                 </div>
             )}
 
-            {/* Active bids */}
+            {/* Pending bids */}
             {!isLoading && activeBids.length > 0 && (
                 <div>
                     <p
                         className={`mb-4 text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
                             }`}
                     >
-                        Active Bids ({activeBids.length})
+                        Pending Bids ({activeBids.length})
                     </p>
                     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                         {activeBids.map((bid: any) => (
@@ -456,14 +457,14 @@ export default function MyBidsPage() {
                 </div>
             )}
 
-            {/* Past bids */}
+            {/* Backup / rejected / past bids */}
             {!isLoading && pastBids.length > 0 && (
-                <div className="mt-6">
+                <div>
                     <p
                         className={`mb-4 text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
                             }`}
                     >
-                        Past Bids ({pastBids.length})
+                        Backup & Past Bids ({pastBids.length})
                     </p>
                     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                         {pastBids.map((bid: any) => (

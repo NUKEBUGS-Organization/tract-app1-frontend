@@ -30,7 +30,8 @@ const partnerNav = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Property Stream", path: "/properties" },
   { label: "My Bids", path: "/my-bids" },
-  { label: "Active Deals", path: "/deals" },
+  { label: "Contracts", path: "/my-contracts" },
+  { label: "Deal Tracker", path: "/deals" },
   { label: "Chat", path: "/chat" },
 ];
 

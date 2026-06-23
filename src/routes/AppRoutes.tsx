@@ -30,6 +30,7 @@ import ContractsPage from "../pages/seller/ContractsPage";
 import PropertyStreamPage from "../pages/partner/PropertyStreamPage";
 import ActiveDealsPage from "../pages/partner/ActiveDealsPage";
 import MyBidsPage from "../pages/partner/MyBidsPage";
+import MyContractsPage from "../pages/partner/MyContractsPage";
 import PropertyDetailPage from "../pages/partner/PropertyDetailPage";
 import SubmitBidPage from "../pages/partner/submit-bid";
 import ProofOfActivityPage from "../pages/partner/ProofOfActivityPage";
@@ -258,6 +259,15 @@ function AppRoutes() {
                 ]}
               >
                 <MyBidsPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/my-contracts"
+            element={
+              <RoleRoute allowedRoles={PARTNER_ROLES}>
+                <MyContractsPage />
               </RoleRoute>
             }
           />

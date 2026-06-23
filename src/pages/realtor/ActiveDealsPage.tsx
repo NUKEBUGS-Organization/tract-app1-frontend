@@ -410,7 +410,7 @@ export default function RealtorActiveDealsPage() {
     const dealListingIds = new Set<string>();
 
     for (const deal of allDeals) {
-      const listing = deal?.listing_id;
+      const listing = deal?.listing || deal?.listing_id || deal?.property_id;
       const listingId =
         typeof listing === "object" ? getId(listing) : String(listing || "");
       if (listingId) dealListingIds.add(listingId);
@@ -440,7 +440,7 @@ export default function RealtorActiveDealsPage() {
       const bidStatus = String(bid?.status || "").toLowerCase();
       if (bidStatus !== "selected") continue;
 
-      const listing = bid?.property_id;
+      const listing = bid?.listing || bid?.property_id || bid?.listing_id;
       const listingId =
         typeof listing === "object" ? getId(listing) : String(listing || "");
       if (dealListingIds.has(listingId)) continue;
