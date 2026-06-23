@@ -12,23 +12,45 @@ type ContractSignUrlResponse = {
 };
 
 function unwrapContract(response: ApiEnvelope<any>) {
-  return response.data;
+  const payload = response?.data ?? response;
+
+  return payload?._doc ?? payload;
 }
-function unwrapPaginatedContracts(response: ApiEnvelope<any>) {
-  if (!response?.data) return [];
-  if (Array.isArray(response.data.data)) return response.data.data;
-  if (Array.isArray(response.data)) return response.data;
+
+function normalizeContractList(payload: any) {
+  if (!payload) return [];
+
+  if (Array.isArray(payload)) {
+    return payload.map((item: any) => item?._doc ?? item);
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data.map((item: any) => item?._doc ?? item);
+  }
+
+  if (Array.isArray(payload?.data?.data)) {
+    return payload.data.data.map((item: any) => item?._doc ?? item);
+  }
+
+  if (typeof payload === "object") {
+    return Object.values(payload)
+      .filter((item: any) => item && typeof item === "object" && !item?.page)
+      .map((item: any) => item?._doc ?? item);
+  }
+
   return [];
 }
 
-function unwrapContractList(response: ApiEnvelope<Record<string, any> | any[] | null>) {
-  if (!response.data) return [];
+function unwrapContractList(response: ApiEnvelope<any>) {
+  const payload = response?.data ?? response;
 
-  if (Array.isArray(response.data)) {
-    return response.data;
-  }
+  return normalizeContractList(payload);
+}
 
-  return Object.values(response.data);
+function unwrapPaginatedContracts(response: ApiEnvelope<any>) {
+  const payload = response?.data ?? response;
+
+  return normalizeContractList(payload);
 }
 
 export const contractService = baseApi.injectEndpoints({
@@ -94,21 +116,14 @@ export const contractService = baseApi.injectEndpoints({
       invalidatesTags: ["Contract", "Deal", "Chat"],
     }),
 
-
     getMyContracts: builder.query<any[], void>({
       query: () => ({
-        url: `contracts/my-contracts`,
+        url: "contracts/my-contracts",
         method: "GET",
       }),
-      transformResponse: (response: ApiEnvelope<any>) => {
-        const list = unwrapPaginatedContracts(response);
-        // Unwrap each Mongoose _doc if present
-        return list.map((item: any) => item?._doc ?? item);
-      },
+      transformResponse: unwrapPaginatedContracts,
       providesTags: ["Contract"],
     }),
-
-
 
     // Keep these only if you still need local testing.
     // Do not use these from production frontend signing UI.
@@ -142,5 +157,4 @@ export const {
   useCancelContractMutation,
   useSignContractAsSellerMutation,
   useSignContractAsBuyerMutation,
-
 } = contractService;

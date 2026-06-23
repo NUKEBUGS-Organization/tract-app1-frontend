@@ -1,3 +1,4 @@
+//src\constants\roles.ts
 export const ROLES = {
   SELLER: "seller",
   WHOLESALER: "wholesaler",

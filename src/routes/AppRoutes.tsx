@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from "react-router";
+
+import { Navigate, Route, Routes, useParams } from "react-router";
 
 import PublicRoute from "./PublicRoute";
 import ProtectedRoute from "./ProtectedRoute";
@@ -13,12 +14,15 @@ import ForgotPasswordPage from "../pages/auth/ForgotPassword";
 import ResetPasswordPage from "../pages/auth/ResetPassword";
 
 import KycPage from "../pages/kyc";
+import ProfilePage from "../pages/profile";
 
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
+import SupportPage from "../pages/common/SupportPage";
 
 // Seller pages
 import ListPropertyPage from "../pages/seller/ListPropertyPage";
+import MyListingsPage from "../pages/seller/MyListingsPage";
 import DocumentVaultPage from "../pages/seller/DocumentVaultPage";
 import ViewBidsPage from "../pages/seller/ViewBidsPage";
 import DealTrackerPage from "../pages/seller/DealTrackerPage";
@@ -39,10 +43,31 @@ import ProofOfActivityPage from "../pages/partner/ProofOfActivityPage";
 import RealtorActiveDealsPage from "../pages/realtor/ActiveDealsPage";
 import RealtorMyOffersPage from "../pages/realtor/MyOffersPage";
 import RealtorSubmitOfferPage from "../pages/realtor/SubmitOfferPage";
-import ProfilePage from "../pages/profile";
 
+// Common chat pages
 import ChatRoomsPage from "../pages/chat";
 import ChatRoomPage from "../pages/chat/ChatRoomPage";
+
+// Admin pages
+import AdminUsersPage from "../pages/admin/AdminUsersPage";
+import AdminUserDetailsPage from "../pages/admin/AdminUserDetailsPage";
+import AdminVerificationPage from "../pages/admin/AdminVerificationPage";
+
+import AdminListingsPage from "../pages/admin/AdminListingsPage";
+import AdminListingDetailsPage from "../pages/admin/AdminListingDetailsPage";
+
+import AdminBidsPage from "../pages/admin/AdminBidsPage";
+import AdminBidDetailsPage from "../pages/admin/AdminBidDetailsPage";
+
+import AdminContractsPage from "../pages/admin/AdminContractsPage";
+import AdminContractDetailsPage from "../pages/admin/AdminContractDetailsPage";
+
+import AdminDealsPage from "../pages/admin/AdminDealsPage";
+import AdminDealDetailsPage from "../pages/admin/AdminDealDetailsPage";
+
+import AdminChatFlagsPage from "../pages/admin/AdminChatFlagsPage";
+import AdminChatRoomsPage from "../pages/admin/AdminChatRoomsPage";
+import AdminRoomMessagesPage from "../pages/admin/AdminRoomMessagesPage";
 
 import {
   ADMIN_ROLES,
@@ -52,26 +77,59 @@ import {
   SELLER_ROLES,
 } from "../constants/roles";
 
+/*
+ * Temporary redirects for old listing URLs.
+ * Remove these after all links in seller/admin pages use /properties.
+ */
+function OldListingDetailsRedirect() {
+  const { id = "" } = useParams();
+
+  return <Navigate to={`/properties/${id}`} replace />;
+}
+
+function OldListingEditRedirect() {
+  const { id = "" } = useParams();
+
+  return <Navigate to={`/properties/${id}/edit`} replace />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-      {/* Public auth routes */}
+      {/* =====================================================
+          PUBLIC AUTH ROUTES
+      ====================================================== */}
+
       <Route element={<PublicRoute />}>
         <Route path="/auth/signup" element={<SignUp />} />
         <Route path="/auth/signin" element={<SignInPage />} />
         <Route path="/auth/verify" element={<VerifyPage />} />
-        <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+
+        <Route
+          path="/auth/forgot-password"
+          element={<ForgotPasswordPage />}
+        />
+
+        <Route
+          path="/auth/reset-password"
+          element={<ResetPasswordPage />}
+        />
       </Route>
 
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-      {/* Protected app routes */}
+      {/* =====================================================
+          PROTECTED APPLICATION ROUTES
+      ====================================================== */}
+
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardRouter />}>
-          {/* Common dashboard route for all roles */}
+          {/* =================================================
+              COMMON DASHBOARD
+          ================================================== */}
+
           <Route
             path="/dashboard"
             element={
@@ -81,6 +139,10 @@ function AppRoutes() {
             }
           />
 
+          {/* =================================================
+              COMMON PROFILE / SUPPORT
+          ================================================== */}
+
           <Route
             path="/profile"
             element={
@@ -89,13 +151,27 @@ function AppRoutes() {
               </RoleRoute>
             }
           />
-          {/* KYC route for app users */}
+
+          <Route
+            path="/support"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SupportPage />
+              </RoleRoute>
+            }
+          />
+
+          {/* =================================================
+              KYC
+              Admin reviews KYC, so admin does not need the
+              user KYC submission screen.
+          ================================================== */}
+
           <Route
             path="/kyc"
             element={
               <RoleRoute
                 allowedRoles={[
-                  ...ADMIN_ROLES,
                   ...SELLER_ROLES,
                   ...PARTNER_ROLES,
                   ...REALTOR_ROLES,
@@ -105,35 +181,11 @@ function AppRoutes() {
               </RoleRoute>
             }
           />
-          <Route
-            path="/chat"
-            element={
-              <RoleRoute
-                allowedRoles={[
-                  ...SELLER_ROLES,
-                  ...PARTNER_ROLES,
-                  ...REALTOR_ROLES,
-                ]}
-              >
-                <ChatRoomsPage />
-              </RoleRoute>
-            }
-          />
 
-          <Route
-            path="/chat/:roomId"
-            element={
-              <RoleRoute
-                allowedRoles={[
-                  ...SELLER_ROLES,
-                  ...PARTNER_ROLES,
-                  ...REALTOR_ROLES,
-                ]}
-              >
-                <ChatRoomPage />
-              </RoleRoute>
-            }
-          />
+          {/* =================================================
+              PARTNER-ONLY PROOF OF ACTIVITY
+          ================================================== */}
+
           <Route
             path="/proof-of-activity"
             element={
@@ -143,8 +195,70 @@ function AppRoutes() {
             }
           />
 
+          {/* =================================================
+              SHARED PROPERTIES / LISTINGS ROUTES
+          ================================================== */}
 
-          {/* Seller-only routes */}
+          <Route
+            path="/properties"
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  ...PARTNER_ROLES,
+                  ...REALTOR_ROLES,
+                  ...ADMIN_ROLES,
+                ]}
+                roleContent={{
+                  partner: <PropertyStreamPage />,
+                  realtor: <PropertyStreamPage />,
+                  admin: <AdminListingsPage />,
+                }}
+              />
+            }
+          />
+
+          <Route
+            path="/properties/:id"
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  ...SELLER_ROLES,
+                  ...PARTNER_ROLES,
+                  ...REALTOR_ROLES,
+                  ...ADMIN_ROLES,
+                ]}
+                roleContent={{
+                  seller: <ListingDetailsPage />,
+                  partner: <PropertyDetailPage />,
+                  realtor: <PropertyDetailPage />,
+                  admin: <AdminListingDetailsPage />,
+                }}
+              />
+            }
+          />
+
+          <Route
+            path="/properties/:id/bid"
+            element={
+              <RoleRoute allowedRoles={PARTNER_ROLES}>
+                <SubmitBidPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/properties/:id/offer"
+            element={
+              <RoleRoute allowedRoles={REALTOR_ROLES}>
+                <RealtorSubmitOfferPage />
+              </RoleRoute>
+            }
+          />
+
+          {/* =================================================
+              SELLER-ONLY LISTING ACTIONS
+          ================================================== */}
+
           <Route
             path="/list-property"
             element={
@@ -153,17 +267,18 @@ function AppRoutes() {
               </RoleRoute>
             }
           />
+
           <Route
-            path="/listings/:id"
+            path="/my-listings"
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
-                <ListingDetailsPage />
+                <MyListingsPage />
               </RoleRoute>
             }
           />
 
           <Route
-            path="/listings/:id/edit"
+            path="/properties/:id/edit"
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
                 <EditListingPage />
@@ -180,37 +295,32 @@ function AppRoutes() {
             }
           />
 
+          {/* =================================================
+              SHARED BIDS ROUTES
+          ================================================== */}
+
           <Route
             path="/bids"
             element={
-              <RoleRoute allowedRoles={SELLER_ROLES}>
-                <ViewBidsPage />
-              </RoleRoute>
+              <RoleRoute
+                allowedRoles={[
+                  ...SELLER_ROLES,
+                  ...PARTNER_ROLES,
+                  ...REALTOR_ROLES,
+                  ...ADMIN_ROLES,
+                ]}
+                roleContent={{
+                  seller: <ViewBidsPage />,
+                  partner: <MyBidsPage />,
+                  realtor: <RealtorMyOffersPage />,
+                  admin: <AdminBidsPage />,
+                }}
+              />
             }
           />
 
           <Route
-            path="/contracts"
-            element={
-              <RoleRoute allowedRoles={SELLER_ROLES}>
-                <ContractsPage />
-              </RoleRoute>
-            }
-          />
-
-          <Route
-            path="/deal-tracker"
-            element={
-              <RoleRoute allowedRoles={SELLER_ROLES}>
-                <DealTrackerPage />
-              </RoleRoute>
-            }
-          />
-
-
-          {/* Partner/Realtor/Admin shared routes */}
-          <Route
-            path="/properties"
+            path="/bids/:id"
             element={
               <RoleRoute
                 allowedRoles={[
@@ -218,33 +328,24 @@ function AppRoutes() {
                   ...REALTOR_ROLES,
                   ...ADMIN_ROLES,
                 ]}
-              >
-                <PropertyStreamPage />
-              </RoleRoute>
-            }
-          />
+                roleContent={{
+                  partner: (
+                    <PlaceholderPage
+                      title="Bid Details"
+                      description="Wholesaler bid details."
+                    />
+                  ),
 
-          <Route
-            path="/properties/:id"
-            element={
-              <RoleRoute
-                allowedRoles={[
-                  ...PARTNER_ROLES,
-                  ...REALTOR_ROLES,
-                  ...ADMIN_ROLES,
-                ]}
-              >
-                <PropertyDetailPage />
-              </RoleRoute>
-            }
-          />
+                  realtor: (
+                    <PlaceholderPage
+                      title="Bid Details"
+                      description="Realtor bid details."
+                    />
+                  ),
 
-          <Route
-            path="/properties/:id/bid"
-            element={
-              <RoleRoute allowedRoles={PARTNER_ROLES}>
-                <SubmitBidPage />
-              </RoleRoute>
+                  admin: <AdminBidDetailsPage />,
+                }}
+              />
             }
           />
 
@@ -252,14 +353,79 @@ function AppRoutes() {
             path="/my-bids"
             element={
               <RoleRoute
+                allowedRoles={[...PARTNER_ROLES, ...REALTOR_ROLES]}
+                roleContent={{
+                  partner: <MyBidsPage />,
+                  realtor: <RealtorMyOffersPage />,
+                }}
+              />
+            }
+          />
+
+          {/* =================================================
+              SHARED CONTRACTS ROUTES
+          ================================================== */}
+
+          <Route
+            path="/contracts"
+            element={
+              <RoleRoute
                 allowedRoles={[
+                  ...SELLER_ROLES,
                   ...PARTNER_ROLES,
                   ...REALTOR_ROLES,
                   ...ADMIN_ROLES,
                 ]}
-              >
-                <MyBidsPage />
-              </RoleRoute>
+                roleContent={{
+                  seller: <ContractsPage />,
+                  partner: <MyContractsPage />,
+                  realtor: (
+                    <PlaceholderPage
+                      title="Contracts"
+                      description="Realtor contracts will render here."
+                    />
+                  ),
+                  admin: <AdminContractsPage />,
+                }}
+              />
+            }
+          />
+
+          <Route
+            path="/contracts/:id"
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  ...SELLER_ROLES,
+                  ...PARTNER_ROLES,
+                  ...REALTOR_ROLES,
+                  ...ADMIN_ROLES,
+                ]}
+                roleContent={{
+                  seller: (
+                    <PlaceholderPage
+                      title="Contract Details"
+                      description="Seller contract details."
+                    />
+                  ),
+
+                  partner: (
+                    <PlaceholderPage
+                      title="Contract Details"
+                      description="Wholesaler contract details."
+                    />
+                  ),
+
+                  realtor: (
+                    <PlaceholderPage
+                      title="Contract Details"
+                      description="Realtor contract details."
+                    />
+                  ),
+
+                  admin: <AdminContractDetailsPage />,
+                }}
+              />
             }
           />
 
@@ -272,24 +438,68 @@ function AppRoutes() {
             }
           />
 
+          {/* =================================================
+              SHARED DEALS ROUTES
+          ================================================== */}
+
           <Route
             path="/deals"
             element={
               <RoleRoute
                 allowedRoles={[
+                  ...SELLER_ROLES,
                   ...PARTNER_ROLES,
                   ...REALTOR_ROLES,
                   ...ADMIN_ROLES,
                 ]}
-              >
-                <ActiveDealsPage />
-              </RoleRoute>
+                roleContent={{
+                  seller: <DealTrackerPage />,
+                  partner: <ActiveDealsPage />,
+                  realtor: <RealtorActiveDealsPage />,
+                  admin: <AdminDealsPage />,
+                }}
+              />
             }
           />
 
-          {/* Partner-only routes */}
+          <Route
+            path="/deals/:id"
+            element={
+              <RoleRoute
+                allowedRoles={[
+                  ...SELLER_ROLES,
+                  ...PARTNER_ROLES,
+                  ...REALTOR_ROLES,
+                  ...ADMIN_ROLES,
+                ]}
+                roleContent={{
+                  seller: (
+                    <PlaceholderPage
+                      title="Deal Details"
+                      description="Seller deal details."
+                    />
+                  ),
 
-          {/* Realtor-only routes */}
+                  partner: (
+                    <PlaceholderPage
+                      title="Deal Details"
+                      description="Wholesaler deal details."
+                    />
+                  ),
+
+                  realtor: (
+                    <PlaceholderPage
+                      title="Deal Details"
+                      description="Realtor deal details."
+                    />
+                  ),
+
+                  admin: <AdminDealDetailsPage />,
+                }}
+              />
+            }
+          />
+
           <Route
             path="/realtor/deals"
             element={
@@ -308,36 +518,74 @@ function AppRoutes() {
             }
           />
 
+          {/* =================================================
+              SHARED CHAT ROUTES
+          ================================================== */}
+
           <Route
-            path="/properties/:id/offer"
+            path="/chat"
             element={
-              <RoleRoute allowedRoles={REALTOR_ROLES}>
-                <RealtorSubmitOfferPage />
-              </RoleRoute>
+              <RoleRoute
+                allowedRoles={ALL_APP_ROLES}
+                roleContent={{
+                  seller: <ChatRoomsPage />,
+                  partner: <ChatRoomsPage />,
+                  realtor: <ChatRoomsPage />,
+                  admin: <AdminChatRoomsPage />,
+                }}
+              />
             }
           />
 
-          {/* Admin-only routes */}
           <Route
-            path="/states"
+            path="/chat/:roomId"
             element={
-              <RoleRoute allowedRoles={ADMIN_ROLES}>
+              <RoleRoute
+                allowedRoles={ALL_APP_ROLES}
+                roleContent={{
+                  seller: <ChatRoomPage />,
+                  partner: <ChatRoomPage />,
+                  realtor: <ChatRoomPage />,
+                  admin: <AdminRoomMessagesPage />,
+                }}
+              />
+            }
+          />
+
+          {/* =================================================
+              PARTNER-ONLY ROUTES
+          ================================================== */}
+
+          <Route
+            path="/score"
+            element={
+              <RoleRoute allowedRoles={PARTNER_ROLES}>
                 <PlaceholderPage
-                  title="State Firewall"
-                  description="Admin can manage state-level access rules here."
+                  title="Score"
+                  description="Wholesaler score and performance metrics."
                 />
               </RoleRoute>
             }
           />
+
+          {/* =================================================
+              ADMIN-ONLY ROUTES
+          ================================================== */}
 
           <Route
             path="/users"
             element={
               <RoleRoute allowedRoles={ADMIN_ROLES}>
-                <PlaceholderPage
-                  title="Users"
-                  description="Admin user management screen."
-                />
+                <AdminUsersPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/users/:id"
+            element={
+              <RoleRoute allowedRoles={ADMIN_ROLES}>
+                <AdminUserDetailsPage />
               </RoleRoute>
             }
           />
@@ -346,10 +594,7 @@ function AppRoutes() {
             path="/verifications"
             element={
               <RoleRoute allowedRoles={ADMIN_ROLES}>
-                <PlaceholderPage
-                  title="Verifications"
-                  description="Admin verification review screen."
-                />
+                <AdminVerificationPage />
               </RoleRoute>
             }
           />
@@ -358,10 +603,86 @@ function AppRoutes() {
             path="/chat-flags"
             element={
               <RoleRoute allowedRoles={ADMIN_ROLES}>
+                <AdminChatFlagsPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/states"
+            element={
+              <RoleRoute allowedRoles={ADMIN_ROLES}>
                 <PlaceholderPage
-                  title="Chat Flags"
-                  description="Admin can review flagged chat activity here."
+                  title="State Firewall"
+                  description="Backend API is not ready yet."
                 />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/scores"
+            element={
+              <RoleRoute allowedRoles={ADMIN_ROLES}>
+                <PlaceholderPage
+                  title="Scores"
+                  description="Backend API is not ready yet."
+                />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/financials"
+            element={
+              <RoleRoute allowedRoles={ADMIN_ROLES}>
+                <PlaceholderPage
+                  title="Financials"
+                  description="Backend API is not ready yet."
+                />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/audit-logs"
+            element={
+              <RoleRoute allowedRoles={ADMIN_ROLES}>
+                <PlaceholderPage
+                  title="Audit Logs"
+                  description="Backend API is not ready yet."
+                />
+              </RoleRoute>
+            }
+          />
+
+          {/* =================================================
+              TEMPORARY OLD SELLER URL REDIRECTS
+          ================================================== */}
+
+          <Route
+            path="/listings/:id"
+            element={
+              <RoleRoute allowedRoles={SELLER_ROLES}>
+                <OldListingDetailsRedirect />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/listings/:id/edit"
+            element={
+              <RoleRoute allowedRoles={SELLER_ROLES}>
+                <OldListingEditRedirect />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/deal-tracker"
+            element={
+              <RoleRoute allowedRoles={SELLER_ROLES}>
+                <Navigate to="/deals" replace />
               </RoleRoute>
             }
           />

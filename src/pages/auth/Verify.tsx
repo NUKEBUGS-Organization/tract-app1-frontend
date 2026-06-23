@@ -255,7 +255,7 @@ export default function VerifyPage() {
             </div>
 
             <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[var(--color-secondary)]">
-              Real Estate
+              Buy the best skip the Rest
             </p>
           </div>
         </div>

@@ -19,10 +19,11 @@ import {
 const sellerNav = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "List Property", path: "/list-property" },
+  { label: "My Listings", path: "/my-listings" },
   { label: "Document Vault", path: "/document-vault" },
   { label: "View Bids", path: "/bids" },
   { label: "Contracts", path: "/contracts" },
-  { label: "Deal Tracker", path: "/deal-tracker" },
+  { label: "Deal Tracker", path: "/deals" },
   { label: "Chat", path: "/chat" },
 ];
 
@@ -45,11 +46,24 @@ const realtorNav = [
 
 const adminNav = [
   { label: "Dashboard", path: "/dashboard" },
-  { label: "State Firewall", path: "/states" },
+
+  // Admin-only screens
   { label: "Users", path: "/users" },
   { label: "Verifications", path: "/verifications" },
+
+  // Shared feature routes
+  { label: "Listings", path: "/properties" },
+  { label: "Bids", path: "/bids" },
+  { label: "Contracts", path: "/contracts" },
   { label: "Deals", path: "/deals" },
+  { label: "Chat Rooms", path: "/chat" },
+
+  // Admin-only screens
   { label: "Chat Flags", path: "/chat-flags" },
+  // { label: "State Firewall", path: "/states" },
+  // { label: "Scores", path: "/scores" },
+  // { label: "Financials", path: "/financials" },
+  // { label: "Audit Logs", path: "/audit-logs" },
 ];
 
 export default function DashboardRouter() {
