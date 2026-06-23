@@ -67,11 +67,9 @@ function getInitials(name: string) {
 function getPrimaryAction(title: string) {
   const normalizedTitle = title.toLowerCase();
 
+  // Admin header should not show a primary action button
   if (normalizedTitle.includes("admin")) {
-    return {
-      label: "Review Queue",
-      path: "/verifications",
-    };
+    return null;
   }
 
   if (normalizedTitle.includes("partner")) {
@@ -180,21 +178,21 @@ function DashboardLayout({
   children,
 }: DashboardLayoutProps) {
   const { user } = useAuthContext();
-const authUser = user as any;
+  const authUser = user as any;
 
-const {
-  data: profile,
-  refetch: refetchProfile,
-} = useGetMeQuery(undefined, {
-  skip: !authUser,
-  refetchOnMountOrArgChange: true,
-});
+  const {
+    data: profile,
+    refetch: refetchProfile,
+  } = useGetMeQuery(undefined, {
+    skip: !authUser,
+    refetchOnMountOrArgChange: true,
+  });
 
-useEffect(() => {
-  if (authUser) {
-    refetchProfile();
-  }
-}, [authUser?._id, authUser?.email, refetchProfile]);
+  useEffect(() => {
+    if (authUser) {
+      refetchProfile();
+    }
+  }, [authUser?._id, authUser?.email, refetchProfile]);
 
   // const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -207,20 +205,28 @@ useEffect(() => {
   const isDark = mode === "dark";
   const profileUser = (profile as any)?.data ?? profile;
 
-const profileMatchesCurrentUser =
-  !profileUser ||
-  !authUser ||
-  (authUser?._id && profileUser?._id && authUser._id === profileUser._id) ||
-  (authUser?.email &&
-    profileUser?.email &&
-    authUser.email === profileUser.email);
+  const profileMatchesCurrentUser =
+    !profileUser ||
+    !authUser ||
+    (authUser?._id && profileUser?._id && authUser._id === profileUser._id) ||
+    (authUser?.email &&
+      profileUser?.email &&
+      authUser.email === profileUser.email);
 
-const displayUser = profileMatchesCurrentUser
-  ? profileUser || authUser
-  : authUser;
+  const displayUser = profileMatchesCurrentUser
+    ? profileUser || authUser
+    : authUser;
 
-const displayName = getUserName(displayUser);
-const initials = getInitials(displayName) || "A";
+  const currentRole = String(
+    displayUser?.role || authUser?.role || ""
+  )
+    .toLowerCase()
+    .trim();
+
+  const isAdmin = currentRole === "admin";
+
+  const displayName = getUserName(displayUser);
+  const initials = getInitials(displayName) || "A";
 
   const primaryAction = getPrimaryAction(title);
 
@@ -298,8 +304,8 @@ const initials = getInitials(displayName) || "A";
         <div className="min-w-0 flex-1">
           <nav
             className={`sticky top-0 z-30 flex h-[86px] items-center justify-between border-b px-5 backdrop-blur-xl lg:px-10 ${isDark
-                ? "border-white/10 bg-[var(--color-dark-main)]/90"
-                : "border-[var(--color-border-light)] bg-[var(--color-bg-main)]/90"
+              ? "border-white/10 bg-[var(--color-dark-main)]/90"
+              : "border-[var(--color-border-light)] bg-[var(--color-bg-main)]/90"
               }`}
           >
             <div className="flex min-w-0 items-center gap-4 lg:gap-6">
@@ -307,8 +313,8 @@ const initials = getInitials(displayName) || "A";
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
                 className={`flex h-11 w-11 items-center justify-center rounded-full border lg:hidden ${isDark
-                    ? "border-white/10 bg-white/10 text-white"
-                    : "border-[var(--color-border-light)] bg-white text-[var(--color-primary)]"
+                  ? "border-white/10 bg-white/10 text-white"
+                  : "border-[var(--color-border-light)] bg-white text-[var(--color-primary)]"
                   }`}
                 aria-label="Open menu"
               >
@@ -381,8 +387,8 @@ const initials = getInitials(displayName) || "A";
                       placeholder="Search properties..."
                       aria-label="Search properties"
                       className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${isDark
-                          ? "text-white"
-                          : "text-[var(--color-text-main)]"
+                        ? "text-white"
+                        : "text-[var(--color-text-main)]"
                         }`}
                     />
 
@@ -430,7 +436,7 @@ const initials = getInitials(displayName) || "A";
                             return (
                               <Link
                                 key={id}
-                                to={`/listings/${id}`}
+                                to={`/properties/${id}`}
                                 onMouseDown={(event) => event.preventDefault()}
                                 onClick={closeSearchDropdown}
                                 className="block px-4 py-3 transition hover:bg-[var(--color-bg-soft)]"
@@ -469,19 +475,21 @@ const initials = getInitials(displayName) || "A";
                 </div>
               )}
 
-              <Link
-                to={primaryAction.path}
-                className="hidden items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-[var(--shadow-premium)] transition hover:scale-[1.02] md:flex"
-              >
-                <Plus className="h-4 w-4" />
-                {primaryAction.label}
-              </Link>
+            {primaryAction && (
+  <Link
+    to={primaryAction.path}
+    className="inline-flex h-11 items-center justify-center gap-2 rounded-none bg-[var(--color-secondary)] px-6 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary)] shadow-sm transition hover:brightness-95"
+  >
+    <Plus className="h-4 w-4" aria-hidden="true" />
+    {primaryAction.label}
+  </Link>
+)}
 
               <button
                 type="button"
                 className={`relative flex h-11 w-11 items-center justify-center rounded-full border transition ${isDark
-                    ? "border-white/10 bg-white/10 hover:bg-white/15"
-                    : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]"
+                  ? "border-white/10 bg-white/10 hover:bg-white/15"
+                  : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]"
                   }`}
               >
                 <Bell
@@ -534,14 +542,16 @@ const initials = getInitials(displayName) || "A";
                         Profile & Settings
                       </Link>
 
-                      <Link
-                        to="/kyc"
-                        onClick={() => setIsProfileMenuOpen(false)}
-                        className="flex items-center gap-3 px-5 py-3 text-sm font-bold text-[var(--color-text-main)] transition hover:bg-[var(--color-bg-soft)]"
-                      >
-                        <ShieldCheck className="h-4 w-4 text-[var(--color-primary)]" />
-                        KYC Verification
-                      </Link>
+                      {!isAdmin && (
+                        <Link
+                          to="/kyc"
+                          onClick={() => setIsProfileMenuOpen(false)}
+                          className="flex items-center gap-3 px-5 py-3 text-sm font-bold text-[var(--color-text-main)] transition hover:bg-[var(--color-bg-soft)]"
+                        >
+                          <ShieldCheck className="h-4 w-4 text-[var(--color-primary)]" />
+                          KYC Verification
+                        </Link>
+                      )}
 
                       {/* <Link
                         to="/profile"

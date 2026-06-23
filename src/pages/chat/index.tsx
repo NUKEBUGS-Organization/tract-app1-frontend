@@ -2,7 +2,6 @@ import { Link } from "react-router";
 import {
   AlertTriangle,
   CheckCircle2,
-  Loader2,
   MessageCircle,
   RefreshCw,
 } from "lucide-react";
@@ -10,6 +9,7 @@ import {
 import { useGetChatRoomsQuery } from "../../services/chatService";
 import { useGetMyDealsQuery } from "../../services/dealService";
 import { useAppSelector } from "../../redux/hooks";
+import { PageSkeleton } from "../../components/common/Skeleton";
 
 function getArrayPayload(value: any) {
   const payload = value?.data ?? value;
@@ -138,13 +138,19 @@ export default function ChatRoomsPage() {
   const rooms = getArrayPayload(roomsData);
   const deals = getArrayPayload(dealsData);
 
-  const isBusy =
-    isLoadingRooms || isFetchingRooms || isLoadingDeals || isFetchingDeals;
+  const showInitialSkeleton = isLoadingRooms || isLoadingDeals;
+
+  const isRefreshing = isFetchingRooms || isFetchingDeals;
+
+  const isBusy = showInitialSkeleton || isRefreshing;
 
   async function handleRefresh() {
     await Promise.all([refetchRooms(), refetchDeals()]);
   }
 
+  if (showInitialSkeleton) {
+    return <PageSkeleton />;
+  }
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -170,21 +176,14 @@ export default function ChatRoomsPage() {
           disabled={isBusy}
           className="inline-flex items-center gap-2 border border-[var(--color-border-light)] bg-white px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)] disabled:opacity-50"
         >
-          <RefreshCw className={`h-4 w-4 ${isBusy ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
           Refresh
         </button>
       </div>
 
-      {isBusy && (
-        <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-8 text-center shadow-[var(--shadow-card)]">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--color-primary)]" />
-          <p className="mt-3 text-sm font-semibold text-[var(--color-text-muted)]">
-            Loading chat rooms...
-          </p>
-        </div>
-      )}
 
-      {!isBusy && rooms.length === 0 && (
+
+      {rooms.length === 0 && (
         <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-1 h-5 w-5 text-[var(--color-secondary)]" />
@@ -207,7 +206,7 @@ export default function ChatRoomsPage() {
         </div>
       )}
 
-      {!isBusy && rooms.length > 0 && (
+      {rooms.length > 0 && (
         <div className="grid grid-cols-1 gap-5">
           {rooms.map((room: any) => {
             const roomId = getId(room);
@@ -226,50 +225,48 @@ export default function ChatRoomsPage() {
                 to={`/chat/${roomId}`}
                 className="block rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:border-[var(--color-secondary)]"
               >
-                <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-                  <div className="min-w-0 flex-1">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.4fr_1fr_220px_260px] lg:items-center">
+                  <div className="min-w-0">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
                       Chat Partner
                     </p>
 
-                    <h2 className="mt-2 font-serif text-2xl font-black text-[var(--color-primary)]">
+                    <h2 className="mt-2 truncate font-serif text-2xl font-black text-[var(--color-primary)]">
                       {otherUser?.full_name || otherUser?.email || "Deal Chat"}
                     </h2>
 
-                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-                          Listing
-                        </p>
+                    <div className="mt-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                        Listing
+                      </p>
 
-                        <p className="mt-1 text-sm font-bold text-[var(--color-primary)]">
-                          {listingLabel}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-                          Market Price
-                        </p>
-
-                        <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
-                          {formatMoney(marketPrice)}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-                          Last Activity
-                        </p>
-
-                        <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
-                          {formatDateTime(room?.last_message_at)}
-                        </p>
-                      </div>
+                      <p className="mt-1 truncate text-sm font-bold text-[var(--color-primary)]">
+                        {listingLabel}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                      Market Price
+                    </p>
+
+                    <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
+                      {formatMoney(marketPrice)}
+                    </p>
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                      Last Activity
+                    </p>
+
+                    <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
+                      {formatDateTime(room?.last_message_at)}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 lg:justify-end">
                     <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
                       <CheckCircle2 className="h-4 w-4" />
                       {room?.is_locked ? "Locked" : "Open"}

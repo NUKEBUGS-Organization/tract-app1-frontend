@@ -27,6 +27,8 @@ import {
   useSelectBidMutation,
 } from "../../services/listingService";
 
+import { TableSkeleton } from "../../components/common/Skeleton";
+
 function getApiPayload(response: any) {
   return response?.data?.data ?? response?.data ?? response;
 }
@@ -593,10 +595,17 @@ export default function ViewBidsPage() {
     }
   }
 
-  const actionLoading = isSelecting || isRejecting;
+ const actionLoading = isSelecting || isRejecting;
 
-  return (
-    <div className="space-y-8">
+const showInitialSkeleton =
+  isLoadingDashboard || (Boolean(activeListingId) && isLoadingBids);
+
+if (showInitialSkeleton) {
+  return <TableSkeleton rows={8} columns={8} />;
+}
+
+return (
+  <div className="space-y-8">
       {modal && (
         <ConfirmModal
           bid={modal.bid}
@@ -813,11 +822,7 @@ export default function ViewBidsPage() {
           </div>
         )}
 
-        {activeListingId && isLoadingBids && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
-          </div>
-        )}
+
 
         {activeListingId && !isLoadingBids && sortedBids.length === 0 && (
           <div className="p-8 text-center">

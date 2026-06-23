@@ -1,3 +1,4 @@
+
 import { baseApi } from "./baseApi";
 
 type ApiEnvelope<T> = {
@@ -7,20 +8,20 @@ type ApiEnvelope<T> = {
   data: T;
 };
 
-type MongooseDocEnvelope = {
-  _doc: any;
+type ContractSignUrlResponse = {
+  embed_src: string;
 };
 
-function unwrapContractDoc(response: ApiEnvelope<MongooseDocEnvelope>) {
-  return response.data._doc;
+function unwrapContract(response: ApiEnvelope<any>) {
+  return response.data;
 }
 
-// function unwrapContract(response: ApiEnvelope<any>) {
-//   return response.data;
-// }
-
-function unwrapContractList(response: ApiEnvelope<Record<string, any> | null>) {
+function unwrapContractList(response: ApiEnvelope<Record<string, any> | any[] | null>) {
   if (!response.data) return [];
+
+  if (Array.isArray(response.data)) {
+    return response.data;
+  }
 
   return Object.values(response.data);
 }
@@ -31,10 +32,7 @@ export const contractService = baseApi.injectEndpoints({
       any,
       {
         listingId: string;
-        body: {
-          bid_id: string;
-          pdf_url?: string;
-        };
+        body: any;
       }
     >({
       query: ({ listingId, body }) => ({
@@ -42,18 +40,9 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      transformResponse: unwrapContractDoc,
+      transformResponse: unwrapContract,
       invalidatesTags: ["Contract", "Deal"],
     }),
-
-   getContractById: builder.query<any, string>({
-  query: (contractId) => ({
-    url: `contracts/${contractId}`,
-    method: "GET",
-  }),
-  transformResponse: unwrapContractDoc,
-  providesTags: ["Contract"],
-}),
 
     getContractsByListing: builder.query<any[], string>({
       query: (listingId) => ({
@@ -64,12 +53,54 @@ export const contractService = baseApi.injectEndpoints({
       providesTags: ["Contract"],
     }),
 
+    getContractById: builder.query<any, string>({
+      query: (contractId) => ({
+        url: `contracts/${contractId}`,
+        method: "GET",
+      }),
+      transformResponse: unwrapContract,
+      providesTags: ["Contract"],
+    }),
+
+    getContractSignUrl: builder.query<ContractSignUrlResponse, string>({
+      query: (contractId) => ({
+        url: `contracts/${contractId}/sign-url`,
+        method: "GET",
+      }),
+      transformResponse: unwrapContract,
+      providesTags: ["Contract"],
+    }),
+
+    getSignedContractPdf: builder.query<{ signed_pdf_url: string }, string>({
+      query: (contractId) => ({
+        url: `contracts/${contractId}/signed-pdf`,
+        method: "GET",
+      }),
+      transformResponse: unwrapContract,
+      providesTags: ["Contract"],
+    }),
+
+    cancelContract: builder.mutation<any, string>({
+      query: (contractId) => ({
+        url: `contracts/${contractId}/cancel`,
+        method: "POST",
+      }),
+      transformResponse: unwrapContract,
+      invalidatesTags: ["Contract", "Deal"],
+    }),
+
+
+
+
+
+    // Keep these only if you still need local testing.
+    // Do not use these from production frontend signing UI.
     signContractAsSeller: builder.mutation<any, string>({
       query: (contractId) => ({
         url: `contracts/${contractId}/sign/seller`,
         method: "POST",
       }),
-      transformResponse: unwrapContractDoc,
+      transformResponse: unwrapContract,
       invalidatesTags: ["Contract", "Deal"],
     }),
 
@@ -78,16 +109,7 @@ export const contractService = baseApi.injectEndpoints({
         url: `contracts/${contractId}/sign/buyer`,
         method: "POST",
       }),
-      transformResponse: unwrapContractDoc,
-      invalidatesTags: ["Contract", "Deal"],
-    }),
-
-    cancelContract: builder.mutation<any, string>({
-      query: (contractId) => ({
-        url: `contracts/${contractId}/cancel`,
-        method: "POST",
-      }),
-      transformResponse: unwrapContractDoc,
+      transformResponse: unwrapContract,
       invalidatesTags: ["Contract", "Deal"],
     }),
   }),
@@ -95,9 +117,12 @@ export const contractService = baseApi.injectEndpoints({
 
 export const {
   useCreateContractMutation,
-  useGetContractByIdQuery,
   useGetContractsByListingQuery,
+  useGetContractByIdQuery,
+  useLazyGetContractSignUrlQuery,
+  useGetSignedContractPdfQuery,
+  useCancelContractMutation,
   useSignContractAsSellerMutation,
   useSignContractAsBuyerMutation,
-  useCancelContractMutation,
+
 } = contractService;

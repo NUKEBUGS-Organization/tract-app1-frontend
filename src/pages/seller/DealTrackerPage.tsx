@@ -13,6 +13,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { PageSkeleton } from "../../components/common/Skeleton";
+
 import {
   useGetListingBidsQuery,
   useGetListingsDashboardQuery,
@@ -23,8 +25,9 @@ import {
   useCreateContractMutation,
   useGetContractByIdQuery,
   useGetContractsByListingQuery,
-  useSignContractAsSellerMutation,
 } from "../../services/contractService";
+
+import DocuSealSignButton from "./contracts/DocuSealSignButton";
 
 import { useGetMyDealsQuery } from "../../services/dealService";
 
@@ -35,6 +38,24 @@ function getDashboardPayload(response: any) {
 function getListingsFromDashboard(response: any) {
   const payload = getDashboardPayload(response);
   return Array.isArray(payload?.listings) ? payload.listings : [];
+}
+
+function getContractFromResponse(response: any) {
+  let payload = response?.data?.data ?? response?.data ?? response;
+
+  if (payload?.contract?._doc) {
+    return payload.contract._doc;
+  }
+
+  if (payload?.contract) {
+    return payload.contract;
+  }
+
+  if (payload?._doc) {
+    return payload._doc;
+  }
+
+  return payload;
 }
 
 function getArrayPayload(value: any) {
@@ -386,10 +407,10 @@ function TrackerStep({
     <div className="relative flex gap-4 rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
       <div
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${done
-            ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
-            : current
-              ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]"
-              : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
+          ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+          : current
+            ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]"
+            : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
           }`}
       >
         {done ? (
@@ -458,19 +479,20 @@ export default function DealTrackerPage() {
     ? bidsCurrentData ?? bidsData
     : [];
 
-  const {
-    data: fetchedContractData,
-    currentData: fetchedContractCurrentData,
-    isLoading: isLoadingContract,
-    isFetching: isFetchingContract,
-    refetch: refetchContract,
-  } = useGetContractByIdQuery(contractIdFromUrl, {
-    skip: !contractIdFromUrl,
-  });
+const {
+  data: fetchedContractData,
+  currentData: fetchedContractCurrentData,
+  isLoading: isLoadingContract,
+  isFetching: isFetchingContract,
+  refetch: refetchContract,
+} = useGetContractByIdQuery(contractIdFromUrl, {
+  skip: !contractIdFromUrl,
+  refetchOnMountOrArgChange: true,
+});
 
-  const fetchedContract = contractIdFromUrl
-    ? fetchedContractCurrentData ?? fetchedContractData
-    : null;
+ const fetchedContract = contractIdFromUrl
+  ? getContractFromResponse(fetchedContractCurrentData ?? fetchedContractData)
+  : null;
 
   const {
     data: contractsByListingData = [],
@@ -487,23 +509,26 @@ export default function DealTrackerPage() {
       ? []
       : contractsByListingCurrentData ?? contractsByListingData;
 
-  const {
-    data: myDealsData = [],
-    isLoading: isLoadingDeals,
-    isFetching: isFetchingDeals,
-    refetch: refetchDeals,
-  } = useGetMyDealsQuery();
+ const {
+  data: myDealsData = [],
+  isLoading: isLoadingDeals,
+  isFetching: isFetchingDeals,
+  refetch: refetchDeals,
+} = useGetMyDealsQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
 
-  const latestContractByListing =
-    Array.isArray(safeContractsByListingData) &&
-      safeContractsByListingData.length > 0
-      ? safeContractsByListingData[0]
-      : null;
+const contractsByListing = getArrayPayload(safeContractsByListingData).map(
+  (contract: any) => getContractFromResponse(contract)
+);
+
+const latestContractByListing =
+  contractsByListing.length > 0 ? contractsByListing[0] : null;
+
   const [createContract, { isLoading: isCreatingContract }] =
     useCreateContractMutation();
 
-  const [signContractAsSeller, { isLoading: isSigningSeller }] =
-    useSignContractAsSellerMutation();
+  const [isDocuSealRefreshing, setIsDocuSealRefreshing] = useState(false);
 
   const [cancelContract, { isLoading: isCancellingContract }] =
     useCancelContractMutation();
@@ -511,10 +536,11 @@ export default function DealTrackerPage() {
   const bids = Array.isArray(safeBidsData) ? safeBidsData : [];
   const selectedBid = getSelectedBid(bids);
 
-  const contract =
-    localContract ||
-    (contractIdFromUrl ? fetchedContract : null) ||
-    latestContractByListing;
+ const contract =
+  (contractIdFromUrl ? fetchedContract : null) ||
+  localContract ||
+  latestContractByListing;
+
   const contractId = getId(contract);
 
   const deals = getArrayPayload(myDealsData);
@@ -594,8 +620,8 @@ export default function DealTrackerPage() {
     isLoadingDeals ||
     isFetchingDeals ||
     isCreatingContract ||
-    isSigningSeller ||
-    isCancellingContract;
+    isCancellingContract ||
+    isDocuSealRefreshing;
 
   const trackerSteps = useMemo(
     () => [
@@ -789,15 +815,18 @@ export default function DealTrackerPage() {
       //   },
       // }).unwrap();
 
-      const created = await createContract({
-        listingId: activeListingId,
-        body: {
-          bid_id: getId(selectedBid),
-        },
-      }).unwrap();
-      setLocalContract(created);
+      const createdResponse = await createContract({
+  listingId: activeListingId,
+  body: {
+    bid_id: getId(selectedBid),
+  },
+}).unwrap();
 
-      const createdContractId = getId(created);
+const created = getContractFromResponse(createdResponse);
+
+setLocalContract(created);
+
+const createdContractId = getId(created);
 
       setSearchParams({
         listingId: activeListingId,
@@ -813,31 +842,28 @@ export default function DealTrackerPage() {
     }
   }
 
-  async function handleSellerSign() {
-    if (!contractId) {
-      setApiError(
-        "Contract ID is missing. Please refresh the page or load a valid contract."
-      );
-      return;
-    }
 
+  async function handleDocuSealReturn() {
     try {
+      setIsDocuSealRefreshing(true);
       setApiError(null);
-
-      const updated = await signContractAsSeller(contractId).unwrap();
-      setLocalContract(updated);
-
-      setSearchParams({
-        listingId: activeListingId,
-        contractId,
-      });
+      setLocalContract(null);
 
       await refetchContract();
+      await refetchContractsByListing();
       await refetchDeals();
-    } catch (error: any) {
-      setApiError(getErrorMessage(error, "Unable to sign contract as seller."));
+
+      if (activeListingId && contractId) {
+        setSearchParams({
+          listingId: activeListingId,
+          contractId,
+        });
+      }
+    } finally {
+      setIsDocuSealRefreshing(false);
     }
   }
+
 
   async function handleCancelContract() {
     if (!contractId) return;
@@ -845,14 +871,29 @@ export default function DealTrackerPage() {
     try {
       setApiError(null);
 
-      const updated = await cancelContract(contractId).unwrap();
-      setLocalContract(updated);
+      const updatedResponse = await cancelContract(contractId).unwrap();
+const updated = getContractFromResponse(updatedResponse);
+
+setLocalContract(updated);
 
       await refetchContract();
       await refetchDeals();
     } catch (error: any) {
       setApiError(getErrorMessage(error, "Unable to cancel contract."));
     }
+  }
+
+   const showInitialSkeleton =
+    isLoadingDashboard ||
+    isLoadingDeals ||
+    (Boolean(activeListingId) && isLoadingBids) ||
+    (Boolean(contractIdFromUrl) && isLoadingContract) ||
+    (Boolean(activeListingId) &&
+      !contractIdFromUrl &&
+      isLoadingContractsByListing);
+
+  if (showInitialSkeleton) {
+    return <PageSkeleton />;
   }
 
   return (
@@ -1171,19 +1212,20 @@ export default function DealTrackerPage() {
             )}
 
             {contract && !sellerSigned && !isCancelled && (
-              <button
-                type="button"
-                onClick={handleSellerSign}
-                disabled={isSigningSeller}
-                className="flex w-full items-center justify-center gap-2 bg-[var(--color-secondary)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSigningSeller ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4" />
-                )}
-                Sign As Seller
-              </button>
+              <DocuSealSignButton
+                contractId={contractId}
+                label="Sign As Seller"
+                loadingLabel="Opening DocuSeal..."
+                disabled={!contractId || isDocuSealRefreshing}
+                onError={(message) => {
+                  if (message) setApiError(message);
+                }}
+                onSigningOpened={() => {
+                  setApiError(null);
+                }}
+                onReturnFromSigning={handleDocuSealReturn}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white transition hover:bg-[var(--color-primary)]/90 disabled:cursor-not-allowed disabled:opacity-60"
+              />
             )}
 
             {contract && sellerSigned && !buyerSigned && !isCancelled && (

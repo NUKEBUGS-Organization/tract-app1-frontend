@@ -58,6 +58,7 @@ export default function DashboardSidebar({
   const location = useLocation();
   const { logoutAuth } = useAuthContext();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const supportActive = location.pathname === "/support";
 
   return (
     <>
@@ -76,18 +77,29 @@ export default function DashboardSidebar({
           </div>
 
           <p className="mt-0.6 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
-            Luxury Real Estate
+            Buy the best skip the Rest
           </p>
         </div>
       </div>
 
       <nav className="flex-1 space-y-1 px-5 py-6">
         {navItems.map((item) => {
-          const active =
-            location.pathname === item.path ||
-            (item.path !== "/dashboard" &&
-              location.pathname.startsWith(item.path));
+          function isNavActive(currentPath: string, itemPath: string) {
+            if (!itemPath) return false;
 
+            const cleanItemPath =
+              itemPath !== "/" ? itemPath.replace(/\/+$/, "") : itemPath;
+
+            const cleanCurrentPath =
+              currentPath !== "/" ? currentPath.replace(/\/+$/, "") : currentPath;
+
+            return (
+              cleanCurrentPath === cleanItemPath ||
+              cleanCurrentPath.startsWith(`${cleanItemPath}/`)
+            );
+          }
+
+          const active = isNavActive(location.pathname, item.path);
           const Icon = getNavIcon(item.label);
 
           return (
@@ -114,13 +126,17 @@ export default function DashboardSidebar({
       </nav>
 
       <div className="space-y-3 px-5 pb-6">
-        <button
-          type="button"
-          className="flex w-full items-center justify-center gap-2 rounded-none border border-[var(--color-secondary)] px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-secondary)] transition hover:bg-[var(--color-secondary)] hover:text-[var(--color-primary-dark)]"
+        <Link
+          to="/support"
+          onClick={onNavigate}
+          className={`flex w-full items-center justify-center gap-2 rounded-none border px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] transition ${supportActive
+              ? "border-[var(--color-secondary)] bg-[var(--color-secondary)] text-[var(--color-primary-dark)]"
+              : "border-[var(--color-secondary)] text-[var(--color-secondary)] hover:bg-[var(--color-secondary)] hover:text-[var(--color-primary-dark)]"
+            }`}
         >
           <LifeBuoy className="h-4 w-4" />
           Support
-        </button>
+        </Link>
 
         <button
           type="button"
