@@ -40,6 +40,24 @@ function getListingsFromDashboard(response: any) {
   return Array.isArray(payload?.listings) ? payload.listings : [];
 }
 
+function getContractFromResponse(response: any) {
+  let payload = response?.data?.data ?? response?.data ?? response;
+
+  if (payload?.contract?._doc) {
+    return payload.contract._doc;
+  }
+
+  if (payload?.contract) {
+    return payload.contract;
+  }
+
+  if (payload?._doc) {
+    return payload._doc;
+  }
+
+  return payload;
+}
+
 function getArrayPayload(value: any) {
   const payload = value?.data ?? value;
 
@@ -461,19 +479,20 @@ export default function DealTrackerPage() {
     ? bidsCurrentData ?? bidsData
     : [];
 
-  const {
-    data: fetchedContractData,
-    currentData: fetchedContractCurrentData,
-    isLoading: isLoadingContract,
-    isFetching: isFetchingContract,
-    refetch: refetchContract,
-  } = useGetContractByIdQuery(contractIdFromUrl, {
-    skip: !contractIdFromUrl,
-  });
+const {
+  data: fetchedContractData,
+  currentData: fetchedContractCurrentData,
+  isLoading: isLoadingContract,
+  isFetching: isFetchingContract,
+  refetch: refetchContract,
+} = useGetContractByIdQuery(contractIdFromUrl, {
+  skip: !contractIdFromUrl,
+  refetchOnMountOrArgChange: true,
+});
 
-  const fetchedContract = contractIdFromUrl
-    ? fetchedContractCurrentData ?? fetchedContractData
-    : null;
+ const fetchedContract = contractIdFromUrl
+  ? getContractFromResponse(fetchedContractCurrentData ?? fetchedContractData)
+  : null;
 
   const {
     data: contractsByListingData = [],
@@ -490,18 +509,22 @@ export default function DealTrackerPage() {
       ? []
       : contractsByListingCurrentData ?? contractsByListingData;
 
-  const {
-    data: myDealsData = [],
-    isLoading: isLoadingDeals,
-    isFetching: isFetchingDeals,
-    refetch: refetchDeals,
-  } = useGetMyDealsQuery();
+ const {
+  data: myDealsData = [],
+  isLoading: isLoadingDeals,
+  isFetching: isFetchingDeals,
+  refetch: refetchDeals,
+} = useGetMyDealsQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
 
-  const latestContractByListing =
-    Array.isArray(safeContractsByListingData) &&
-      safeContractsByListingData.length > 0
-      ? safeContractsByListingData[0]
-      : null;
+const contractsByListing = getArrayPayload(safeContractsByListingData).map(
+  (contract: any) => getContractFromResponse(contract)
+);
+
+const latestContractByListing =
+  contractsByListing.length > 0 ? contractsByListing[0] : null;
+
   const [createContract, { isLoading: isCreatingContract }] =
     useCreateContractMutation();
 
@@ -513,10 +536,11 @@ export default function DealTrackerPage() {
   const bids = Array.isArray(safeBidsData) ? safeBidsData : [];
   const selectedBid = getSelectedBid(bids);
 
-  const contract =
-    localContract ||
-    (contractIdFromUrl ? fetchedContract : null) ||
-    latestContractByListing;
+ const contract =
+  (contractIdFromUrl ? fetchedContract : null) ||
+  localContract ||
+  latestContractByListing;
+
   const contractId = getId(contract);
 
   const deals = getArrayPayload(myDealsData);
@@ -791,15 +815,18 @@ export default function DealTrackerPage() {
       //   },
       // }).unwrap();
 
-      const created = await createContract({
-        listingId: activeListingId,
-        body: {
-          bid_id: getId(selectedBid),
-        },
-      }).unwrap();
-      setLocalContract(created);
+      const createdResponse = await createContract({
+  listingId: activeListingId,
+  body: {
+    bid_id: getId(selectedBid),
+  },
+}).unwrap();
 
-      const createdContractId = getId(created);
+const created = getContractFromResponse(createdResponse);
+
+setLocalContract(created);
+
+const createdContractId = getId(created);
 
       setSearchParams({
         listingId: activeListingId,
@@ -820,6 +847,7 @@ export default function DealTrackerPage() {
     try {
       setIsDocuSealRefreshing(true);
       setApiError(null);
+      setLocalContract(null);
 
       await refetchContract();
       await refetchContractsByListing();
@@ -843,8 +871,10 @@ export default function DealTrackerPage() {
     try {
       setApiError(null);
 
-      const updated = await cancelContract(contractId).unwrap();
-      setLocalContract(updated);
+      const updatedResponse = await cancelContract(contractId).unwrap();
+const updated = getContractFromResponse(updatedResponse);
+
+setLocalContract(updated);
 
       await refetchContract();
       await refetchDeals();
