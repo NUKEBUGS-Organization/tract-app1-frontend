@@ -479,20 +479,20 @@ export default function DealTrackerPage() {
     ? bidsCurrentData ?? bidsData
     : [];
 
-const {
-  data: fetchedContractData,
-  currentData: fetchedContractCurrentData,
-  isLoading: isLoadingContract,
-  isFetching: isFetchingContract,
-  refetch: refetchContract,
-} = useGetContractByIdQuery(contractIdFromUrl, {
-  skip: !contractIdFromUrl,
-  refetchOnMountOrArgChange: true,
-});
+  const {
+    data: fetchedContractData,
+    currentData: fetchedContractCurrentData,
+    isLoading: isLoadingContract,
+    isFetching: isFetchingContract,
+    refetch: refetchContract,
+  } = useGetContractByIdQuery(contractIdFromUrl, {
+    skip: !contractIdFromUrl,
+    refetchOnMountOrArgChange: true,
+  });
 
- const fetchedContract = contractIdFromUrl
-  ? getContractFromResponse(fetchedContractCurrentData ?? fetchedContractData)
-  : null;
+  const fetchedContract = contractIdFromUrl
+    ? getContractFromResponse(fetchedContractCurrentData ?? fetchedContractData)
+    : null;
 
   const {
     data: contractsByListingData = [],
@@ -509,21 +509,21 @@ const {
       ? []
       : contractsByListingCurrentData ?? contractsByListingData;
 
- const {
-  data: myDealsData = [],
-  isLoading: isLoadingDeals,
-  isFetching: isFetchingDeals,
-  refetch: refetchDeals,
-} = useGetMyDealsQuery(undefined, {
-  refetchOnMountOrArgChange: true,
-});
+  const {
+    data: myDealsData = [],
+    isLoading: isLoadingDeals,
+    isFetching: isFetchingDeals,
+    refetch: refetchDeals,
+  } = useGetMyDealsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
 
-const contractsByListing = getArrayPayload(safeContractsByListingData).map(
-  (contract: any) => getContractFromResponse(contract)
-);
+  const contractsByListing = getArrayPayload(safeContractsByListingData).map(
+    (contract: any) => getContractFromResponse(contract)
+  );
 
-const latestContractByListing =
-  contractsByListing.length > 0 ? contractsByListing[0] : null;
+  const latestContractByListing =
+    contractsByListing.length > 0 ? contractsByListing[0] : null;
 
   const [createContract, { isLoading: isCreatingContract }] =
     useCreateContractMutation();
@@ -536,10 +536,10 @@ const latestContractByListing =
   const bids = Array.isArray(safeBidsData) ? safeBidsData : [];
   const selectedBid = getSelectedBid(bids);
 
- const contract =
-  (contractIdFromUrl ? fetchedContract : null) ||
-  localContract ||
-  latestContractByListing;
+  const contract =
+    (contractIdFromUrl ? fetchedContract : null) ||
+    localContract ||
+    latestContractByListing;
 
   const contractId = getId(contract);
 
@@ -601,6 +601,20 @@ const latestContractByListing =
 
   const activeCountdown = getCountdownParts(activeDeadline, now);
 
+  const showMarketingCountdown = Boolean(
+    activeDeal &&
+    activeDeadline &&
+    !hasProofUploaded &&
+    !proceedToClosingAt
+  );
+
+  const liveDeadlineValue = hasProofUploaded
+    ? "Proof Uploaded"
+    : proceedToClosingAt
+      ? "Moved To Closing"
+      : activeDeadline
+        ? activeCountdown.compact
+        : "-";
   const partnerName = getBidderName(selectedBid, contract);
 
   const dealTitle =
@@ -816,17 +830,17 @@ const latestContractByListing =
       // }).unwrap();
 
       const createdResponse = await createContract({
-  listingId: activeListingId,
-  body: {
-    bid_id: getId(selectedBid),
-  },
-}).unwrap();
+        listingId: activeListingId,
+        body: {
+          bid_id: getId(selectedBid),
+        },
+      }).unwrap();
 
-const created = getContractFromResponse(createdResponse);
+      const created = getContractFromResponse(createdResponse);
 
-setLocalContract(created);
+      setLocalContract(created);
 
-const createdContractId = getId(created);
+      const createdContractId = getId(created);
 
       setSearchParams({
         listingId: activeListingId,
@@ -872,9 +886,9 @@ const createdContractId = getId(created);
       setApiError(null);
 
       const updatedResponse = await cancelContract(contractId).unwrap();
-const updated = getContractFromResponse(updatedResponse);
+      const updated = getContractFromResponse(updatedResponse);
 
-setLocalContract(updated);
+      setLocalContract(updated);
 
       await refetchContract();
       await refetchDeals();
@@ -883,7 +897,7 @@ setLocalContract(updated);
     }
   }
 
-   const showInitialSkeleton =
+  const showInitialSkeleton =
     isLoadingDashboard ||
     isLoadingDeals ||
     (Boolean(activeListingId) && isLoadingBids) ||
@@ -938,7 +952,7 @@ setLocalContract(updated);
         </div>
       )}
 
-      {activeDeal && activeDeadline && (
+      {showMarketingCountdown && (
         <MarketingCountdownBanner
           title={activeDeadlineTitle}
           deadline={activeDeadline}
@@ -996,7 +1010,7 @@ setLocalContract(updated);
 
         <StatCard
           title="Live Deadline"
-          value={activeDeadline ? activeCountdown.compact : "-"}
+          value={liveDeadlineValue}
           icon={Clock3}
         />
       </div>
