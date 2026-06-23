@@ -1,6 +1,6 @@
 import { ExternalLink, FileText } from "lucide-react";
 
-import Loader from "../../../components/common/Loader";
+import { DetailPageSkeleton } from "../../../components/common/Skeleton";
 import {
   formatLabel,
   getDocumentMimeType,
@@ -15,13 +15,9 @@ function ListingDocumentsPanel({
   documents: any[];
   isLoading: boolean;
 }) {
-  if (isLoading) {
-    return (
-      <section className="rounded-3xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
-        <Loader label="Loading documents..." />
-      </section>
-    );
-  }
+if (isLoading) {
+  return <DetailPageSkeleton />;
+}
 
   return (
     <section className="rounded-3xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">

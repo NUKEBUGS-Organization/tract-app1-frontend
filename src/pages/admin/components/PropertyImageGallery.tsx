@@ -6,7 +6,7 @@ import {
   Images,
 } from "lucide-react";
 
-import Loader from "../../../components/common/Loader";
+import { DetailPageSkeleton } from "../../../components/common/Skeleton";
 import { getMongoId } from "../../../utils/adminUtils";
 import {
   getDocumentTitle,
@@ -26,13 +26,9 @@ function PropertyImageGallery({
     setActiveIndex(0);
   }, [images.length]);
 
-  if (isLoading) {
-    return (
-      <div className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
-        <Loader label="Loading property images..." />
-      </div>
-    );
-  }
+ if (isLoading) {
+  return <DetailPageSkeleton />;
+}
 
   if (images.length === 0) {
     return (

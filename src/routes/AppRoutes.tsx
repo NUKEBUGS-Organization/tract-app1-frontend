@@ -20,6 +20,7 @@ import PlaceholderPage from "../pages/common/PlaceholderPage";
 
 // Seller pages
 import ListPropertyPage from "../pages/seller/ListPropertyPage";
+import MyListingsPage from "../pages/seller/MyListingsPage";
 import DocumentVaultPage from "../pages/seller/DocumentVaultPage";
 import ViewBidsPage from "../pages/seller/ViewBidsPage";
 import DealTrackerPage from "../pages/seller/DealTrackerPage";
@@ -51,6 +52,8 @@ import AdminDealDetailsPage from "../pages/admin/AdminDealDetailsPage";
 import AdminChatFlagsPage from "../pages/admin/AdminChatFlagsPage";
 import AdminChatRoomsPage from "../pages/admin/AdminChatRoomsPage";
 import AdminRoomMessagesPage from "../pages/admin/AdminRoomMessagesPage";
+
+import SupportPage from "../pages/common/SupportPage";
 
 import {
   ADMIN_ROLES,
@@ -131,6 +134,15 @@ function AppRoutes() {
             element={
               <RoleRoute allowedRoles={ALL_APP_ROLES}>
                 <ProfilePage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/support"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SupportPage />
               </RoleRoute>
             }
           />
@@ -220,10 +232,10 @@ function AppRoutes() {
                   admin: <AdminListingDetailsPage />,
                 }}
               />
-              
+
             }
           />
-          
+
 
           {/* Seller-only listing actions */}
 
@@ -237,6 +249,15 @@ function AppRoutes() {
           />
 
           <Route
+            path="/my-listings"
+            element={
+              <RoleRoute allowedRoles={SELLER_ROLES}>
+                <MyListingsPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
             path="/properties/:id/edit"
             element={
               <RoleRoute allowedRoles={SELLER_ROLES}>
@@ -245,7 +266,7 @@ function AppRoutes() {
             }
           />
 
-{/* <Route
+          {/* <Route
   path="/properties/:id/edit"
   element={
     <RoleRoute
@@ -652,7 +673,7 @@ function AppRoutes() {
             }
           />
 
-      
+
         </Route>
       </Route>
 

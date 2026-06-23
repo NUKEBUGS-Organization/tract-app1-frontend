@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { FormState } from "../types";
 import { Inp, Lbl, Tarea, ToggleCard } from "./FormPrimitives";
-import { Eye } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
 
 interface StepProps {
   form: FormState;
@@ -12,6 +12,11 @@ interface StepProps {
   ) => void;
   fieldErrors?: Record<string, string>;
 }
+
+type ZoningOption = {
+  value: string;
+  label: string;
+};
 
 const ZONING_GROUPS = [
   {
@@ -121,7 +126,7 @@ const ZONING_GROUPS = [
     label: "Industrial / Manufacturing",
     options: [
       {
- 
+
         value: "M1",
         label: "M1 — Light Manufacturing",
       },
@@ -262,46 +267,99 @@ const ZONING_GROUPS = [
   },
 ] as const;
 
+const ALL_ZONING_OPTIONS: ZoningOption[] = ZONING_GROUPS.reduce<
+  ZoningOption[]
+>((options, group) => {
+  group.options.forEach((option) => {
+    options.push({
+      value: String(option.value),
+      label: String(option.label),
+    });
+  });
+
+  return options;
+}, []);
+
 const COMMON_ZONING_VALUES = new Set<string>(
-  ZONING_GROUPS.flatMap((group) =>
-    group.options.map((option) => String(option.value))
-  )
+  ALL_ZONING_OPTIONS.map((option) => option.value)
 );
+
 function HiddenReserveInfo() {
+  const [isPinnedOpen, setIsPinnedOpen] = useState(false);
+  const [isHoverOpen, setIsHoverOpen] = useState(false);
+
+  const isOpen = isPinnedOpen || isHoverOpen;
+
   return (
-    <div className="group relative shrink-0">
+    <div
+      className="relative shrink-0"
+      onMouseEnter={() => setIsHoverOpen(true)}
+      onMouseLeave={() => {
+        if (!isPinnedOpen) {
+          setIsHoverOpen(false);
+        }
+      }}
+    >
       <button
         type="button"
         aria-label="What is a hidden reserve?"
-        className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-text-muted)] transition hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] focus:bg-[var(--color-primary)]/10 focus:text-[var(--color-primary)] focus:outline-none"
+        aria-expanded={isOpen}
+        onClick={() => {
+          setIsPinnedOpen((current) => !current);
+          setIsHoverOpen(false);
+        }}
+        className={`flex h-7 w-7 items-center justify-center rounded-full transition focus:outline-none ${isOpen
+            ? "bg-[var(--color-primary)] text-white shadow-sm"
+            : "text-[var(--color-text-muted)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+          }`}
       >
-        <Eye className="h-4 w-4" />
+        <Info className="h-4 w-4" />
       </button>
 
-      <div className="pointer-events-none absolute right-0 top-9 z-50 hidden w-[290px] rounded-xl border border-[var(--color-border-light)] bg-white p-4 text-left shadow-xl group-hover:block group-focus-within:block sm:w-[340px]">
-        <p className="text-sm font-black text-[var(--color-primary)]">
-          What is the Hidden Reserve?
-        </p>
+      {isOpen && (
+        <div className="absolute right-0 top-9 z-50 w-[290px] rounded-xl border border-[var(--color-border-light)] bg-white p-4 text-left shadow-xl sm:w-[340px]">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm font-black text-[var(--color-primary)]">
+              What is the Hidden Reserve?
+            </p>
 
-        <p className="mt-2 text-xs leading-5 text-[var(--color-text-muted)]">
-          This is the seller&apos;s private minimum acceptable price. It is not
-          displayed to buyers or acquisition partners.
-        </p>
+            {isPinnedOpen && (
+              <button
+                type="button"
+                onClick={() => setIsPinnedOpen(false)}
+                className="text-xs font-black uppercase tracking-[0.12em] text-[var(--color-danger)] hover:opacity-80"
+              >
+                Close
+              </button>
+            )}
+          </div>
 
-        <div className="mt-3 rounded-lg bg-[var(--color-bg-soft)] p-3">
-          <p className="text-xs font-bold leading-5 text-[var(--color-text-main)]">
-            Bids below this amount are automatically blocked or rejected,
-            helping prevent lowball offers.
+          <p className="mt-2 text-xs leading-5 text-[var(--color-text-muted)]">
+            This is the seller&apos;s private minimum acceptable price. It is
+            not displayed to buyers or acquisition partners.
           </p>
+
+          <div className="mt-3 rounded-lg bg-[var(--color-bg-soft)] p-3">
+            <p className="text-xs font-bold leading-5 text-[var(--color-text-main)]">
+              Bids below this amount are automatically blocked or rejected,
+              helping prevent lowball offers.
+            </p>
+          </div>
+
+          <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]">
+            The Market Price remains public, while the Hidden Reserve stays
+            private.
+          </p>
+
+          {isPinnedOpen && (
+            <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--color-secondary)]">
+              Click the icon again to close.
+            </p>
+          )}
+
+          <span className="absolute -top-1.5 right-2 h-3 w-3 rotate-45 border-l border-t border-[var(--color-border-light)] bg-white" />
         </div>
-
-        <p className="mt-3 text-xs leading-5 text-[var(--color-text-muted)]">
-          The Market Price remains public, while the Hidden Reserve stays
-          private.
-        </p>
-
-        <span className="absolute -top-1.5 right-2 h-3 w-3 rotate-45 border-l border-t border-[var(--color-border-light)] bg-white" />
-      </div>
+      )}
     </div>
   );
 }
@@ -320,6 +378,15 @@ export default function Step2HardData({
     );
   });
 
+  const [isZoningOpen, setIsZoningOpen] = useState(false);
+
+  const selectedZoningOption = ALL_ZONING_OPTIONS.find(
+    (option) => option.value === form.zoning
+  );
+
+  const zoningButtonLabel = useCustomZoning
+    ? "Other / Local Zoning Code"
+    : selectedZoningOption?.label || "Select zoning category";
   useEffect(() => {
     if (!form.zoning) return;
 
@@ -363,44 +430,79 @@ export default function Step2HardData({
             hint="Select the closest local zoning code"
           />
 
-          <select
-            value={
-              useCustomZoning
-                ? "__other__"
-                : form.zoning || ""
-            }
-            onChange={(event) =>
-              handleZoningChange(event.target.value)
-            }
-            className={`w-full rounded-none border bg-white px-4 py-3 text-sm font-semibold text-[var(--color-text-main)] outline-none transition focus:ring-1 ${fieldErrors.zoning
-              ? "border-[var(--color-danger)] focus:border-[var(--color-danger)] focus:ring-[var(--color-danger)]"
-              : "border-[var(--color-border-light)] focus:border-[var(--color-secondary)] focus:ring-[var(--color-secondary)]"
-              }`}
+          <div
+            className="relative"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                setIsZoningOpen(false);
+              }
+            }}
           >
-            <option value="" disabled>
-              Select zoning category
-            </option>
+            <button
+              type="button"
+              onClick={() => setIsZoningOpen((current) => !current)}
+              className={`flex w-full items-center justify-between rounded-none border bg-white px-4 py-3 text-left text-sm font-semibold text-[var(--color-text-main)] outline-none transition focus:ring-1 ${fieldErrors.zoning
+                ? "border-[var(--color-danger)] focus:border-[var(--color-danger)] focus:ring-[var(--color-danger)]"
+                : "border-[var(--color-border-light)] focus:border-[var(--color-secondary)] focus:ring-[var(--color-secondary)]"
+                }`}
+            >
+              <span className={form.zoning || useCustomZoning ? "" : "text-[var(--color-text-muted)]"}>
+                {zoningButtonLabel}
+              </span>
 
-            {ZONING_GROUPS.map((group) => (
-              <optgroup
-                key={group.label}
-                label={group.label}
-              >
-                {group.options.map((option) => (
-                  <option
-                    key={option.value}
-                    value={option.value}
-                  >
-                    {option.label}
-                  </option>
+              <ChevronDown
+                className={`h-4 w-4 text-[var(--color-text-muted)] transition ${isZoningOpen ? "rotate-180" : ""
+                  }`}
+              />
+            </button>
+
+            {isZoningOpen && (
+              <div className="absolute left-0 top-full z-50 mt-2 max-h-[540px] w-full overflow-y-auto rounded-xl border border-[var(--color-border-light)] bg-white shadow-xl">
+                {ZONING_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <div className="sticky top-0 bg-[var(--color-bg-soft)] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">
+                      {group.label}
+                    </div>
+
+                    {group.options.map((option) => {
+                      const selected = form.zoning === option.value && !useCustomZoning;
+
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => {
+                            handleZoningChange(option.value);
+                            setIsZoningOpen(false);
+                          }}
+                          className={`block w-full px-4 py-2.5 text-left text-sm transition ${selected
+                            ? "bg-[var(--color-primary)] text-white"
+                            : "text-[var(--color-text-main)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+                            }`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 ))}
-              </optgroup>
-            ))}
 
-            <option value="__other__">
-              Other / Local Zoning Code
-            </option>
-          </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleZoningChange("__other__");
+                    setIsZoningOpen(false);
+                  }}
+                  className={`block w-full border-t border-[var(--color-border-light)] px-4 py-3 text-left text-sm font-bold transition ${useCustomZoning
+                    ? "bg-[var(--color-primary)] text-white"
+                    : "text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10"
+                    }`}
+                >
+                  Other / Local Zoning Code
+                </button>
+              </div>
+            )}
+          </div>
 
           {fieldErrors.zoning && (
             <p className="mt-2 text-xs font-semibold text-[var(--color-danger)]">

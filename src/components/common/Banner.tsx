@@ -57,7 +57,7 @@ export default function AuthLeftSide() {
             </div>
 
             <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)] xl:text-[10px] 2xl:text-xs">
-              Luxury Real Estate
+              Buy the best skip the Rest
             </p>
           </div>
         </div>

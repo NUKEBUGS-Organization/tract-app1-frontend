@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   Calendar,
   CheckCircle2,
+  ChevronDown,
   Edit3,
   KeyRound,
   Mail,
@@ -24,7 +25,7 @@ import {
   useGetMeQuery,
   useUpdateMeMutation,
 } from "../../services/userService";
-
+import { DetailPageSkeleton } from "../../components/common/Skeleton";
 import StatusBadge from "../../components/common/StatusBadge";
 
 function getApiPayload(response: any) {
@@ -133,17 +134,68 @@ function getPhone(profile: any) {
   );
 }
 
+const STATE_OPTIONS = [
+  { name: "New York", code: "NY" },
+  { name: "New Jersey", code: "NJ" },
+  { name: "Maryland", code: "MD" },
+  { name: "Texas", code: "TX" },
+  { name: "Delaware", code: "DE" },
+  { name: "Florida", code: "FL" },
+  { name: "Pennsylvania", code: "PA" },
+] as const;
+
+function normalizeStateCode(value?: string) {
+  if (!value) return "";
+
+  const normalized = value.trim().toUpperCase();
+
+  const matchedByCode = STATE_OPTIONS.find(
+    (state) => state.code === normalized
+  );
+
+  if (matchedByCode) return matchedByCode.code;
+
+  const matchedByName = STATE_OPTIONS.find(
+    (state) => state.name.toLowerCase() === value.trim().toLowerCase()
+  );
+
+  return matchedByName?.code || normalized;
+}
+
+function getStateOption(value?: string) {
+  const normalizedCode = normalizeStateCode(value);
+
+  return STATE_OPTIONS.find((state) => state.code === normalizedCode);
+}
+
+function getStateDisplayValue(value?: string) {
+  const state = getStateOption(value);
+
+  if (!state) return getDisplayValue(value);
+
+  return `${state.name} (${state.code})`;
+}
+
 function DetailCard({
   label,
   value,
   icon: Icon,
   info,
+  verified,
+  verifiedLabel = "Verified",
 }: {
   label: string;
   value: any;
   icon: any;
   info?: ReactNode;
+  verified?: boolean;
+  verifiedLabel?: string;
 }) {
+  const [isPinnedOpen, setIsPinnedOpen] = useState(false);
+  const [isHoverOpen, setIsHoverOpen] = useState(false);
+
+  const isInfoOpen = Boolean(info) && (isPinnedOpen || isHoverOpen);
+
   return (
     <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
       <div className="mb-3 flex items-start justify-between gap-3">
@@ -153,22 +205,50 @@ function DetailCard({
           </p>
 
           {info && (
-            <div className="group relative">
+            <div
+              className="relative"
+              onMouseEnter={() => setIsHoverOpen(true)}
+              onMouseLeave={() => {
+                if (!isPinnedOpen) {
+                  setIsHoverOpen(false);
+                }
+              }}
+            >
               <button
                 type="button"
                 aria-label={`Information about ${label}`}
-                className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-muted)] transition hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] focus:bg-[var(--color-primary)]/10 focus:text-[var(--color-primary)] focus:outline-none"
+                aria-expanded={isInfoOpen}
+                onClick={() => {
+                  setIsPinnedOpen((current) => !current);
+                  setIsHoverOpen(false);
+                }}
+                className={`flex h-6 w-6 items-center justify-center rounded-full transition focus:outline-none ${isInfoOpen
+                  ? "bg-[var(--color-primary)] text-white"
+                  : "text-[var(--color-text-muted)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+                  }`}
               >
                 <Info className="h-4 w-4" />
               </button>
 
-              <div className="pointer-events-none absolute left-0 top-8 z-50 hidden w-[290px] rounded-xl border border-[var(--color-border-light)] bg-white p-4 text-left shadow-2xl group-hover:block group-focus-within:block sm:w-[340px]">
-                <div className="text-xs font-normal normal-case tracking-normal text-[var(--color-text-main)]">
-                  {info}
-                </div>
+              {isInfoOpen && (
+                <div className="absolute left-0 top-8 z-50 w-[290px] rounded-xl border border-[var(--color-border-light)] bg-white p-4 text-left shadow-2xl sm:w-[340px]">
+                  <div className="text-xs font-normal normal-case tracking-normal text-[var(--color-text-main)]">
+                    {info}
+                  </div>
 
-                <span className="absolute -top-1.5 left-3 h-3 w-3 rotate-45 border-l border-t border-[var(--color-border-light)] bg-white" />
-              </div>
+                  {isPinnedOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setIsPinnedOpen(false)}
+                      className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--color-danger)]"
+                    >
+                      Close
+                    </button>
+                  )}
+
+                  <span className="absolute -top-1.5 left-3 h-3 w-3 rotate-45 border-l border-t border-[var(--color-border-light)] bg-white" />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -176,9 +256,20 @@ function DetailCard({
         <Icon className="h-5 w-5 shrink-0 text-[var(--color-primary)]" />
       </div>
 
-      <p className="break-words text-sm font-bold text-[var(--color-text-main)]">
-        {getDisplayValue(value)}
-      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="break-words text-sm font-bold text-[var(--color-text-main)]">
+          {getDisplayValue(value)}
+        </p>
+
+        {verified && (
+          <span
+            title={verifiedLabel}
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+          >
+            <BadgeCheck className="h-3.5 w-3.5" />
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -209,6 +300,80 @@ function InputField({
         placeholder={placeholder}
         className="w-full rounded-xl border border-[var(--color-border-light)] bg-white px-4 py-3 text-sm font-semibold text-[var(--color-text-main)] outline-none transition focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_rgba(23,77,52,0.08)]"
       />
+    </div>
+  );
+}
+
+function StateDropdown({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const selectedState = getStateOption(value);
+
+  return (
+    <div>
+      <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+        State
+      </label>
+
+      <div
+        className="relative"
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+            setIsOpen(false);
+          }
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setIsOpen((current) => !current)}
+          className="flex w-full items-center justify-between rounded-xl border border-[var(--color-border-light)] bg-white px-4 py-3 text-left text-sm font-semibold text-[var(--color-text-main)] outline-none transition focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_rgba(23,77,52,0.08)]"
+        >
+          <span>
+            {selectedState
+              ? `${selectedState.name} (${selectedState.code})`
+              : "Select state"}
+          </span>
+
+          <ChevronDown
+            className={`h-4 w-4 text-[var(--color-text-muted)] transition ${isOpen ? "rotate-180" : ""
+              }`}
+          />
+        </button>
+
+        {isOpen && (
+          <div className="absolute left-0 top-full z-50 mt-2 max-h-[260px] w-full overflow-y-auto rounded-xl border border-[var(--color-border-light)] bg-white py-2 shadow-xl">
+            {STATE_OPTIONS.map((state) => {
+              const active = state.code === value;
+
+              return (
+                <button
+                  key={state.code}
+                  type="button"
+                  onClick={() => {
+                    onChange(state.code);
+                    setIsOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition ${active
+                    ? "bg-[var(--color-primary)] text-white"
+                    : "text-[var(--color-text-main)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+                    }`}
+                >
+                  <span>{state.name}</span>
+                  <span className={active ? "text-white" : "text-[var(--color-text-muted)]"}>
+                    {state.code}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -258,7 +423,7 @@ export default function ProfilePage() {
     if (!profile) return;
 
     setFullName(profile?.full_name || "");
-    setStateCode(profile?.state_code || profile?.state || "");
+    setStateCode(normalizeStateCode(profile?.state_code || profile?.state));
     setDob(formatDateForInput(profile?.dob));
   }, [profile]);
 
@@ -270,7 +435,7 @@ export default function ProfilePage() {
 
   function handleCancelEdit() {
     setFullName(profile?.full_name || "");
-    setStateCode(profile?.state_code || profile?.state || "");
+    setStateCode(normalizeStateCode(profile?.state_code || profile?.state));
     setDob(formatDateForInput(profile?.dob));
 
     setProfileError(null);
@@ -282,7 +447,7 @@ export default function ProfilePage() {
     event.preventDefault();
 
     const trimmedName = fullName.trim();
-    const normalizedState = stateCode.trim().toUpperCase();
+    const normalizedState = normalizeStateCode(stateCode);
 
     if (!trimmedName) {
       setProfileError("Full name is required.");
@@ -294,11 +459,10 @@ export default function ProfilePage() {
       return;
     }
 
-    if (normalizedState.length < 2) {
-      setProfileError("State code should be valid, for example NY, NJ, TX.");
+    if (!getStateOption(normalizedState)) {
+      setProfileError("Please select a valid state.");
       return;
     }
-
     try {
       setProfileError(null);
       setProfileSuccess(null);
@@ -368,15 +532,9 @@ export default function ProfilePage() {
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-8 text-center shadow-[var(--shadow-card)]">
-        <p className="text-sm font-semibold text-[var(--color-primary)]">
-          Loading profile...
-        </p>
-      </div>
-    );
-  }
+if (isLoading) {
+  return <DetailPageSkeleton />;
+}
 
   return (
     <div className="space-y-8">
@@ -464,6 +622,13 @@ export default function ProfilePage() {
           label="Email"
           value={profile?.email}
           icon={Mail}
+          verified={Boolean(
+            profile?.email_verified ??
+            profile?.emailVerified ??
+            profile?.is_email_verified ??
+            true
+          )}
+          verifiedLabel="Email verified"
         />
 
         <DetailCard
@@ -485,8 +650,8 @@ export default function ProfilePage() {
           }`}
       >
         <DetailCard
-          label="State Code"
-          value={profile?.state_code || profile?.state}
+          label="State"
+          value={getStateDisplayValue(profile?.state_code || profile?.state)}
           icon={BadgeCheck}
         />
 
@@ -698,11 +863,9 @@ export default function ProfilePage() {
                 placeholder="Enter full name"
               />
 
-              <InputField
-                label="State Code"
+              <StateDropdown
                 value={stateCode}
-                onChange={(value) => setStateCode(value.toUpperCase())}
-                placeholder="NY"
+                onChange={setStateCode}
               />
 
               <InputField

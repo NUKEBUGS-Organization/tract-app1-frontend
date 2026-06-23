@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 
+import { DetailPageSkeleton } from "../../components/common/Skeleton";
 import StatusBadge from "../../components/common/StatusBadge";
 import {
   useDeleteListingMutation,
@@ -694,19 +695,9 @@ export default function ListingDetailsPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="rounded-2xl border border-[var(--color-border-light)] bg-white px-8 py-6 text-center shadow-[var(--shadow-card)]">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--color-primary)]" />
-
-          <p className="mt-3 text-sm font-semibold text-[var(--color-primary)]">
-            Loading listing details...
-          </p>
-        </div>
-      </div>
-    );
-  }
+if (isLoading) {
+  return <DetailPageSkeleton />;
+}
 
   if (!listing?._id) {
     return (

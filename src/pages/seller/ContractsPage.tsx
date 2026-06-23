@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import DocuSealSignButton from "./contracts/DocuSealSignButton";
-
+import { PageSkeleton } from "../../components/common/Skeleton";
 import StatusBadge from "../../components/common/StatusBadge";
 import {
   useGetListingBidsQuery,
@@ -495,7 +495,7 @@ export default function ContractsPage() {
   const [createContract, { isLoading: isCreatingContract }] =
     useCreateContractMutation();
 
-  const[isDocuSealRefreshing, setIsDocuSealRefreshing] = useState(false);
+  const [isDocuSealRefreshing, setIsDocuSealRefreshing] = useState(false);
 
   const [cancelContract, { isLoading: isCancellingContract }] =
     useCancelContractMutation();
@@ -732,16 +732,27 @@ export default function ContractsPage() {
     }
   }
 
-  const isWorking = isCreatingContract || isCancellingContract;
+ const isWorking = isCreatingContract || isCancellingContract;
 
-  const isFetchingAnything = isFetchingDashboard ||
-    isFetchingBids ||
-    isFetchingContract ||
-    isFetchingContractsByListing ||
-    isDocuSealRefreshing;
+const isFetchingAnything =
+  isFetchingDashboard ||
+  isFetchingBids ||
+  isFetchingContract ||
+  isFetchingContractsByListing ||
+  isDocuSealRefreshing;
 
-  return (
-    <div className="space-y-8">
+const showInitialSkeleton =
+  isLoadingDashboard ||
+  (Boolean(activeListingId) &&
+    (isLoadingBids || isLoadingContractsByListing)) ||
+  (Boolean(activeContractId) && isLoadingContract);
+
+if (showInitialSkeleton) {
+  return <PageSkeleton />;
+}
+
+return (
+  <div className="space-y-8">
       {confirmAction && (
         <ConfirmationModal
           action={confirmAction}

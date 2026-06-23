@@ -13,6 +13,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { PageSkeleton } from "../../components/common/Skeleton";
+
 import {
   useGetListingBidsQuery,
   useGetListingsDashboardQuery,
@@ -849,6 +851,19 @@ export default function DealTrackerPage() {
     } catch (error: any) {
       setApiError(getErrorMessage(error, "Unable to cancel contract."));
     }
+  }
+
+   const showInitialSkeleton =
+    isLoadingDashboard ||
+    isLoadingDeals ||
+    (Boolean(activeListingId) && isLoadingBids) ||
+    (Boolean(contractIdFromUrl) && isLoadingContract) ||
+    (Boolean(activeListingId) &&
+      !contractIdFromUrl &&
+      isLoadingContractsByListing);
+
+  if (showInitialSkeleton) {
+    return <PageSkeleton />;
   }
 
   return (

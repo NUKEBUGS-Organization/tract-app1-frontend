@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
-import { ArrowLeft, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
+
+import { DetailPageSkeleton } from "../../components/common/Skeleton";
 
 import {
   useGetListingByIdQuery,
@@ -194,18 +196,9 @@ const isSaving = isUpdating || isSubmitting;
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="rounded-2xl border border-[var(--color-border-light)] bg-white px-8 py-6 text-center shadow-[var(--shadow-card)]">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--color-primary)]" />
-          <p className="mt-3 text-sm font-semibold text-[var(--color-primary)]">
-            Loading listing...
-          </p>
-        </div>
-      </div>
-    );
-  }
+if (isLoading) {
+  return <DetailPageSkeleton />;
+}
 
   if (!listing?._id) {
     return (

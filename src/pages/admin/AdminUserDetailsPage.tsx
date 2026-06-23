@@ -22,7 +22,7 @@ import {
 
 import Button from "../../components/common/Button";
 import ConfirmModal from "../../components/common/ConfirmModal";
-import Loader from "../../components/common/Loader";
+import { DetailPageSkeleton } from "../../components/common/Skeleton";
 import StatusBadge from "../../components/common/StatusBadge";
 import {
   displayValue,
@@ -531,13 +531,9 @@ function AdminUserDetailsPage() {
     refetch();
   }
 
-  if (isLoading) {
-    return (
-      <div className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
-        <Loader label="Loading user details..." />
-      </div>
-    );
-  }
+ if (isLoading) {
+  return <DetailPageSkeleton />;
+}
 
   if (isError || !user) {
     return (

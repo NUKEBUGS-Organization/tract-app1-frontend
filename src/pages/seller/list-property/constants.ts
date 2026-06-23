@@ -62,3 +62,13 @@ export const STEPS = [
   { id: 3, label: "Condition", icon: AlertTriangle },
   { id: 4, label: "Motivation", icon: Send },
 ];
+
+export function getPropertyTypeLabel(value?: string) {
+  if (!value) return "-";
+
+  const propertyType = PROPERTY_TYPES.find(
+    (type) => type.id === value
+  );
+
+  return propertyType?.label || value;
+}

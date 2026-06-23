@@ -15,6 +15,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { PageSkeleton } from "../../components/common/Skeleton";
 
 import {
   useGetListingDocumentsQuery,
@@ -573,6 +574,7 @@ export default function DocumentVaultPage() {
   };
 
   const handleSubmitListing = async () => {
+    
     if (!listingId) {
       const message = "Please select a listing before submitting.";
       setApiError(message);
@@ -636,6 +638,13 @@ export default function DocumentVaultPage() {
       });
     }
   };
+
+    const showInitialSkeleton =
+    isLoadingDashboard || (Boolean(listingId) && isLoadingDocuments);
+
+  if (showInitialSkeleton) {
+    return <PageSkeleton />;
+  }
 
   if (!listingId) {
     return (

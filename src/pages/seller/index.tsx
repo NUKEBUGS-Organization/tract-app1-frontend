@@ -20,13 +20,15 @@ import {
   UserCheck,
   type LucideIcon,
 } from "lucide-react";
-
+import { PageSkeleton } from "../../components/common/Skeleton";
 import StatusBadge from "../../components/common/StatusBadge";
 import WithdrawListingModal from "../../components/common/WithdrawListingModal";
 import {
   useDeleteListingMutation,
   useGetListingsDashboardQuery,
 } from "../../services/listingService";
+
+import { getPropertyTypeLabel } from "./list-property/constants";
 
 type StatusBadgeVariant =
   | "success"
@@ -332,19 +334,9 @@ export default function SellerDashboard() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="rounded-2xl border border-[var(--color-border-light)] bg-white px-8 py-6 text-center shadow-[var(--shadow-card)]">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--color-primary)]" />
-
-          <p className="mt-3 text-sm font-semibold text-[var(--color-primary)]">
-            Loading seller dashboard...
-          </p>
-        </div>
-      </div>
-    );
-  }
+if (isLoading) {
+  return <PageSkeleton />;
+}
 
   return (
     <div className="space-y-8">
@@ -376,7 +368,7 @@ export default function SellerDashboard() {
               <Plus className="h-4 w-4" />
               New Listing
             </Link> */}
-{/* 
+            {/* 
             <button
               type="button"
               onClick={() => refetch()}
@@ -471,20 +463,18 @@ export default function SellerDashboard() {
             return (
               <div
                 key={step.id}
-                className={`group relative flex items-start gap-4 py-4 ${
-                  index < journeySteps.length - 1
+                className={`group relative flex items-start gap-4 py-4 ${index < journeySteps.length - 1
                     ? "border-b border-[var(--color-border-light)]"
                     : ""
-                }`}
+                  }`}
               >
                 <div
-                  className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
-                    step.done
+                  className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition-all ${step.done
                       ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
                       : isNext
                         ? "border-[var(--color-secondary)] bg-white shadow-[0_0_0_4px_rgba(212,175,55,0.12)]"
                         : "border-[var(--color-border-light)] bg-white"
-                  }`}
+                    }`}
                 >
                   {step.done ? (
                     <CheckCircle2 className="h-5 w-5 text-white" />
@@ -498,13 +488,12 @@ export default function SellerDashboard() {
                 <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p
-                      className={`text-sm font-black ${
-                        step.done
+                      className={`text-sm font-black ${step.done
                           ? "text-[var(--color-primary)]"
                           : isNext
                             ? "text-[var(--color-text-main)]"
                             : "text-[var(--color-text-muted)]"
-                      }`}
+                        }`}
                     >
                       {step.label}
 
@@ -541,227 +530,227 @@ export default function SellerDashboard() {
         </div>
       </section>
 
-     <section className="w-full">
-  <div className="w-full">
-    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h2 className="font-serif text-2xl font-black text-[var(--color-primary)]">
-          My Listings
-        </h2>
+      <section className="w-full">
+        <div className="w-full">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-serif text-2xl font-black text-[var(--color-primary)]">
+                My Listings
+              </h2>
 
-        {listings.length > 0 && (
-          <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
-            Showing {startIndex + 1}-{Math.min(endIndex, listings.length)} of{" "}
-            {listings.length} listings
-          </p>
-        )}
-      </div>
+              {listings.length > 0 && (
+                <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
+                  Showing {startIndex + 1}-{Math.min(endIndex, listings.length)} of{" "}
+                  {listings.length} listings
+                </p>
+              )}
+            </div>
 
-      {/* <Link
+            {/* <Link
         to="/list-property"
         className="text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-secondary)] underline decoration-[var(--color-secondary)]/40 underline-offset-8"
       >
         + Add Listing
       </Link> */}
-    </div>
+          </div>
 
-    <div className="w-full overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
-      {listings.length === 0 ? (
-        <div className="p-8 text-center">
-          <Home className="mx-auto h-8 w-8 text-[var(--color-text-muted)]" />
+          <div className="w-full overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
+            {listings.length === 0 ? (
+              <div className="p-8 text-center">
+                <Home className="mx-auto h-8 w-8 text-[var(--color-text-muted)]" />
 
-          <p className="mt-3 text-sm font-semibold text-[var(--color-text-main)]">
-            No listings found.
-          </p>
+                <p className="mt-3 text-sm font-semibold text-[var(--color-text-main)]">
+                  No listings found.
+                </p>
 
-          <Link
-            to="/list-property"
-            className="mt-4 inline-flex bg-[var(--color-primary)] px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white"
-          >
-            Create Listing
-          </Link>
+                <Link
+                  to="/list-property"
+                  className="mt-4 inline-flex bg-[var(--color-primary)] px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white"
+                >
+                  Create Listing
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full min-w-[900px] text-left">
+                    <thead className="bg-[var(--color-bg-soft)]">
+                      <tr>
+                        {[
+                          "Property",
+                          "Status",
+                          "Price",
+                          "Bids",
+                          "Created",
+                          "Progress",
+                          "Actions",
+                        ].map((heading) => (
+                          <th
+                            key={heading}
+                            className="px-5 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]"
+                          >
+                            {heading}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {visibleListings.map((listing: any) => {
+                        const id = String(listing?._id || "");
+                        const progress = getListingProgress(listing?.status);
+                        const bidCount = getBidCount(listing);
+
+                        return (
+                          <tr
+                            key={id}
+                            className="border-t border-[var(--color-border-light)] transition hover:bg-[var(--color-bg-soft)]/50"
+                          >
+                            <td className="px-5 py-5">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-bg-soft)] text-xl">
+                                  🏡
+                                </div>
+
+                                <div>
+                                  <Link
+                                    to={`/listings/${id}`}
+                                    className="text-sm font-black text-[var(--color-primary)] hover:underline"
+                                  >
+                                    {getListingLabel(listing)}
+                                  </Link>
+
+                                  <p className="text-xs text-[var(--color-text-muted)]">
+                                    {getPropertyTypeLabel(listing?.property_type)}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-5">
+                              <StatusBadge
+                                label={formatStatus(listing?.status)}
+                                variant={getStatusVariant(listing?.status)}
+                              />
+                            </td>
+
+                            <td className="px-5 py-5 text-sm font-bold text-[var(--color-text-main)]">
+                              {formatMoney(listing?.market_price)}
+                            </td>
+
+                            <td className="px-5 py-5 text-sm font-bold text-[var(--color-text-main)]">
+                              {bidCount}
+                            </td>
+
+                            <td className="px-5 py-5 text-xs text-[var(--color-text-muted)]">
+                              {getDaysSince(listing?.createdAt)}
+                            </td>
+
+                            <td className="px-5 py-5">
+                              <div className="w-24">
+                                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-border-light)]">
+                                  <div
+                                    className="h-full rounded-full bg-[var(--color-primary)] transition-all"
+                                    style={{ width: `${progress}%` }}
+                                  />
+                                </div>
+
+                                <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">
+                                  {progress}%
+                                </p>
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-5">
+                              <div className="flex flex-wrap justify-end gap-3">
+                                <Link
+                                  to={`/listings/${id}`}
+                                  className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)]"
+                                >
+                                  View
+                                  <ArrowUpRight className="h-3 w-3" />
+                                </Link>
+
+                                {isDraftListing(listing) && (
+                                  <Link
+                                    to={`/listings/${id}/edit`}
+                                    className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]"
+                                  >
+                                    Edit
+                                    <Edit3 className="h-3 w-3" />
+                                  </Link>
+                                )}
+
+                                <Link
+                                  to={`/document-vault?listingId=${id}`}
+                                  className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                                >
+                                  Docs
+                                  <FileText className="h-3 w-3" />
+                                </Link>
+
+                                {canWithdrawListing(listing) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedWithdrawListing(listing)}
+                                    disabled={deletingListingId === id}
+                                    className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-60"
+                                  >
+                                    {deletingListingId === id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-3 w-3" />
+                                    )}
+                                    Withdraw
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex flex-col gap-3 border-t border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs font-semibold text-[var(--color-text-muted)]">
+                    Page {safeCurrentPage} of {totalPages}
+                  </p>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handlePreviousPage}
+                      disabled={safeCurrentPage === 1}
+                      className="inline-flex items-center gap-2 border border-[var(--color-border-light)] bg-white px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)] transition hover:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      Back
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleNextPage}
+                      disabled={safeCurrentPage === totalPages}
+                      className="inline-flex items-center gap-2 bg-[var(--color-primary)] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Next
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      ) : (
-        <>
-          <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left">
-              <thead className="bg-[var(--color-bg-soft)]">
-                <tr>
-                  {[
-                    "Property",
-                    "Status",
-                    "Price",
-                    "Bids",
-                    "Created",
-                    "Progress",
-                    "Actions",
-                  ].map((heading) => (
-                    <th
-                      key={heading}
-                      className="px-5 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]"
-                    >
-                      {heading}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-
-              <tbody>
-                {visibleListings.map((listing: any) => {
-                  const id = String(listing?._id || "");
-                  const progress = getListingProgress(listing?.status);
-                  const bidCount = getBidCount(listing);
-
-                  return (
-                    <tr
-                      key={id}
-                      className="border-t border-[var(--color-border-light)] transition hover:bg-[var(--color-bg-soft)]/50"
-                    >
-                      <td className="px-5 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-bg-soft)] text-xl">
-                            🏡
-                          </div>
-
-                          <div>
-                            <Link
-                              to={`/listings/${id}`}
-                              className="text-sm font-black text-[var(--color-primary)] hover:underline"
-                            >
-                              {getListingLabel(listing)}
-                            </Link>
-
-                            <p className="text-xs text-[var(--color-text-muted)]">
-                              {listing?.property_type || "-"}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-5">
-                        <StatusBadge
-                          label={formatStatus(listing?.status)}
-                          variant={getStatusVariant(listing?.status)}
-                        />
-                      </td>
-
-                      <td className="px-5 py-5 text-sm font-bold text-[var(--color-text-main)]">
-                        {formatMoney(listing?.market_price)}
-                      </td>
-
-                      <td className="px-5 py-5 text-sm font-bold text-[var(--color-text-main)]">
-                        {bidCount}
-                      </td>
-
-                      <td className="px-5 py-5 text-xs text-[var(--color-text-muted)]">
-                        {getDaysSince(listing?.createdAt)}
-                      </td>
-
-                      <td className="px-5 py-5">
-                        <div className="w-24">
-                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-border-light)]">
-                            <div
-                              className="h-full rounded-full bg-[var(--color-primary)] transition-all"
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-
-                          <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">
-                            {progress}%
-                          </p>
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-5">
-                        <div className="flex flex-wrap justify-end gap-3">
-                          <Link
-                            to={`/listings/${id}`}
-                            className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)]"
-                          >
-                            View
-                            <ArrowUpRight className="h-3 w-3" />
-                          </Link>
-
-                          {isDraftListing(listing) && (
-                            <Link
-                              to={`/listings/${id}/edit`}
-                              className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]"
-                            >
-                              Edit
-                              <Edit3 className="h-3 w-3" />
-                            </Link>
-                          )}
-
-                          <Link
-                            to={`/document-vault?listingId=${id}`}
-                            className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
-                          >
-                            Docs
-                            <FileText className="h-3 w-3" />
-                          </Link>
-
-                          {canWithdrawListing(listing) && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedWithdrawListing(listing)}
-                              disabled={deletingListingId === id}
-                              className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {deletingListingId === id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-3 w-3" />
-                              )}
-                              Withdraw
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs font-semibold text-[var(--color-text-muted)]">
-              Page {safeCurrentPage} of {totalPages}
-            </p>
-
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handlePreviousPage}
-                disabled={safeCurrentPage === 1}
-                className="inline-flex items-center gap-2 border border-[var(--color-border-light)] bg-white px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)] transition hover:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Back
-              </button>
-
-              <button
-                type="button"
-                onClick={handleNextPage}
-                disabled={safeCurrentPage === totalPages}
-                className="inline-flex items-center gap-2 bg-[var(--color-primary)] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Next
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  </div>
-</section>
+      </section>
 
       <WithdrawListingModal
         isOpen={Boolean(selectedWithdrawListing)}
         isLoading={Boolean(
           selectedWithdrawListing &&
-            deletingListingId === String(selectedWithdrawListing?._id || "")
+          deletingListingId === String(selectedWithdrawListing?._id || "")
         )}
         listingTitle={
           selectedWithdrawListing ? getListingLabel(selectedWithdrawListing) : ""

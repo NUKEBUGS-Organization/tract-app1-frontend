@@ -16,7 +16,7 @@ import { Link } from "react-router";
 
 import { useGetAdminDashboardQuery } from "../../services/adminService";
 import Button from "../../components/common/Button";
-import Loader from "../../components/common/Loader";
+import { PageSkeleton } from "../../components/common/Skeleton";
 
 type DashboardData = {
   users?: number;
@@ -245,13 +245,9 @@ function QueueCard({ queue }: { queue: QueueItem }) {
 function AdminDashboard() {
   const { data, isLoading, isError, refetch } = useGetAdminDashboardQuery();
 
-  if (isLoading) {
-    return (
-      <div className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
-        <Loader label="Loading admin dashboard..." />
-      </div>
-    );
-  }
+if (isLoading) {
+  return <PageSkeleton />;
+}
 
   if (isError) {
     return (

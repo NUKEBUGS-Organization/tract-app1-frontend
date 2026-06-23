@@ -18,6 +18,7 @@ import {
 const sellerNav = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "List Property", path: "/list-property" },
+  { label: "My Listings", path: "/my-listings" },
   { label: "Document Vault", path: "/document-vault" },
   { label: "View Bids", path: "/bids" },
   { label: "Contracts", path: "/contracts" },
