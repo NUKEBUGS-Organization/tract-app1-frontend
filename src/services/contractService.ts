@@ -1,4 +1,3 @@
-
 import { baseApi } from "./baseApi";
 
 type ApiEnvelope<T> = {
@@ -13,17 +12,45 @@ type ContractSignUrlResponse = {
 };
 
 function unwrapContract(response: ApiEnvelope<any>) {
-  return response.data;
+  const payload = response?.data ?? response;
+
+  return payload?._doc ?? payload;
 }
 
-function unwrapContractList(response: ApiEnvelope<Record<string, any> | any[] | null>) {
-  if (!response.data) return [];
+function normalizeContractList(payload: any) {
+  if (!payload) return [];
 
-  if (Array.isArray(response.data)) {
-    return response.data;
+  if (Array.isArray(payload)) {
+    return payload.map((item: any) => item?._doc ?? item);
   }
 
-  return Object.values(response.data);
+  if (Array.isArray(payload?.data)) {
+    return payload.data.map((item: any) => item?._doc ?? item);
+  }
+
+  if (Array.isArray(payload?.data?.data)) {
+    return payload.data.data.map((item: any) => item?._doc ?? item);
+  }
+
+  if (typeof payload === "object") {
+    return Object.values(payload)
+      .filter((item: any) => item && typeof item === "object" && !item?.page)
+      .map((item: any) => item?._doc ?? item);
+  }
+
+  return [];
+}
+
+function unwrapContractList(response: ApiEnvelope<any>) {
+  const payload = response?.data ?? response;
+
+  return normalizeContractList(payload);
+}
+
+function unwrapPaginatedContracts(response: ApiEnvelope<any>) {
+  const payload = response?.data ?? response;
+
+  return normalizeContractList(payload);
 }
 
 export const contractService = baseApi.injectEndpoints({
@@ -41,7 +68,7 @@ export const contractService = baseApi.injectEndpoints({
         body,
       }),
       transformResponse: unwrapContract,
-      invalidatesTags: ["Contract", "Deal"],
+      invalidatesTags: ["Contract", "Deal", "Chat"],
     }),
 
     getContractsByListing: builder.query<any[], string>({
@@ -86,12 +113,17 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapContract,
-      invalidatesTags: ["Contract", "Deal"],
+      invalidatesTags: ["Contract", "Deal", "Chat"],
     }),
 
-
-
-
+    getMyContracts: builder.query<any[], void>({
+      query: () => ({
+        url: "contracts/my-contracts",
+        method: "GET",
+      }),
+      transformResponse: unwrapPaginatedContracts,
+      providesTags: ["Contract"],
+    }),
 
     // Keep these only if you still need local testing.
     // Do not use these from production frontend signing UI.
@@ -101,7 +133,7 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapContract,
-      invalidatesTags: ["Contract", "Deal"],
+      invalidatesTags: ["Contract", "Deal", "Chat"],
     }),
 
     signContractAsBuyer: builder.mutation<any, string>({
@@ -110,7 +142,7 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapContract,
-      invalidatesTags: ["Contract", "Deal"],
+      invalidatesTags: ["Contract", "Deal", "Chat"],
     }),
   }),
 });
@@ -121,8 +153,8 @@ export const {
   useGetContractByIdQuery,
   useLazyGetContractSignUrlQuery,
   useGetSignedContractPdfQuery,
+  useGetMyContractsQuery,
   useCancelContractMutation,
   useSignContractAsSellerMutation,
   useSignContractAsBuyerMutation,
-
 } = contractService;

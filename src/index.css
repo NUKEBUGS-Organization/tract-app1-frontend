@@ -73,3 +73,83 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Wholesaler / Partner Light Mode
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Partner light-mode page surfaces ───────────────────────────── */
+html[data-wholesaler-theme="light"] .partner-page {
+  background: var(--color-bg-main);
+  color: var(--color-text-main);
+}
+
+/* ── Cards: dark glassy → light ivory ──────────────────────────── */
+html[data-wholesaler-theme="light"] .partner-card {
+  background: var(--color-bg-card) !important;
+  border-color: var(--color-border-light) !important;
+  color: var(--color-text-main) !important;
+}
+
+/* ── Partner stat cards in light mode ──────────────────────────── */
+html[data-wholesaler-theme="light"] .partner-stat-card {
+  background: var(--color-bg-card) !important;
+  border-color: var(--color-border-light) !important;
+  color: var(--color-text-main) !important;
+  box-shadow: var(--shadow-card);
+}
+
+html[data-wholesaler-theme="light"] .partner-stat-card .stat-label {
+  color: var(--color-text-muted) !important;
+}
+
+html[data-wholesaler-theme="light"] .partner-stat-card .stat-value {
+  color: var(--color-primary) !important;
+}
+
+/* ── Section headings ───────────────────────────────────────────── */
+html[data-wholesaler-theme="light"] .partner-heading {
+  color: var(--color-primary) !important;
+}
+
+html[data-wholesaler-theme="light"] .partner-subtext {
+  color: var(--color-text-muted) !important;
+}
+
+/* ── Table rows ─────────────────────────────────────────────────── */
+html[data-wholesaler-theme="light"] .partner-table-row {
+  border-color: var(--color-border-light) !important;
+}
+
+html[data-wholesaler-theme="light"] .partner-table-row:hover {
+  background: var(--color-bg-soft) !important;
+}
+
+html[data-wholesaler-theme="light"] .partner-table-cell-text {
+  color: var(--color-text-main) !important;
+}
+
+/* ── Modals: respect wholesaler light theme ─────────────────────── */
+html[data-wholesaler-theme="light"] .modal-surface {
+  background: var(--color-bg-card);
+  color: var(--color-text-main);
+  border-color: var(--color-border-light);
+}
+
+html[data-wholesaler-theme="light"] .modal-surface .modal-title {
+  color: var(--color-primary);
+}
+
+html[data-wholesaler-theme="light"] .modal-surface .modal-body-text {
+  color: var(--color-text-muted);
+}
+
+/* ── Theme toggle pill visual polish ────────────────────────────── */
+.theme-toggle-pill {
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+/* ── Smooth mode transition for whole page ────────────────────────
+html[data-wholesaler-theme] * {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+} */

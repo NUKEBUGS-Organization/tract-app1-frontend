@@ -7,10 +7,11 @@ import {
   CheckCircle2,
   ChevronDown,
   Edit3,
+  FileText,
+  Info,
   KeyRound,
   Mail,
   Phone,
-  Info,
   RefreshCw,
   Save,
   ShieldCheck,
@@ -21,12 +22,29 @@ import {
 } from "lucide-react";
 
 import {
+  PARTNER_ROLES,
+  isAllowedRole,
+  normalizeRole,
+} from "../../constants/roles";
+
+import {
   useChangePasswordMutation,
   useGetMeQuery,
   useUpdateMeMutation,
 } from "../../services/userService";
+
 import { DetailPageSkeleton } from "../../components/common/Skeleton";
 import StatusBadge from "../../components/common/StatusBadge";
+
+const STATE_OPTIONS = [
+  { name: "New York", code: "NY" },
+  { name: "New Jersey", code: "NJ" },
+  { name: "Maryland", code: "MD" },
+  { name: "Texas", code: "TX" },
+  { name: "Delaware", code: "DE" },
+  { name: "Florida", code: "FL" },
+  { name: "Pennsylvania", code: "PA" },
+] as const;
 
 function getApiPayload(response: any) {
   return response?.data?.data ?? response?.data ?? response;
@@ -44,12 +62,6 @@ function getErrorMessage(error: any, fallback: string) {
   }
 
   return message || fallback;
-}
-
-function normalizeRole(role?: string) {
-  return String(role || "")
-    .toLowerCase()
-    .trim();
 }
 
 function formatRole(role?: string) {
@@ -85,6 +97,8 @@ function getKycVariant(status?: string) {
 }
 
 function formatBoolean(value: any) {
+  if (value === undefined || value === null) return "-";
+
   return value ? "Yes" : "No";
 }
 
@@ -124,25 +138,8 @@ function getInitials(name: string) {
 }
 
 function getPhone(profile: any) {
-  return (
-    profile?.phone ||
-    profile?.phone_number ||
-    profile?.phoneNumber ||
-    profile?.mobile ||
-    profile?.mobile_number ||
-    "-"
-  );
+  return profile?.phone || "-";
 }
-
-const STATE_OPTIONS = [
-  { name: "New York", code: "NY" },
-  { name: "New Jersey", code: "NJ" },
-  { name: "Maryland", code: "MD" },
-  { name: "Texas", code: "TX" },
-  { name: "Delaware", code: "DE" },
-  { name: "Florida", code: "FL" },
-  { name: "Pennsylvania", code: "PA" },
-] as const;
 
 function normalizeStateCode(value?: string) {
   if (!value) return "";
@@ -222,10 +219,11 @@ function DetailCard({
                   setIsPinnedOpen((current) => !current);
                   setIsHoverOpen(false);
                 }}
-                className={`flex h-6 w-6 items-center justify-center rounded-full transition focus:outline-none ${isInfoOpen
-                  ? "bg-[var(--color-primary)] text-white"
-                  : "text-[var(--color-text-muted)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
-                  }`}
+                className={`flex h-6 w-6 items-center justify-center rounded-full transition focus:outline-none ${
+                  isInfoOpen
+                    ? "bg-[var(--color-primary)] text-white"
+                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+                }`}
               >
                 <Info className="h-4 w-4" />
               </button>
@@ -341,8 +339,9 @@ function StateDropdown({
           </span>
 
           <ChevronDown
-            className={`h-4 w-4 text-[var(--color-text-muted)] transition ${isOpen ? "rotate-180" : ""
-              }`}
+            className={`h-4 w-4 text-[var(--color-text-muted)] transition ${
+              isOpen ? "rotate-180" : ""
+            }`}
           />
         </button>
 
@@ -359,13 +358,18 @@ function StateDropdown({
                     onChange(state.code);
                     setIsOpen(false);
                   }}
-                  className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition ${active
-                    ? "bg-[var(--color-primary)] text-white"
-                    : "text-[var(--color-text-main)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
-                    }`}
+                  className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition ${
+                    active
+                      ? "bg-[var(--color-primary)] text-white"
+                      : "text-[var(--color-text-main)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
+                  }`}
                 >
                   <span>{state.name}</span>
-                  <span className={active ? "text-white" : "text-[var(--color-text-muted)]"}>
+                  <span
+                    className={
+                      active ? "text-white" : "text-[var(--color-text-muted)]"
+                    }
+                  >
                     {state.code}
                   </span>
                 </button>
@@ -388,21 +392,6 @@ export default function ProfilePage() {
 
   const profile = getApiPayload(data);
 
-  const role = normalizeRole(profile?.role);
-  const isAdmin = role === "admin";
-
-  const displayName = profile?.full_name || profile?.email || "User";
-
-  const kycStatus = isAdmin
-    ? undefined
-    : profile?.kyc_status || "pending";
-
-  const normalizedKycStatus = String(kycStatus || "").toLowerCase();
-
-  const isKycVerified =
-    !isAdmin &&
-    ["verified", "approved"].includes(normalizedKycStatus);
-
   const [isEditing, setIsEditing] = useState(false);
 
   const [fullName, setFullName] = useState("");
@@ -419,11 +408,24 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
+  const role = normalizeRole(profile?.role);
+  const isAdmin = role === "admin";
+  const isPartner = isAllowedRole(role, PARTNER_ROLES);
+
+  const displayName = profile?.full_name || profile?.email || "User";
+
+  const kycStatus = isAdmin ? undefined : profile?.kyc_status || "pending";
+
+  const normalizedKycStatus = String(kycStatus || "").toLowerCase();
+
+  const isKycVerified =
+    !isAdmin && ["verified", "approved"].includes(normalizedKycStatus);
+
   useEffect(() => {
     if (!profile) return;
 
     setFullName(profile?.full_name || "");
-    setStateCode(normalizeStateCode(profile?.state_code || profile?.state));
+    setStateCode(normalizeStateCode(profile?.state_code));
     setDob(formatDateForInput(profile?.dob));
   }, [profile]);
 
@@ -435,7 +437,7 @@ export default function ProfilePage() {
 
   function handleCancelEdit() {
     setFullName(profile?.full_name || "");
-    setStateCode(normalizeStateCode(profile?.state_code || profile?.state));
+    setStateCode(normalizeStateCode(profile?.state_code));
     setDob(formatDateForInput(profile?.dob));
 
     setProfileError(null);
@@ -463,6 +465,7 @@ export default function ProfilePage() {
       setProfileError("Please select a valid state.");
       return;
     }
+
     try {
       setProfileError(null);
       setProfileSuccess(null);
@@ -526,19 +529,16 @@ export default function ProfilePage() {
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
-      setPasswordError(
-        getErrorMessage(error, "Unable to change password.")
-      );
+      setPasswordError(getErrorMessage(error, "Unable to change password."));
     }
   }
 
-if (isLoading) {
-  return <DetailPageSkeleton />;
-}
+  if (isLoading) {
+    return <DetailPageSkeleton />;
+  }
 
   return (
     <div className="space-y-8">
-      {/* Page header */}
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
@@ -582,7 +582,6 @@ if (isLoading) {
         </div>
       </div>
 
-      {/* Profile summary */}
       <section className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
           <div className="flex items-center gap-4">
@@ -610,32 +609,12 @@ if (isLoading) {
         </div>
       </section>
 
-      {/* Basic account information */}
       <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <DetailCard
-          label="Full Name"
-          value={profile?.full_name}
-          icon={User}
-        />
+        <DetailCard label="Full Name" value={profile?.full_name} icon={User} />
 
-        <DetailCard
-          label="Email"
-          value={profile?.email}
-          icon={Mail}
-          verified={Boolean(
-            profile?.email_verified ??
-            profile?.emailVerified ??
-            profile?.is_email_verified ??
-            true
-          )}
-          verifiedLabel="Email verified"
-        />
+        <DetailCard label="Email" value={profile?.email} icon={Mail} />
 
-        <DetailCard
-          label="Phone"
-          value={getPhone(profile)}
-          icon={Phone}
-        />
+        <DetailCard label="Phone" value={getPhone(profile)} icon={Phone} />
 
         <DetailCard
           label="Role"
@@ -644,14 +623,14 @@ if (isLoading) {
         />
       </section>
 
-      {/* State and date of birth remain visible to all roles */}
       <section
-        className={`grid grid-cols-1 gap-5 md:grid-cols-2 ${isAdmin ? "xl:grid-cols-2" : "xl:grid-cols-4"
-          }`}
+        className={`grid grid-cols-1 gap-5 md:grid-cols-2 ${
+          isAdmin ? "xl:grid-cols-2" : "xl:grid-cols-4"
+        }`}
       >
         <DetailCard
           label="State"
-          value={getStateDisplayValue(profile?.state_code || profile?.state)}
+          value={getStateDisplayValue(profile?.state_code)}
           icon={BadgeCheck}
         />
 
@@ -671,26 +650,18 @@ if (isLoading) {
 
             <DetailCard
               label="Deal Count"
-              value={
-                profile?.deal_count ??
-                profile?.deals_count ??
-                profile?.total_deals
-              }
+              value={profile?.deal_count}
               icon={Star}
             />
           </>
         )}
       </section>
 
-      {/* Scores are hidden for admin */}
       {!isAdmin && (
         <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <DetailCard
             label="Reliability Score"
-            value={
-              profile?.reliability_score ??
-              profile?.reliabilityScore
-            }
+            value={profile?.reliability_score}
             icon={Star}
             info={
               <div className="space-y-3">
@@ -700,9 +671,9 @@ if (isLoading) {
                   </p>
 
                   <p className="mt-1 leading-5 text-[var(--color-text-muted)]">
-                    Reliability Score measures whether a wholesaler or private partner
-                    responds on time, uploads required proof, completes inspection, and
-                    proceeds toward closing.
+                    Reliability Score measures whether a wholesaler or private
+                    partner responds on time, uploads required proof, completes
+                    inspection, and proceeds toward closing.
                   </p>
                 </div>
 
@@ -712,8 +683,8 @@ if (isLoading) {
                   </p>
 
                   <p className="mt-1 leading-5 text-[var(--color-text-muted)]">
-                    Every partner starts with a score of 100. The score is reduced when
-                    deal responsibilities are not completed.
+                    Every partner starts with a score of 100. The score is
+                    reduced when deal responsibilities are not completed.
                   </p>
                 </div>
 
@@ -758,13 +729,50 @@ if (isLoading) {
             }
           />
 
+          <DetailCard
+            label="Professional Score"
+            value={profile?.professional_score}
+            icon={ShieldCheck}
+            info={
+              <div className="space-y-3">
+                <div>
+                  <p className="font-black text-[var(--color-primary)]">
+                    What does this score mean?
+                  </p>
+
+                  <p className="mt-1 leading-5 text-[var(--color-text-muted)]">
+                    Professional Score measures how professionally a partner
+                    behaves during communication, proof submission, inspection,
+                    and closing steps.
+                  </p>
+                </div>
+
+                <div className="space-y-1 rounded-lg bg-[var(--color-bg-soft)] p-3">
+                  <div className="flex justify-between gap-4">
+                    <span>Unprofessional communication</span>
+                    <strong className="text-[var(--color-danger)]">-10</strong>
+                  </div>
+
+                  <div className="flex justify-between gap-4">
+                    <span>Missing required proof</span>
+                    <strong className="text-[var(--color-danger)]">-15</strong>
+                  </div>
+
+                  <div className="flex justify-between gap-4">
+                    <span>Repeated failed follow-up</span>
+                    <strong className="text-[var(--color-danger)]">-20</strong>
+                  </div>
+                </div>
+              </div>
+            }
+          />
         </section>
       )}
 
-      {/* KYC section is hidden for admin */}
       <section
-        className={`grid grid-cols-1 gap-6 ${isAdmin ? "" : "xl:grid-cols-2"
-          }`}
+        className={`grid grid-cols-1 gap-6 ${
+          isAdmin ? "" : "xl:grid-cols-2"
+        }`}
       >
         {!isAdmin && (
           <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
@@ -805,7 +813,6 @@ if (isLoading) {
           </div>
         )}
 
-        {/* Update profile remains visible to admin */}
         <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
@@ -863,10 +870,7 @@ if (isLoading) {
                 placeholder="Enter full name"
               />
 
-              <StateDropdown
-                value={stateCode}
-                onChange={setStateCode}
-              />
+              <StateDropdown value={stateCode} onChange={setStateCode} />
 
               <InputField
                 label="Date of Birth"
@@ -897,9 +901,31 @@ if (isLoading) {
             </form>
           )}
         </div>
+
+        {isPartner && (
+          <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
+            <div className="mb-5">
+              <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">
+                Proof of Activity
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+                Upload recent transaction history or proof of funds to unlock
+                full deal access.
+              </p>
+            </div>
+
+            <Link
+              to="/proof-of-activity"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white"
+            >
+              <FileText className="h-4 w-4" />
+              Upload Proof of Activity
+            </Link>
+          </div>
+        )}
       </section>
 
-      {/* Password section */}
       <section className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
         <div className="mb-5">
           <h2 className="flex items-center gap-2 font-serif text-xl font-black text-[var(--color-primary)]">

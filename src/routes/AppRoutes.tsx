@@ -1,3 +1,4 @@
+
 import { Navigate, Route, Routes, useParams } from "react-router";
 
 import PublicRoute from "./PublicRoute";
@@ -17,6 +18,7 @@ import ProfilePage from "../pages/profile";
 
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
+import SupportPage from "../pages/common/SupportPage";
 
 // Seller pages
 import ListPropertyPage from "../pages/seller/ListPropertyPage";
@@ -27,6 +29,20 @@ import DealTrackerPage from "../pages/seller/DealTrackerPage";
 import ListingDetailsPage from "../pages/seller/ListingDetailsPage";
 import EditListingPage from "../pages/seller/EditListingPage";
 import ContractsPage from "../pages/seller/ContractsPage";
+
+// Partner pages
+import PropertyStreamPage from "../pages/partner/PropertyStreamPage";
+import ActiveDealsPage from "../pages/partner/ActiveDealsPage";
+import MyBidsPage from "../pages/partner/MyBidsPage";
+import MyContractsPage from "../pages/partner/MyContractsPage";
+import PropertyDetailPage from "../pages/partner/PropertyDetailPage";
+import SubmitBidPage from "../pages/partner/submit-bid";
+import ProofOfActivityPage from "../pages/partner/ProofOfActivityPage";
+
+// Realtor pages
+import RealtorActiveDealsPage from "../pages/realtor/ActiveDealsPage";
+import RealtorMyOffersPage from "../pages/realtor/MyOffersPage";
+import RealtorSubmitOfferPage from "../pages/realtor/SubmitOfferPage";
 
 // Common chat pages
 import ChatRoomsPage from "../pages/chat";
@@ -52,8 +68,6 @@ import AdminDealDetailsPage from "../pages/admin/AdminDealDetailsPage";
 import AdminChatFlagsPage from "../pages/admin/AdminChatFlagsPage";
 import AdminChatRoomsPage from "../pages/admin/AdminChatRoomsPage";
 import AdminRoomMessagesPage from "../pages/admin/AdminRoomMessagesPage";
-
-import SupportPage from "../pages/common/SupportPage";
 
 import {
   ADMIN_ROLES,
@@ -126,7 +140,7 @@ function AppRoutes() {
           />
 
           {/* =================================================
-              COMMON PROFILE
+              COMMON PROFILE / SUPPORT
           ================================================== */}
 
           <Route
@@ -169,6 +183,19 @@ function AppRoutes() {
           />
 
           {/* =================================================
+              PARTNER-ONLY PROOF OF ACTIVITY
+          ================================================== */}
+
+          <Route
+            path="/proof-of-activity"
+            element={
+              <RoleRoute allowedRoles={PARTNER_ROLES}>
+                <ProofOfActivityPage />
+              </RoleRoute>
+            }
+          />
+
+          {/* =================================================
               SHARED PROPERTIES / LISTINGS ROUTES
           ================================================== */}
 
@@ -182,20 +209,8 @@ function AppRoutes() {
                   ...ADMIN_ROLES,
                 ]}
                 roleContent={{
-                  partner: (
-                    <PlaceholderPage
-                      title="Property Stream"
-                      description="Available properties for wholesalers."
-                    />
-                  ),
-
-                  realtor: (
-                    <PlaceholderPage
-                      title="Properties"
-                      description="Available properties for realtors."
-                    />
-                  ),
-
+                  partner: <PropertyStreamPage />,
+                  realtor: <PropertyStreamPage />,
                   admin: <AdminListingsPage />,
                 }}
               />
@@ -214,30 +229,35 @@ function AppRoutes() {
                 ]}
                 roleContent={{
                   seller: <ListingDetailsPage />,
-
-                  partner: (
-                    <PlaceholderPage
-                      title="Property Details"
-                      description="Wholesaler property details."
-                    />
-                  ),
-
-                  realtor: (
-                    <PlaceholderPage
-                      title="Property Details"
-                      description="Realtor property details."
-                    />
-                  ),
-
+                  partner: <PropertyDetailPage />,
+                  realtor: <PropertyDetailPage />,
                   admin: <AdminListingDetailsPage />,
                 }}
               />
-
             }
           />
 
+          <Route
+            path="/properties/:id/bid"
+            element={
+              <RoleRoute allowedRoles={PARTNER_ROLES}>
+                <SubmitBidPage />
+              </RoleRoute>
+            }
+          />
 
-          {/* Seller-only listing actions */}
+          <Route
+            path="/properties/:id/offer"
+            element={
+              <RoleRoute allowedRoles={REALTOR_ROLES}>
+                <RealtorSubmitOfferPage />
+              </RoleRoute>
+            }
+          />
+
+          {/* =================================================
+              SELLER-ONLY LISTING ACTIONS
+          ================================================== */}
 
           <Route
             path="/list-property"
@@ -266,18 +286,6 @@ function AppRoutes() {
             }
           />
 
-          {/* <Route
-  path="/properties/:id/edit"
-  element={
-    <RoleRoute
-      allowedRoles={["seller", "admin"]}
-      roleContent={{
-        seller: <EditListingPage />,
-        admin: <AdminListingEditPage />,
-      }}
-    />
-  }
-/> */}
           <Route
             path="/document-vault"
             element={
@@ -303,21 +311,8 @@ function AppRoutes() {
                 ]}
                 roleContent={{
                   seller: <ViewBidsPage />,
-
-                  partner: (
-                    <PlaceholderPage
-                      title="My Bids"
-                      description="Wholesaler bids will render here."
-                    />
-                  ),
-
-                  realtor: (
-                    <PlaceholderPage
-                      title="My Bids"
-                      description="Realtor bids will render here."
-                    />
-                  ),
-
+                  partner: <MyBidsPage />,
+                  realtor: <RealtorMyOffersPage />,
                   admin: <AdminBidsPage />,
                 }}
               />
@@ -354,6 +349,19 @@ function AppRoutes() {
             }
           />
 
+          <Route
+            path="/my-bids"
+            element={
+              <RoleRoute
+                allowedRoles={[...PARTNER_ROLES, ...REALTOR_ROLES]}
+                roleContent={{
+                  partner: <MyBidsPage />,
+                  realtor: <RealtorMyOffersPage />,
+                }}
+              />
+            }
+          />
+
           {/* =================================================
               SHARED CONTRACTS ROUTES
           ================================================== */}
@@ -370,21 +378,13 @@ function AppRoutes() {
                 ]}
                 roleContent={{
                   seller: <ContractsPage />,
-
-                  partner: (
-                    <PlaceholderPage
-                      title="Contracts"
-                      description="Wholesaler contracts will render here."
-                    />
-                  ),
-
+                  partner: <MyContractsPage />,
                   realtor: (
                     <PlaceholderPage
                       title="Contracts"
                       description="Realtor contracts will render here."
                     />
                   ),
-
                   admin: <AdminContractsPage />,
                 }}
               />
@@ -429,6 +429,15 @@ function AppRoutes() {
             }
           />
 
+          <Route
+            path="/my-contracts"
+            element={
+              <RoleRoute allowedRoles={PARTNER_ROLES}>
+                <MyContractsPage />
+              </RoleRoute>
+            }
+          />
+
           {/* =================================================
               SHARED DEALS ROUTES
           ================================================== */}
@@ -445,21 +454,8 @@ function AppRoutes() {
                 ]}
                 roleContent={{
                   seller: <DealTrackerPage />,
-
-                  partner: (
-                    <PlaceholderPage
-                      title="Active Deals"
-                      description="Wholesaler active deals."
-                    />
-                  ),
-
-                  realtor: (
-                    <PlaceholderPage
-                      title="Deals"
-                      description="Realtor deals will render here."
-                    />
-                  ),
-
+                  partner: <ActiveDealsPage />,
+                  realtor: <RealtorActiveDealsPage />,
                   admin: <AdminDealsPage />,
                 }}
               />
@@ -501,6 +497,24 @@ function AppRoutes() {
                   admin: <AdminDealDetailsPage />,
                 }}
               />
+            }
+          />
+
+          <Route
+            path="/realtor/deals"
+            element={
+              <RoleRoute allowedRoles={REALTOR_ROLES}>
+                <RealtorActiveDealsPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/realtor/my-offers"
+            element={
+              <RoleRoute allowedRoles={REALTOR_ROLES}>
+                <RealtorMyOffersPage />
+              </RoleRoute>
             }
           />
 
@@ -672,8 +686,6 @@ function AppRoutes() {
               </RoleRoute>
             }
           />
-
-
         </Route>
       </Route>
 
