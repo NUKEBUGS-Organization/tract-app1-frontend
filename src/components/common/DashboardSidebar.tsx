@@ -38,7 +38,7 @@ function getNavIcon(label: string) {
   if (lowerLabel.includes("dashboard")) return Home;
   if (lowerLabel.includes("list")) return Building2;
   if (lowerLabel.includes("document")) return FolderLock;
-  if (lowerLabel.includes("bid")) return Gavel;
+  if (lowerLabel.includes("bid") || lowerLabel.includes("offer")) return Gavel;
   if (lowerLabel.includes("deal")) return Handshake;
   if (lowerLabel.includes("profile")) return UserRound;
   if (lowerLabel.includes("state")) return MapPinned;
@@ -131,8 +131,8 @@ export default function DashboardSidebar({
           to="/support"
           onClick={onNavigate}
           className={`flex w-full items-center justify-center gap-2 rounded-none border px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] transition ${supportActive
-              ? "border-[var(--color-secondary)] bg-[var(--color-secondary)] text-[var(--color-primary-dark)]"
-              : "border-[var(--color-secondary)] text-[var(--color-secondary)] hover:bg-[var(--color-secondary)] hover:text-[var(--color-primary-dark)]"
+            ? "border-[var(--color-secondary)] bg-[var(--color-secondary)] text-[var(--color-primary-dark)]"
+            : "border-[var(--color-secondary)] text-[var(--color-secondary)] hover:bg-[var(--color-secondary)] hover:text-[var(--color-primary-dark)]"
             }`}
         >
           <LifeBuoy className="h-4 w-4" />

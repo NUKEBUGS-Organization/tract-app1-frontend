@@ -38,9 +38,10 @@ const partnerNav = [
 
 const realtorNav = [
   { label: "Dashboard", path: "/dashboard" },
-  { label: "Properties", path: "/properties" },
-  { label: "My Offers", path: "/realtor/my-offers" },
-  { label: "Active Deals", path: "/realtor/deals" },
+  { label: "Property Stream", path: "/properties" },
+  { label: "My Offers", path: "/my-bids" },
+  { label: "Contracts", path: "/contracts" },
+  { label: "Deal Tracker", path: "/deals" },
   { label: "Chat", path: "/chat" },
 ];
 
@@ -74,9 +75,9 @@ export default function DashboardRouter() {
 
   const isPartner = isAllowedRole(userRole, PARTNER_ROLES);
   const isRealtor = isAllowedRole(userRole, REALTOR_ROLES);
-  const showToggle = isPartner || isRealtor;
 
-  const { mode, toggleMode } = useThemeMode(showToggle ? (isPartner ? "partner" : "partner") : "other");
+  // Both partner and realtor get the dark/light toggle, stored under the same key
+  const { mode, toggleMode } = useThemeMode(isPartner || isRealtor ? "partner" : "other");
 
   if (isAllowedRole(userRole, SELLER_ROLES)) {
     return (

@@ -26,6 +26,8 @@ import {
   useCancelContractMutation,
 } from "../../services/contractService";
 import { useGetChatRoomsQuery } from "../../services/chatService";
+import { usePartnerTheme } from "../../hooks/usePartnerTheme";
+import DocuSealSignButton from "../../components/contracts/DocuSealSignButton";
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
 function formatMoney(value: any) {
@@ -361,9 +363,13 @@ interface UnifiedEntry {
 
 /* ─── Main Component ─────────────────────────────────────────────────── */
 export default function RealtorActiveDealsPage() {
+  const theme = usePartnerTheme();
+  const isDark = theme === "dark";
   const [searchParams, setSearchParams] = useSearchParams();
   const listingIdFromUrl = searchParams.get("listingId");
   const [now, setNow] = useState(Date.now());
+  const [docuSealError, setDocuSealError] = useState("");
+  const [isDocuSealRefreshing, setIsDocuSealRefreshing] = useState(false);
 
   const {
     data: dealsData,
@@ -572,14 +578,17 @@ export default function RealtorActiveDealsPage() {
     if (_pendingBidId) await refetchContractByBid();
   }
 
-  async function handleBuyerSign() {
-    if (!contractId) return;
+  async function handleDocuSealReturn() {
     try {
-      await signContractMutation(contractId).unwrap();
+      setIsDocuSealRefreshing(true);
+      setDocuSealError("");
+      // Fetch fresh data
       await refetchDeals();
       if (_pendingBidId) await refetchContractByBid();
-    } catch (err: any) {
-      console.error("Error signing contract:", err);
+    } catch (err) {
+      console.error("Error refreshing after DocuSeal sign:", err);
+    } finally {
+      setIsDocuSealRefreshing(false);
     }
   }
 
@@ -602,9 +611,9 @@ export default function RealtorActiveDealsPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="rounded-2xl border border-[var(--color-border-light)] bg-white px-8 py-6 text-center shadow-[var(--shadow-card)]">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--color-primary)]" />
-          <p className="mt-3 text-sm font-semibold text-[var(--color-primary)]">
+        <div className={`rounded-2xl border px-8 py-6 text-center shadow-[var(--shadow-card)] ${isDark ? "border-white/10 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-white"}`}>
+          <Loader2 className={`mx-auto h-8 w-8 animate-spin ${isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"}`} />
+          <p className={`mt-3 text-sm font-semibold ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
             Loading Active Deals...
           </p>
         </div>
@@ -615,40 +624,41 @@ export default function RealtorActiveDealsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary)]/90 p-8">
+      <section className={`relative overflow-hidden rounded-2xl p-8 ${isDark ? "bg-transparent border border-white/5" : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary)]/90"}`}>
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.35]"
           style={{
-            backgroundImage: `radial-gradient(rgba(212,175,55,0.45) 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(${isDark ? "rgba(212,175,55,0.35)" : "rgba(212,175,55,0.45)"} 1px, transparent 1px)`,
             backgroundSize: "18px 18px",
             maskImage: "radial-gradient(ellipse 80% 80% at 70% 30%, black 0%, transparent 70%)",
             WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 70% 30%, black 0%, transparent 70%)",
           }}
         />
-        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-2 border-white/10" />
+        <div className={`pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-2 ${isDark ? "border-[#d4af37]/20 shadow-[0_0_60px_rgba(212,175,55,0.1)]" : "border-white/10"}`} />
+        <div className={`pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border-2 ${isDark ? "border-[#d4af37]/30 shadow-[0_0_50px_rgba(212,175,55,0.15)]" : "border-[var(--color-secondary)]/20"}`} />
 
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/15 px-4 py-1.5 backdrop-blur-sm">
-              <Handshake className="h-3 w-3 text-[var(--color-secondary)]" />
-              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[var(--color-secondary)]">
+            <div className={`mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 backdrop-blur-sm ${isDark ? "border-[#d4af37]/30 bg-[#d4af37]/10" : "border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/15"}`}>
+              <Handshake className={`h-3 w-3 ${isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]"}`} />
+              <span className={`text-[10px] font-black uppercase tracking-[0.25em] ${isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]"}`}>
                 Deal Tracker
               </span>
             </div>
             <h1 className="font-serif text-3xl font-black leading-tight text-white lg:text-4xl">
               Active Deals
             </h1>
-            <div className="mt-1 h-0.5 w-16 rounded-full bg-[var(--color-secondary)]/60" />
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/70">
+            <div className={`mt-1 h-0.5 w-16 rounded-full ${isDark ? "bg-[#d4af37]/60" : "bg-[var(--color-secondary)]/60"}`} />
+            <p className={`mt-4 max-w-xl text-sm leading-relaxed ${isDark ? "text-white/60" : "text-white/70"}`}>
               Track your listing agreements, marketing milestones, and deal progress.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <div className="group flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 transition hover:scale-[1.02] hover:shadow-lg">
-              <Handshake className="h-5 w-5 text-[var(--color-secondary)]" />
+            <div className={`group flex items-center gap-3 rounded-2xl border px-5 py-3 transition hover:scale-[1.02] hover:shadow-lg ${isDark ? "border-white/10 bg-white/5 hover:bg-white/10 hover:border-[#d4af37]/30" : "border-white/20 bg-white/10 hover:bg-white/20"}`}>
+              <Handshake className={`h-5 w-5 ${isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]"}`} />
               <div>
-                <p className="text-[9px] font-black uppercase tracking-wider text-white/50">
+                <p className={`text-[9px] font-black uppercase tracking-wider ${isDark ? "text-white/40" : "text-white/50"}`}>
                   Active Deals
                 </p>
                 <p className="text-xl font-black text-white tabular-nums">
@@ -671,9 +681,9 @@ export default function RealtorActiveDealsPage() {
 
       {/* Empty state */}
       {unifiedEntries.length === 0 && (
-        <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-12 text-center shadow-[var(--shadow-card)]">
-          <Handshake className="mx-auto h-8 w-8 text-[var(--color-text-muted)]" />
-          <p className="mt-3 text-sm font-bold text-[var(--color-text-muted)]">
+        <div className={`rounded-2xl border p-12 text-center shadow-[var(--shadow-card)] ${isDark ? "border-white/8 bg-white/[0.03]" : "border-[var(--color-border-light)] bg-white"}`}>
+          <Handshake className={`mx-auto h-8 w-8 ${isDark ? "text-white/20" : "text-[var(--color-text-muted)]"}`} />
+          <p className={`mt-3 text-sm font-bold ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
             No active deals yet.
           </p>
           <Link
@@ -690,7 +700,7 @@ export default function RealtorActiveDealsPage() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
           {/* Left: Deal list */}
           <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+            <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
               Your Deals ({unifiedEntries.length})
             </p>
             {unifiedEntries.map((entry) => {
@@ -707,10 +717,12 @@ export default function RealtorActiveDealsPage() {
                   className={`w-full rounded-2xl border p-4 text-left transition-all duration-200 ${
                     isActive
                       ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-[0_0_0_1px_var(--color-primary)]"
-                      : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)] hover:shadow-md"
+                      : isDark
+                        ? "border-white/10 bg-white/[0.04] hover:border-[var(--color-secondary)]/50 hover:shadow-md"
+                        : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)] hover:shadow-md"
                   }`}
                 >
-                  <p className="truncate text-sm font-black text-[var(--color-primary)]">
+                  <p className={`truncate text-sm font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
                     {entry.address}
                   </p>
                   <span
@@ -730,10 +742,10 @@ export default function RealtorActiveDealsPage() {
               {/* Status header */}
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                  <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
                     Deal Detail
                   </p>
-                  <h2 className="mt-1 font-serif text-2xl font-black text-[var(--color-primary)]">
+                  <h2 className={`mt-1 font-serif text-2xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
                     {activeEntry.address}
                   </h2>
                 </div>
@@ -785,8 +797,8 @@ export default function RealtorActiveDealsPage() {
 
               {/* Contract Signing */}
               {isPendingContract && (
-                <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
-                  <h3 className="font-serif text-lg font-black text-[var(--color-primary)]">
+                <div className={`rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark ? "border-white/10 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-white"}`}>
+                  <h3 className={`font-serif text-lg font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
                     Listing Agreement
                   </h3>
                   <p className="mt-1.5 text-sm text-[var(--color-text-muted)]">
@@ -800,15 +812,23 @@ export default function RealtorActiveDealsPage() {
                   </p>
 
                   {contractId && !buyerSigned && sellerSigned && (
-                    <button
-                      type="button"
-                      onClick={handleBuyerSign}
-                      disabled={isSigningBuyer}
-                      className="mt-4 inline-flex items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] disabled:pointer-events-none disabled:opacity-50"
-                    >
-                      <FileSignature className="h-4 w-4" />
-                      {isSigningBuyer ? "Signing..." : "Sign Listing Agreement"}
-                    </button>
+                    <div className="mt-4 flex flex-col items-start gap-2">
+                      {docuSealError && (
+                        <div className="text-xs font-bold text-[var(--color-danger)]">
+                          {docuSealError}
+                        </div>
+                      )}
+                      <DocuSealSignButton
+                        contractId={contractId}
+                        label="Sign Agreement (DocuSeal)"
+                        loadingLabel="Opening DocuSeal..."
+                        disabled={isDocuSealRefreshing}
+                        className="inline-flex items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] disabled:pointer-events-none disabled:opacity-50"
+                        onError={(msg) => setDocuSealError(msg)}
+                        onSigningOpened={() => setDocuSealError("")}
+                        onReturnFromSigning={handleDocuSealReturn}
+                      />
+                    </div>
                   )}
 
                   {contractId && !isSigned && (
@@ -827,8 +847,8 @@ export default function RealtorActiveDealsPage() {
 
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 {/* Deal Tracker Pipeline */}
-                <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
-                  <h3 className="mb-5 font-serif text-lg font-black text-[var(--color-primary)]">
+                <div className={`rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark ? "border-white/10 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-white"}`}>
+                  <h3 className={`mb-5 font-serif text-lg font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
                     Deal Progress
                   </h3>
                   <DealTrackerPipeline
@@ -840,8 +860,8 @@ export default function RealtorActiveDealsPage() {
                 {/* Deal Actions */}
                 <div className="space-y-4">
                   {/* Stats */}
-                  <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
-                    <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                  <div className={`rounded-2xl border p-5 shadow-[var(--shadow-card)] ${isDark ? "border-white/10 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-white"}`}>
+                    <p className={`mb-3 text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
                       Deal Info
                     </p>
                     <div className="space-y-3">
@@ -869,12 +889,12 @@ export default function RealtorActiveDealsPage() {
                       ].map((row) => (
                         <div
                           key={row.label}
-                          className="flex items-center justify-between rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3"
+                          className={`flex items-center justify-between rounded-xl border px-4 py-3 ${isDark ? "border-white/8 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"}`}
                         >
-                          <span className="text-[11px] text-[var(--color-text-muted)]">
+                          <span className={`text-[11px] ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"}`}>
                             {row.label}
                           </span>
-                          <span className="text-[11px] font-black text-[var(--color-primary)]">
+                          <span className={`text-[11px] font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
                             {row.value}
                           </span>
                         </div>
@@ -884,8 +904,8 @@ export default function RealtorActiveDealsPage() {
 
                   {/* Actions */}
                   {!isCancelled && isSigned && (
-                    <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
-                      <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                    <div className={`rounded-2xl border p-5 shadow-[var(--shadow-card)] ${isDark ? "border-white/10 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-white"}`}>
+                      <p className={`mb-3 text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
                         Actions
                       </p>
                       <div className="space-y-3">

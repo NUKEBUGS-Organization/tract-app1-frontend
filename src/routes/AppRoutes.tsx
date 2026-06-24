@@ -43,6 +43,7 @@ import ProofOfActivityPage from "../pages/partner/ProofOfActivityPage";
 import RealtorActiveDealsPage from "../pages/realtor/ActiveDealsPage";
 import RealtorMyOffersPage from "../pages/realtor/MyOffersPage";
 import RealtorSubmitOfferPage from "../pages/realtor/SubmitOfferPage";
+import RealtorMyContractsPage from "../pages/realtor/MyContractsPage";
 
 // Common chat pages
 import ChatRoomsPage from "../pages/chat";
@@ -379,12 +380,7 @@ function AppRoutes() {
                 roleContent={{
                   seller: <ContractsPage />,
                   partner: <MyContractsPage />,
-                  realtor: (
-                    <PlaceholderPage
-                      title="Contracts"
-                      description="Realtor contracts will render here."
-                    />
-                  ),
+                  realtor: <RealtorMyContractsPage />,
                   admin: <AdminContractsPage />,
                 }}
               />
@@ -497,24 +493,6 @@ function AppRoutes() {
                   admin: <AdminDealDetailsPage />,
                 }}
               />
-            }
-          />
-
-          <Route
-            path="/realtor/deals"
-            element={
-              <RoleRoute allowedRoles={REALTOR_ROLES}>
-                <RealtorActiveDealsPage />
-              </RoleRoute>
-            }
-          />
-
-          <Route
-            path="/realtor/my-offers"
-            element={
-              <RoleRoute allowedRoles={REALTOR_ROLES}>
-                <RealtorMyOffersPage />
-              </RoleRoute>
             }
           />
 
