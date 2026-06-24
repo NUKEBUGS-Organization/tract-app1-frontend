@@ -1097,7 +1097,8 @@ export default function ActiveDealsPage() {
           title="Due Diligence Period Active"
           subtitle={`Verify title, liens, taxes, ownership and overall deal viability. ${ddDays} Days.`}
           deadline={ddDeadline}
-          startAt={marketingDeadline}
+          // startAt={marketingDeadline}
+          startAt={contract?.buyer_signed_at}
           color="warning"
           isDark={isDark}
           now={now}
@@ -1110,7 +1111,8 @@ export default function ActiveDealsPage() {
           title="Inspection Period Active"
           subtitle={`Review property condition, structural reports, and repair cost estimates. ${inspectionDays} Days.`}
           deadline={inspectionDeadline}
-          startAt={ddDeadline}
+          //startAt={marketingDeadline}
+          startAt={contract?.buyer_signed_at}
           color="secondary"
           isDark={isDark}
           now={now}

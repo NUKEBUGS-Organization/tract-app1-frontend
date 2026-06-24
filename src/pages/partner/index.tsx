@@ -144,6 +144,12 @@ export default function PartnerDashboard() {
   const { data: meData, isLoading: isLoadingMe } = useGetMeQuery();
   const userName =
     (meData as any)?.data?.full_name || (meData as any)?.full_name || "Partner";
+  const currentUserId =
+    (meData as any)?.data?._id ||
+    (meData as any)?.data?.id ||
+    (meData as any)?._id ||
+    (meData as any)?.id ||
+    "";
 
   const {
     data: listingsData,
@@ -166,10 +172,20 @@ export default function PartnerDashboard() {
 
   const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
   const allBids: any[] = (() => {
-    const payload = (bidsData as any)?.data ?? bidsData;
-    if (Array.isArray(payload)) return payload as any[];
-    if (Array.isArray((payload as any)?.bids)) return (payload as any).bids;
-    return [];
+    const raw: any = bidsData;
+    const payload = raw?.data ?? raw;
+    let bidsArr: any[] = [];
+    if (Array.isArray(payload)) bidsArr = payload;
+    else if (Array.isArray(payload?.bids)) bidsArr = payload.bids;
+    else if (typeof payload === "object" && payload !== null) bidsArr = Object.values(payload);
+    if (!currentUserId) return bidsArr;
+    return bidsArr.filter((b: any) => {
+      const bidderId =
+        typeof b?.bidder_id === "object"
+          ? b.bidder_id?._id || b.bidder_id?.id || ""
+          : String(b?.bidder_id || "");
+      return bidderId === currentUserId;
+    });
   })();
 
   const {
@@ -182,10 +198,8 @@ export default function PartnerDashboard() {
   const isLoading =
     isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals;
 
-  const activeBids = allBids.filter((b) =>
-    ["active", "selected", "backup"].includes(
-      String(b?.status || "").toLowerCase(),
-    ),
+  const activeBids = allBids.filter(
+    (b) => String(b?.status || "active").toLowerCase() === "active",
   ).length;
 
   const activeDeals = allDeals.filter((d) =>
@@ -205,9 +219,9 @@ export default function PartnerDashboard() {
       icon: Building2,
     },
     {
-      label: "Bids Submitted",
-      value: allBids.length,
-      note: `${activeBids} active`,
+      label: "Pending Bids",
+      value: activeBids,
+      note: "Awaiting seller response",
       icon: Gavel,
     },
     {
@@ -645,7 +659,7 @@ export default function PartnerDashboard() {
           </h2>
 
           <Link
-            to="/deals"
+            to="/my-contracts"
             className="text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-secondary)] underline decoration-[var(--color-secondary)]/40 underline-offset-8"
           >
             View All Deals →

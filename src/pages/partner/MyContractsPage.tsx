@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import {
     ArrowUpRight,
+    AlertTriangle,
     CheckCircle2,
     Clock,
     FileSignature,
@@ -8,12 +10,12 @@ import {
     HandshakeIcon,
     ShieldCheck,
     XCircle,
-    History,
     Loader2,
 } from "lucide-react";
 import { useGetMyBidsQuery } from "../../services/listingService";
 import { useGetMyContractsQuery } from "../../services/contractService";
-import { useAppSelector } from "../../redux/hooks";
+import { useGetMyDealsQuery } from "../../services/dealService";
+import { useGetMeQuery } from "../../services/userService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
 
 function formatMoney(value: any) {
@@ -39,13 +41,9 @@ function getBidStatus(bid: any): string {
     return String(bid?.status || "active").toLowerCase();
 }
 
-function getCurrentUserId(user: any): string {
-    return user?._id || user?.id || user?.user_id || user?.sub || "";
-}
-
 /* ─── Contract Status Config ──────────────────────────────────────────────── */
-function getContractStatusConfig(bid: any, contracts: any[]) {
-    const status = getBidStatus(bid);
+// Uses backend ContractStatus enum values: 'pending' | 'signed' | 'cancelled'
+function getContractStatusConfig(bid: any, contracts: any[], deals: any[]) {
     const bidId = bid?._id || bid?.id;
 
     // Find a contract linked to this bid
@@ -54,93 +52,123 @@ function getContractStatusConfig(bid: any, contracts: any[]) {
         return cBidId === bidId;
     });
 
-    if (status === "selected") {
-        if (!contract) {
-            return {
-                label: "Awaiting Contract",
-                className: "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border border-[var(--color-warning)]/25",
-                icon: Clock,
-                contract,
-            };
-        }
-        const sellerSigned = Boolean(contract?.seller_signed_at);
-        const buyerSigned = Boolean(contract?.buyer_signed_at);
-        if (sellerSigned && buyerSigned) {
-            return {
-                label: "Contract Signed — Active Deal",
-                className: "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)] border border-[var(--color-secondary)]/30",
-                icon: CheckCircle2,
-                contract,
-            };
-        }
+    // Find a deal linked to this contract
+    const contractId = contract?._id || contract?.id;
+    const deal = deals.find((d: any) => {
+        const dContractId = typeof d.contract_id === "object" ? d.contract_id?._id || d.contract_id?.id : d.contract_id;
+        return dContractId === contractId;
+    });
+
+    if (!contract) {
         return {
-            label: "Pending Signatures",
-            className: "bg-[var(--color-danger)]/10 text-[var(--color-danger)] border border-[var(--color-danger)]/25",
-            icon: FileSignature,
-            contract,
-        };
-    }
-    if (status === "backup") {
-        return {
-            label: "Backup Buyer Queue",
+            label: "Awaiting Contract",
             className: "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border border-[var(--color-warning)]/25",
-            icon: ShieldCheck,
+            icon: Clock,
             contract,
+            deal,
         };
     }
-    if (status === "rejected") {
+
+    // Use backend contract.status as source of truth
+    const contractStatus = String(contract?.status || "pending").toLowerCase();
+    const dealStatus = String(deal?.status || "").toLowerCase();
+
+    if (contractStatus === "cancelled" || dealStatus === "cancelled") {
         return {
-            label: "Rejected",
+            label: dealStatus === "cancelled" ? "Deal Cancelled" : "Contract Cancelled",
             className: "bg-[var(--color-danger)]/10 text-[var(--color-danger)] border border-[var(--color-danger)]/25",
             icon: XCircle,
             contract,
+            deal,
         };
     }
+
+    if (contractStatus === "signed") {
+        if (dealStatus === "closed") {
+            return {
+                label: "Deal Closed 🎉",
+                className: "bg-[#16a34a]/15 text-[#16a34a] border border-[#16a34a]/30",
+                icon: CheckCircle2,
+                contract,
+                deal,
+            };
+        }
+        return {
+            label: "Contract Signed — Active Deal",
+            className: "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)] border border-[var(--color-secondary)]/30",
+            icon: CheckCircle2,
+            contract,
+            deal,
+        };
+    }
+
+    // status === 'pending': check who has signed
+    const sellerSigned = Boolean(contract?.seller_signed_at);
+    const buyerSigned = Boolean(contract?.buyer_signed_at);
+
+    if (sellerSigned && !buyerSigned) {
+        return {
+            label: "Awaiting Your Signature",
+            className: "bg-[var(--color-danger)]/10 text-[var(--color-danger)] border border-[var(--color-danger)]/25",
+            icon: FileSignature,
+            contract,
+            deal,
+        };
+    }
+
+    if (!sellerSigned) {
+        return {
+            label: "Awaiting Seller Signature",
+            className: "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border border-[var(--color-warning)]/25",
+            icon: ShieldCheck,
+            contract,
+            deal,
+        };
+    }
+
     return {
-        label: "Past",
-        className: "bg-white/8 text-white/40 border border-white/8",
-        icon: History,
+        label: "Pending Signatures",
+        className: "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border border-[var(--color-warning)]/25",
+        icon: FileSignature,
         contract,
+        deal,
     };
 }
 
 /* ─── Contract Card ─────────────────────────────────────────────────────── */
-function ContractCard({ bid, contracts, isDark }: { bid: any; contracts: any[]; isDark: boolean }) {
-    const status = getBidStatus(bid);
-    const { label, className, icon: StatusIcon, contract } = getContractStatusConfig(bid, contracts);
-
-    const isActive = status === "selected";
-    const isPast = false; // My Contracts only shows selected bids
+function ContractCard({ bid, contracts, deals, isDark }: { bid: any; contracts: any[]; deals: any[]; isDark: boolean }) {
+    const { label, className, icon: StatusIcon, contract, deal } = getContractStatusConfig(bid, contracts, deals);
 
     const bidPrice = bid?.bid_price || bid?.amount;
     const listingAddress = bid?.listing?.address || bid?.property_id?.address || bid?.property_address || "Property";
     const listingId = bid?.listing?._id || bid?.property_id?._id || bid?.listing_id || bid?.property_id;
     const listingCity = bid?.listing?.city || bid?.property_id?.city;
     const listingState = bid?.listing?.state_code || bid?.property_id?.state_code;
-    const backupPosition = bid?.backup_position;
 
+    const contractId = contract?._id || contract?.id;
+    const contractStatus = String(contract?.status || "pending").toLowerCase();
+    const dealStatus = String(deal?.status || "").toLowerCase();
+    const isSigned = contractStatus === "signed";
+    const isCancelled = contractStatus === "cancelled" || dealStatus === "cancelled";
+
+    // Buyer needs to sign if seller has signed but buyer hasn't
     const sellerSigned = Boolean(contract?.seller_signed_at);
     const buyerSigned = Boolean(contract?.buyer_signed_at);
-    const bothSigned = sellerSigned && buyerSigned;
-    const contractId = contract?._id || contract?.id;
+    const needsBuyerSignature = contract && sellerSigned && !buyerSigned && !isCancelled;
 
     return (
         <div
-            className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 ${isActive
+            className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 ${isCancelled
                 ? isDark
+                    ? "border-white/8 bg-white/[0.025] opacity-60"
+                    : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] opacity-60"
+                : isDark
                     ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/5 shadow-[0_0_30px_rgba(212,175,55,0.08)] hover:border-[var(--color-secondary)]/50"
                     : "border-[var(--color-secondary)]/40 bg-white shadow-[0_0_30px_rgba(212,175,55,0.12)] hover:border-[var(--color-secondary)]/60 hover:shadow-[0_0_40px_rgba(212,175,55,0.15)]"
-                : isPast
-                    ? isDark
-                        ? "border-white/8 bg-white/[0.025] opacity-60"
-                        : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] opacity-70"
-                    : isDark
-                        ? "border-white/10 bg-white/[0.04] hover:border-white/20"
-                        : "border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)] hover:shadow-xl"
                 }`}
         >
             {/* Top accent bar */}
-            {isActive && (
+            {!isCancelled && (
                 <div className="h-0.5 w-full bg-gradient-to-r from-[var(--color-secondary)] to-transparent" />
             )}
 
@@ -163,11 +191,12 @@ function ContractCard({ bid, contracts, isDark }: { bid: any; contracts: any[]; 
                     </span>
                 </div>
 
-                {/* Backup position note */}
-                {status === "backup" && backupPosition && (
-                    <p className="mt-2 text-[11px] font-semibold text-[var(--color-warning)]">
-                        Queue position #{backupPosition} — auto-promoted if primary buyer exits.
-                    </p>
+                {/* Action required banner */}
+                {needsBuyerSignature && (
+                    <div className={`mt-4 flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-semibold ${isDark ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)]" : "bg-[var(--color-danger)]/8 text-[var(--color-danger)]"}`}>
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                        Your signature is required to activate this deal.
+                    </div>
                 )}
 
                 {/* Bid price */}
@@ -182,7 +211,7 @@ function ContractCard({ bid, contracts, isDark }: { bid: any; contracts: any[]; 
                         <Link
                             to={`/properties/${listingId}`}
                             className={`flex items-center gap-1.5 border px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] transition ${isDark
-                                ? "border-white/10 bg-white/5 text-white/60 hover:border-white/25 hover:text-white hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:bg-white/10"
+                                ? "border-white/10 bg-white/5 text-white/60 hover:border-white/25 hover:text-white hover:bg-white/10"
                                 : "border-[var(--color-border-light)] bg-white text-[var(--color-text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-[var(--color-bg-soft)]"
                                 }`}
                         >
@@ -191,17 +220,8 @@ function ContractCard({ bid, contracts, isDark }: { bid: any; contracts: any[]; 
                         </Link>
                     )}
 
-                    {bothSigned && listingId && (
-                        <Link
-                            to={`/deals?listingId=${listingId}`}
-                            className={`flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] ${isDark ? "hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]" : ""}`}
-                        >
-                            Go to Deal
-                            <ArrowUpRight className="h-3.5 w-3.5" />
-                        </Link>
-                    )}
-
-                    {!bothSigned && contract && contractId && (
+                    {/* Needs buyer signature → go to deal tracker to sign */}
+                    {needsBuyerSignature && contractId && (
                         <Link
                             to={`/deals?listingId=${listingId}`}
                             className={`flex items-center gap-1.5 border px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] transition ${isDark
@@ -211,6 +231,17 @@ function ContractCard({ bid, contracts, isDark }: { bid: any; contracts: any[]; 
                         >
                             Sign Contract
                             <FileSignature className="h-3.5 w-3.5" />
+                        </Link>
+                    )}
+
+                    {/* Both signed → go to deal tracker */}
+                    {isSigned && listingId && (
+                        <Link
+                            to={`/deals?listingId=${listingId}`}
+                            className={`flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] ${isDark ? "hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]" : ""}`}
+                        >
+                            Go to Deal
+                            <ArrowUpRight className="h-3.5 w-3.5" />
                         </Link>
                     )}
                 </div>
@@ -230,12 +261,23 @@ export default function MyContractsPage() {
     const theme = usePartnerTheme();
     const isDark = theme === "dark";
 
+    const [statusFilter, setStatusFilter] = useState("all");
+
+    // Fix #2: Use meData (API) instead of Redux auth.user for currentUserId
+    const { data: meData } = useGetMeQuery();
+    const currentUserId =
+        (meData as any)?.data?._id ||
+        (meData as any)?.data?.id ||
+        (meData as any)?._id ||
+        (meData as any)?.id ||
+        "";
+
     const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
     const { data: contractsData = [], isLoading: isLoadingContracts } = useGetMyContractsQuery();
-    const user = useAppSelector((state) => state.auth.user);
-    const currentUserId = getCurrentUserId(user);
+    const { data: dealsData, isLoading: isLoadingDeals } = useGetMyDealsQuery();
 
-    const isLoading = isLoadingBids || isLoadingContracts;
+    const isLoading = isLoadingBids || isLoadingContracts || isLoadingDeals;
+    const allDeals = Array.isArray(dealsData) ? dealsData : [];
 
     const rawBids = normalizeBids(bidsData);
     const allBids = currentUserId
@@ -247,10 +289,25 @@ export default function MyContractsPage() {
         })
         : rawBids;
 
-    // Only show selected bids here
+    // Only show selected bids (winner bids that become contracts)
     const contractBids = allBids.filter((b) =>
         getBidStatus(b) === "selected",
     );
+
+    const bidsWithStatus = contractBids.map(bid => {
+        const config = getContractStatusConfig(bid, contractsData, allDeals);
+        return { bid, config };
+    });
+
+    const filteredBids = bidsWithStatus.filter(({ config }) => {
+        if (statusFilter === "all") return true;
+        const label = config.label.toLowerCase();
+        if (statusFilter === "active" && label.includes("active deal")) return true;
+        if (statusFilter === "pending" && (label.includes("pending") || label.includes("awaiting"))) return true;
+        if (statusFilter === "closed" && label.includes("closed")) return true;
+        if (statusFilter === "cancelled" && label.includes("cancelled")) return true;
+        return false;
+    });
 
     const totalContracts = contractBids.length;
 
@@ -334,22 +391,91 @@ export default function MyContractsPage() {
                 </div>
             )}
 
+            {/* Filter Tabs */}
+            {!isLoading && contractBids.length > 0 && (
+                (() => {
+                    const counts = {
+                        all: bidsWithStatus.length,
+                        pending: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("pending") || b.config.label.toLowerCase().includes("awaiting")).length,
+                        active: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("active deal")).length,
+                        closed: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("closed")).length,
+                        cancelled: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("cancelled")).length,
+                    };
+
+                    const tabs = [
+                        { id: "all", label: "All", count: counts.all },
+                        { id: "pending", label: "Pending", count: counts.pending },
+                        { id: "active", label: "Active", count: counts.active },
+                        { id: "closed", label: "Closed", count: counts.closed },
+                        { id: "cancelled", label: "Cancelled", count: counts.cancelled },
+                    ];
+
+                    return (
+                        <div className="w-full overflow-x-auto pb-2 scrollbar-hide">
+                            <div className={`inline-flex items-center gap-1.5 rounded-2xl p-1.5 ${isDark ? "bg-white/[0.03] border border-white/5" : "bg-black/[0.03] border border-black/5"}`}>
+                                {tabs.map((tab) => {
+                                    const isActive = statusFilter === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setStatusFilter(tab.id)}
+                                            className={`group relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-300 ${
+                                                isActive
+                                                    ? isDark
+                                                        ? "bg-white text-black shadow-[0_4px_12px_rgba(255,255,255,0.1)]"
+                                                        : "bg-white text-[var(--color-primary)] shadow-sm"
+                                                    : isDark
+                                                        ? "text-white/50 hover:bg-[#d4af37]/10 hover:text-[#d4af37]"
+                                                        : "text-[var(--color-text-muted)] hover:bg-white hover:text-[var(--color-primary)] hover:shadow-sm"
+                                            }`}
+                                        >
+                                            <span>{tab.label}</span>
+                                            <span
+                                                className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-black tabular-nums transition-colors ${
+                                                    isActive
+                                                        ? isDark
+                                                            ? "bg-black/10 text-black"
+                                                            : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                                                        : isDark
+                                                            ? "bg-white/10 text-white/50 group-hover:bg-[#d4af37]/20 group-hover:text-[#d4af37]"
+                                                            : "bg-black/10 text-[var(--color-text-muted)] group-hover:bg-[var(--color-primary)]/10 group-hover:text-[var(--color-primary)]"
+                                                }`}
+                                            >
+                                                {tab.count}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })()
+            )}
+
             {/* Active contracts / selected bids */}
             {!isLoading && contractBids.length > 0 && (
                 <div>
                     <p className={`mb-4 text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
-                        Under Contract ({contractBids.length})
+                        Showing {filteredBids.length} Result{filteredBids.length !== 1 && "s"}
                     </p>
-                    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                        {contractBids.map((bid: any) => (
-                            <ContractCard
-                                key={String(bid?._id || bid?.id)}
-                                bid={bid}
-                                contracts={contractsData}
-                                isDark={isDark}
-                            />
-                        ))}
-                    </div>
+
+                    {filteredBids.length === 0 ? (
+                        <div className={`rounded-xl border p-8 text-center ${isDark ? "border-white/5 bg-white/[0.02]" : "border-black/5 bg-black/[0.02]"}`}>
+                            <p className={`text-sm font-semibold ${isDark ? "text-white/40" : "text-black/40"}`}>No contracts match this filter.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                            {filteredBids.map(({ bid }) => (
+                                <ContractCard
+                                    key={String(bid?._id || bid?.id)}
+                                    bid={bid}
+                                    contracts={contractsData}
+                                    deals={allDeals}
+                                    isDark={isDark}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

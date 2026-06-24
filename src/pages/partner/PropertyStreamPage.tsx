@@ -9,7 +9,6 @@ import {
   RefreshCw,
   Sparkles,
   SlidersHorizontal,
-  TrendingUp,
   X,
 } from "lucide-react";
 import { useGetListingsQuery } from "../../services/listingService";
@@ -27,20 +26,6 @@ function formatMoney(value: any) {
   });
 }
 
-function getHoursLeft(listing: any): number | null {
-  const deadline = listing?.deadline || listing?.kill_switch_deadline;
-  if (!deadline) return null;
-  const diff = new Date(deadline).getTime() - Date.now();
-  if (diff <= 0) return 0;
-  return Math.floor(diff / (1000 * 60 * 60));
-}
-
-function getMarginPct(listing: any): number | null {
-  const ask = Number(listing?.market_price || listing?.asking_price);
-  const arv = Number(listing?.arv || listing?.estimated_arv);
-  if (!ask || !arv || arv <= ask) return null;
-  return Math.round(((arv - ask) / arv) * 100);
-}
 
 function getBidCount(listing: any): number {
   return (
@@ -94,9 +79,9 @@ function formatPropertyType(propertyType?: string) {
   );
 }
 
-function getStatusConfig(listing: any, hoursLeft: number | null) {
+function getStatusConfig(listing: any, isUrgent: boolean) {
   const status = String(listing?.status || "").toLowerCase();
-  if (status === "live" && hoursLeft !== null && hoursLeft <= 24) {
+  if (status === "live" && isUrgent) {
     return {
       label: "Hot",
       icon: Flame,
@@ -225,15 +210,12 @@ function PropertyCard({
   isRealtor?: boolean;
 }) {
   const id = String(listing?._id || listing?.id || "");
-  const hoursLeft = getHoursLeft(listing);
-  const marginPct = getMarginPct(listing);
   const bidCount = getBidCount(listing);
   const maxBids = Number(listing?.max_bids) || 10;
   const isFull = bidCount >= maxBids;
-  const isUrgent = hoursLeft !== null && hoursLeft <= 24;
-  const statusConfig = getStatusConfig(listing, hoursLeft);
+  const isUrgent = bidCount / maxBids >= 0.7 && !isFull;
+  const statusConfig = getStatusConfig(listing, isUrgent);
   const StatusIcon = statusConfig.icon;
-  const arv = Number(listing?.arv || listing?.estimated_arv);
 
   return (
     <div
@@ -262,18 +244,6 @@ function PropertyCard({
           <StatusIcon className="h-3 w-3" />
           {statusConfig.label}
         </div>
-
-        {hoursLeft !== null && (
-          <div
-            className={`absolute right-3 top-3 z-10 flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black backdrop-blur ${isUrgent
-              ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
-              : "border-white/10 bg-black/40 text-white"
-              }`}
-          >
-            <Clock className="h-3 w-3" />
-            {hoursLeft}h left
-          </div>
-        )}
       </div>
 
       {/* Content */}
@@ -310,15 +280,17 @@ function PropertyCard({
               highlight: false,
             },
             {
-              label: "ARV",
-              value: arv ? formatMoney(arv) : "—",
+              label: "Year Built",
+              value: listing?.year_built || "—",
               highlight: false,
             },
             {
-              label: "Margin",
-              value: marginPct ? `${marginPct}%` : "—",
+              label: "Condition",
+              value: listing?.condition_report?.overall
+                ? String(listing.condition_report.overall).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+                : "—",
               highlight: true,
-              title: "Estimated spread between asking price and after-repair value",
+              title: "Reported Property Condition",
             },
           ].map((stat) => (
             <div
@@ -349,16 +321,14 @@ function PropertyCard({
           ))}
         </div>
 
-        {/* Property details */}
         <div
-          className={`flex flex-wrap gap-x-4 gap-y-1 text-[11px] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
-            }`}
+          className={`flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-semibold ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}
         >
-          {listing?.beds_count > 0 && <span>{listing.beds_count} beds</span>}
-          {listing?.baths_count > 0 && <span>{listing.baths_count} baths</span>}
-          {listing?.square_footage && (
-            <span>{Number(listing.square_footage).toLocaleString()} sqft</span>
-          )}
+          {listing?.unit_count > 1 && <span>{listing.unit_count} Units</span>}
+          {listing?.zoning && <span>{listing.zoning}</span>}
+          {listing?.is_vacant ? <span>Vacant</span> : <span>Occupied</span>}
+          {listing?.has_liens ? <span className="text-[var(--color-danger)]">Liens</span> : <span>Clear Title</span>}
+          {listing?.is_preforeclosure && <span className="text-[var(--color-danger)]">Preforeclosure</span>}
         </div>
 
 
@@ -445,7 +415,6 @@ const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
   { value: "price_asc", label: "Price: Low → High" },
   { value: "price_desc", label: "Price: High → Low" },
-  { value: "margin_desc", label: "Best Margin" },
 ];
 
 
@@ -489,26 +458,15 @@ export default function PropertyStreamPage() {
         return Number(a.market_price) - Number(b.market_price);
       if (sortBy === "price_desc")
         return Number(b.market_price) - Number(a.market_price);
-      if (sortBy === "margin_desc") {
-        const ma = getMarginPct(a) ?? 0;
-        const mb = getMarginPct(b) ?? 0;
-        return mb - ma;
-      }
       return 0;
     });
 
   const hotDeals = allListings.filter((l) => {
-    const h = getHoursLeft(l);
-    return h !== null && h <= 24;
+    const bids = getBidCount(l);
+    const max = Number(l?.max_bids) || 10;
+    return bids / max >= 0.7 && bids < max;
   }).length;
 
-  const avgMargin =
-    allListings.length > 0
-      ? Math.round(
-        allListings.reduce((s, l) => s + (getMarginPct(l) ?? 0), 0) /
-        allListings.length,
-      )
-      : 0;
 
   const hasActiveFilters =
     selectedType !== "All Types" || selectedState !== "All States";
@@ -662,27 +620,6 @@ export default function PropertyStreamPage() {
               </div>
             </div>
 
-            {avgMargin > 0 && (
-              <div
-                className={`group flex items-center gap-3 rounded-2xl border px-5 py-3 transition hover:scale-[1.02] hover:shadow-lg ${isDark
-                  ? "border-white/10 bg-white/5 hover:bg-white/10 hover:border-[#d4af37]/30"
-                  : "border-white/20 bg-white/10 hover:bg-white/20"
-                  }`}
-              >
-                <TrendingUp className="h-5 w-5 text-[#6ee7b7]" />
-                <div>
-                  <p
-                    className={`text-[9px] font-black uppercase tracking-wider ${isDark ? "text-white/40" : "text-white/50"
-                      }`}
-                  >
-                    Avg Margin
-                  </p>
-                  <p className="text-xl font-black text-[#16a34a] tabular-nums">
-                    {avgMargin}%
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </section>
