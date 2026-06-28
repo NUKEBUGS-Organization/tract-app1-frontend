@@ -356,14 +356,15 @@ function PropertyCard({
           ) : isRealtor ? (
             <Link
               to={`/properties/${id}/offer`}
-              className="flex-1 rounded-xl bg-[var(--color-danger)] py-2.5 text-center text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-[var(--shadow-premium)] transition hover:scale-[1.02] hover:shadow-lg"
+              className="flex-1 rounded-xl bg-[var(--color-secondary)] py-2.5 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:bg-[var(--color-secondary)] hover:brightness-110 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]"
             >
               Submit Offer
             </Link>
           ) : (
+
             <Link
               to={`/properties/${id}/bid`}
-              className="flex-1 rounded-xl bg-[var(--color-secondary)] py-2.5 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] hover:shadow-lg"
+              className="flex-1 rounded-xl bg-[var(--color-secondary)] py-2.5 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:bg-[var(--color-secondary)] hover:brightness-110 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]"
             >
               Submit Bid
             </Link>
@@ -430,7 +431,7 @@ export default function PropertyStreamPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   const { data, isLoading, isFetching, isError, refetch } = useGetListingsQuery(
-    {},
+    { status: "live" },
     { refetchOnMountOrArgChange: true },
   );
 

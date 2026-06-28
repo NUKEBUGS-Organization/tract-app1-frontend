@@ -2,9 +2,6 @@ import { baseApi } from "./baseApi";
 
 export const verificationService = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        // ─────────────────────────────────────────────
-        // Proof of Activity (Wholesaler professional verification)
-        // ─────────────────────────────────────────────
 
         uploadProofOfActivity: builder.mutation<any, { file: File }>({
             query: ({ file }) => {
@@ -28,10 +25,38 @@ export const verificationService = baseApi.injectEndpoints({
             }),
             providesTags: ["User"],
         }),
+
+
+        uploadRealtorVerification: builder.mutation<
+            any,
+            {
+                license_number: string;
+                brokerage_name: string;
+                managing_broker: string;
+                office_address: string;
+            }
+        >({
+            query: ({ license_number, brokerage_name, managing_broker, office_address }) => ({
+                url: "verifications/realtor-credentials",
+                method: "POST",
+                body: { license_number, brokerage_name, managing_broker, office_address },
+            }),
+            invalidatesTags: ["User"],
+        }),
+
+        getRealtorVerificationStatus: builder.query<any, void>({
+            query: () => ({
+                url: "verifications/realtor-credentials",
+                method: "GET",
+            }),
+            providesTags: ["User"],
+        }),
     }),
 });
 
 export const {
     useUploadProofOfActivityMutation,
     useGetProofOfActivityStatusQuery,
+    useUploadRealtorVerificationMutation,
+    useGetRealtorVerificationStatusQuery,
 } = verificationService;

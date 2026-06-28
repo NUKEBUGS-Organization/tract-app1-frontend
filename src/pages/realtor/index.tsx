@@ -37,11 +37,11 @@ const journeySteps = [
   {
     id: "license",
     icon: BadgeCheck,
-    label: "License Verified",
-    desc: "State license number confirmed by admin.",
-    done: true,
-    link: "/profile",
-    linkLabel: "View",
+    label: "License & Brokerage Verified",
+    desc: "Submit your State License Number, Brokerage Name, Managing Broker, and Office Address for admin review.",
+    done: false,
+    link: "/realtor-verification",
+    linkLabel: "Submit",
   },
   {
     id: "profile",
@@ -367,8 +367,10 @@ export default function RealtorDashboard() {
 
       {/* Score + Penalty */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        {/* Professional Score */}
-        <section
+        {/* Score & Activity Rule Column */}
+        <div className="flex flex-col gap-6">
+          {/* Professional Score */}
+          <section
           className={`flex-1 rounded-2xl border p-6 shadow-[var(--shadow-card)] flex flex-col justify-center transition-all duration-200 ${
             isDark
               ? "border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/5 to-transparent hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
@@ -463,11 +465,39 @@ export default function RealtorDashboard() {
               ))}
             </div>
           </div>
-        </section>
+          </section>
 
-        {/* Penalty Table */}
+          {/* 7-day activity rule (realtor equivalent) */}
+          <div
+            className={`rounded-2xl border px-6 py-5 shadow-[var(--shadow-card)] transition-all duration-200 ${
+              isDark
+                ? "border-[var(--color-warning)]/25 bg-[var(--color-warning)]/5 hover:border-[var(--color-warning)]/30 hover:bg-[var(--color-warning)]/12 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
+                : "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10 hover:border-[var(--color-warning)]/35 hover:bg-[var(--color-warning)]/12 hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-warning)]" />
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.15em] text-[var(--color-warning)]">
+                  7-Day Market Launch Rule
+                </p>
+                <p
+                  className={`mt-1.5 text-xs leading-5 ${
+                    isDark ? "text-[var(--color-warning)]/80" : "text-[var(--color-text-muted)]"
+                  }`}
+                >
+                  Once the listing agreement is signed, you must launch the property
+                  to market within <strong>7 days</strong>. Failure triggers the{" "}
+                  <strong>Kill Switch</strong> — seller may cancel the agreement.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Penalty Table Column */}
         <section
-          className={`rounded-2xl border p-6 shadow-[var(--shadow-card)] transition-all duration-200 ${
+          className={`flex flex-col h-full rounded-2xl border p-6 shadow-[var(--shadow-card)] transition-all duration-200 ${
             isDark
               ? "border-white/10 bg-white/[0.04] hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
               : "border-[var(--color-border-light)] bg-white hover:border-[rgba(23,77,52,0.2)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
@@ -485,7 +515,7 @@ export default function RealtorDashboard() {
               Score starts at 100. Violations deduct points.
             </p>
           </div>
-          <div className="space-y-3">
+          <div className="flex-1 flex flex-col justify-center gap-4">
             {PENALTY_TABLE.map((row) => {
               const Icon = row.icon;
               return (
@@ -513,33 +543,6 @@ export default function RealtorDashboard() {
                 </div>
               );
             })}
-          </div>
-
-          {/* 7-day activity rule (realtor equivalent) */}
-          <div
-            className={`mt-4 rounded-xl border px-5 py-4 transition-all duration-200 ${
-              isDark
-                ? "border-[var(--color-warning)]/25 bg-[var(--color-warning)]/5 hover:border-[var(--color-warning)]/30"
-                : "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-warning)]" />
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.15em] text-[var(--color-warning)]">
-                  7-Day Market Launch Rule
-                </p>
-                <p
-                  className={`mt-1.5 text-xs leading-5 ${
-                    isDark ? "text-[var(--color-warning)]/80" : "text-[var(--color-text-muted)]"
-                  }`}
-                >
-                  Once the listing agreement is signed, you must launch the property
-                  to market within <strong>7 days</strong>. Failure triggers the{" "}
-                  <strong>Kill Switch</strong> — seller may cancel the agreement.
-                </p>
-              </div>
-            </div>
           </div>
         </section>
       </div>

@@ -22,6 +22,7 @@ import { useGetMeQuery } from "../services/userService";
 import { useGetListingsDashboardQuery } from "../services/listingService";
 import {
   PARTNER_ROLES,
+  REALTOR_ROLES,
   isAllowedRole,
   normalizeRole,
 } from "../constants/roles";
@@ -221,6 +222,7 @@ function DashboardLayout({
 
   const isAdmin = userRole === "admin";
   const isPartner = isAllowedRole(userRole, PARTNER_ROLES);
+  const isRealtor = isAllowedRole(userRole, REALTOR_ROLES);
 
   const primaryAction = getPrimaryAction(title);
   const searchValue = searchParams.get("search") || "";
@@ -662,6 +664,19 @@ function DashboardLayout({
                               className={`h-4 w-4 ${profileDropdownIconColor}`}
                             />
                             Proof of Activity
+                          </Link>
+                        )}
+
+                        {isRealtor && (
+                          <Link
+                            to="/realtor-verification"
+                            onClick={() => setIsProfileMenuOpen(false)}
+                            className={`flex items-center gap-3 px-5 py-3 text-sm font-bold transition ${profileDropdownItemColor}`}
+                          >
+                            <ShieldCheck
+                              className={`h-4 w-4 ${profileDropdownIconColor}`}
+                            />
+                            Professional Verification
                           </Link>
                         )}
                       </div>

@@ -23,6 +23,7 @@ import {
 
 import {
   PARTNER_ROLES,
+  REALTOR_ROLES,
   isAllowedRole,
   normalizeRole,
 } from "../../constants/roles";
@@ -411,6 +412,7 @@ export default function ProfilePage() {
   const role = normalizeRole(profile?.role);
   const isAdmin = role === "admin";
   const isPartner = isAllowedRole(role, PARTNER_ROLES);
+  const isRealtor = isAllowedRole(role, REALTOR_ROLES);
 
   const displayName = profile?.full_name || profile?.email || "User";
 
@@ -921,6 +923,29 @@ export default function ProfilePage() {
             >
               <FileText className="h-4 w-4" />
               Upload Proof of Activity
+            </Link>
+          </div>
+        )}
+
+        {isRealtor && (
+          <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
+            <div className="mb-5">
+              <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">
+                Professional Verification
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+                Submit your State License Number, Brokerage Name, and Managing
+                Broker details for admin review to unlock property access.
+              </p>
+            </div>
+
+            <Link
+              to="/realtor-verification"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-6 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white"
+            >
+              <BadgeCheck className="h-4 w-4" />
+              Submit Credentials
             </Link>
           </div>
         )}

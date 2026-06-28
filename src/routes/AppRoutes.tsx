@@ -44,6 +44,7 @@ import RealtorActiveDealsPage from "../pages/realtor/ActiveDealsPage";
 import RealtorMyOffersPage from "../pages/realtor/MyOffersPage";
 import RealtorSubmitOfferPage from "../pages/realtor/SubmitOfferPage";
 import RealtorMyContractsPage from "../pages/realtor/MyContractsPage";
+import RealtorVerificationPage from "../pages/realtor/RealtorVerificationPage";
 
 // Common chat pages
 import ChatRoomsPage from "../pages/chat";
@@ -192,6 +193,19 @@ function AppRoutes() {
             element={
               <RoleRoute allowedRoles={PARTNER_ROLES}>
                 <ProofOfActivityPage />
+              </RoleRoute>
+            }
+          />
+
+          {/* =================================================
+              REALTOR-ONLY PROFESSIONAL VERIFICATION
+          ================================================== */}
+
+          <Route
+            path="/realtor-verification"
+            element={
+              <RoleRoute allowedRoles={REALTOR_ROLES}>
+                <RealtorVerificationPage />
               </RoleRoute>
             }
           />

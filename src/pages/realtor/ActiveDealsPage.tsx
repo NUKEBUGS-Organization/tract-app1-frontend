@@ -21,7 +21,6 @@ import {
 } from "../../services/dealService";
 import { useGetMyBidsQuery } from "../../services/listingService";
 import {
-  useSignContractAsBuyerMutation,
   useGetMyContractsQuery,
   useCancelContractMutation,
 } from "../../services/contractService";
@@ -393,8 +392,6 @@ export default function RealtorActiveDealsPage() {
     return room?._id || room?.id;
   }
 
-  const [signContractMutation, { isLoading: isSigningBuyer }] =
-    useSignContractAsBuyerMutation();
   const [cancelContractMutation, { isLoading: isCancellingContract }] =
     useCancelContractMutation();
   const [uploadMarketLaunchProof, { isLoading: isUploadingProof }] =
