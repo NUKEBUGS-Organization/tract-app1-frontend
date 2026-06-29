@@ -42,7 +42,7 @@ import ProofOfActivityPage from "../pages/partner/ProofOfActivityPage";
 // Realtor pages
 import RealtorActiveDealsPage from "../pages/realtor/ActiveDealsPage";
 import RealtorMyOffersPage from "../pages/realtor/MyOffersPage";
-import RealtorSubmitOfferPage from "../pages/realtor/SubmitOfferPage";
+import RealtorSubmitOfferPage from "../pages/realtor/submit-offer";
 import RealtorMyContractsPage from "../pages/realtor/MyContractsPage";
 import RealtorVerificationPage from "../pages/realtor/RealtorVerificationPage";
 

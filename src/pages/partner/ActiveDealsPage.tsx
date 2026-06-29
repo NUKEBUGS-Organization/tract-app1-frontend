@@ -25,7 +25,7 @@ import {
 } from "../../services/contractService";
 import { useGetChatRoomsQuery } from "../../services/chatService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
-import DocuSealSignButton from "../../components/contracts/DocuSealSignButton";
+import DocuSealSignButton from "../seller/contracts/DocuSealSignButton";
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
 function formatMoney(value: any) {
@@ -1607,7 +1607,7 @@ export default function ActiveDealsPage() {
                     loadingLabel="Opening DocuSeal..."
                     disabled={isDocuSealRefreshing}
                     className="flex w-full items-center justify-center gap-2 bg-[var(--color-danger)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[0_0_20px_rgba(220,38,38,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
-                    onError={(msg) => setDocuSealError(msg)}
+                    onError={(msg: string) => setDocuSealError(msg)}
                     onSigningOpened={() => setDocuSealError("")}
                     onReturnFromSigning={handleDocuSealReturn}
                   />

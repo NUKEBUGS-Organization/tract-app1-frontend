@@ -26,7 +26,7 @@ import {
 } from "../../services/contractService";
 import { useGetChatRoomsQuery } from "../../services/chatService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
-import DocuSealSignButton from "../../components/contracts/DocuSealSignButton";
+import DocuSealSignButton from "../seller/contracts/DocuSealSignButton";
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
 function formatMoney(value: any) {
@@ -183,34 +183,31 @@ function DealTrackerPipeline({
           <div key={stage.key} className={`flex gap-4 ${isLocked ? "opacity-40" : ""}`}>
             <div className="flex flex-col items-center">
               <div
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all ${
-                  isDone
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all ${isDone
                     ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
                     : isCurrent
                       ? "border-[var(--color-danger)] bg-[var(--color-danger)] shadow-[0_0_0_5px_rgba(220,38,38,0.18)]"
                       : "border-[var(--color-border-light)] bg-white"
-                }`}
+                  }`}
               >
                 {isDone && <CheckCircle2 className="h-4 w-4 text-white" />}
                 {isCurrent && <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-white" />}
               </div>
               {i < REALTOR_TRACKER_STAGES.length - 1 && (
                 <div
-                  className={`my-1 min-h-[24px] w-0.5 ${
-                    isDone ? "bg-[var(--color-primary)]" : "bg-[var(--color-border-light)]"
-                  }`}
+                  className={`my-1 min-h-[24px] w-0.5 ${isDone ? "bg-[var(--color-primary)]" : "bg-[var(--color-border-light)]"
+                    }`}
                 />
               )}
             </div>
             <div className="pb-4 pt-1">
               <p
-                className={`text-[13px] font-black uppercase tracking-wider ${
-                  isDone
+                className={`text-[13px] font-black uppercase tracking-wider ${isDone
                     ? "text-[var(--color-primary)]"
                     : isCurrent
                       ? "text-[var(--color-danger)]"
                       : "text-[var(--color-text-muted)]"
-                }`}
+                  }`}
               >
                 {stage.label}
               </p>
@@ -295,13 +292,12 @@ function SevenDayBanner({
           {/* Upload proof button */}
           <div className="mt-4">
             <label
-              className={`inline-flex cursor-pointer items-center gap-2 rounded-xl border px-5 py-3 text-[10px] font-black uppercase tracking-[0.18em] transition ${
-                isUploading
+              className={`inline-flex cursor-pointer items-center gap-2 rounded-xl border px-5 py-3 text-[10px] font-black uppercase tracking-[0.18em] transition ${isUploading
                   ? "pointer-events-none opacity-50"
                   : isUrgent
                     ? "border-[var(--color-danger)] bg-[var(--color-danger)] text-white hover:opacity-90"
                     : "border-[var(--color-primary)] bg-[var(--color-primary)] text-white hover:opacity-90"
-              }`}
+                }`}
             >
               <Upload className="h-4 w-4" />
               {isUploading ? "Uploading..." : "Upload Marketing Proof"}
@@ -711,13 +707,12 @@ export default function RealtorActiveDealsPage() {
                   onClick={() =>
                     setSearchParams({ listingId: entry._entryKey }, { replace: true })
                   }
-                  className={`w-full rounded-2xl border p-4 text-left transition-all duration-200 ${
-                    isActive
+                  className={`w-full rounded-2xl border p-4 text-left transition-all duration-200 ${isActive
                       ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-[0_0_0_1px_var(--color-primary)]"
                       : isDark
                         ? "border-white/10 bg-white/[0.04] hover:border-[var(--color-secondary)]/50 hover:shadow-md"
                         : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)] hover:shadow-md"
-                  }`}
+                    }`}
                 >
                   <p className={`truncate text-sm font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
                     {entry.address}
