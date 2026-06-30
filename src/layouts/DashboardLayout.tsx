@@ -1,9 +1,7 @@
 import type { ReactNode } from "react";
-
 import { useEffect, useState } from "react";
 import { Link, Outlet, useSearchParams } from "react-router";
 import {
-  Bell,
   ChevronDown,
   FileText,
   Menu,
@@ -18,6 +16,7 @@ import {
 
 import { useAuthContext } from "../contexts/AuthContext";
 import DashboardSidebar from "../components/common/DashboardSidebar";
+import NotificationDropdown from "../components/common/NotificationDropdown";
 import { useGetMeQuery } from "../services/userService";
 import { useGetListingsDashboardQuery } from "../services/listingService";
 import {
@@ -26,6 +25,7 @@ import {
   normalizeRole,
 } from "../constants/roles";
 import { PartnerThemeContext } from "../contexts/PartnerThemeContext";
+import { tokenStorage } from "../redux/auth/tokenStorage";
 
 interface NavItem {
   label: string;
@@ -175,19 +175,17 @@ function DashboardLayout({
   onToggleTheme,
   children,
 }: DashboardLayoutProps) {
-  const { user } = useAuthContext();
+  const { user, accessToken } = useAuthContext();
   const authUser = user as any;
 
+  const hasAuthSession = Boolean(
+    authUser || accessToken || tokenStorage.getAccessToken()
+  );
+
   const { data: profile, refetch: refetchProfile } = useGetMeQuery(undefined, {
-    skip: !authUser,
+    skip: !hasAuthSession,
     refetchOnMountOrArgChange: true,
   });
-
-  useEffect(() => {
-    if (authUser) {
-      refetchProfile();
-    }
-  }, [authUser?._id, authUser?.email, refetchProfile]);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -211,6 +209,12 @@ function DashboardLayout({
   const displayUser = profileMatchesCurrentUser
     ? profileUser || authUser
     : authUser;
+
+  useEffect(() => {
+    if (hasAuthSession) {
+      refetchProfile();
+    }
+  }, [hasAuthSession, authUser?._id, authUser?.email, refetchProfile]);
 
   const displayName = getUserName(displayUser);
   const initials = getInitials(displayName) || "A";
@@ -237,7 +241,7 @@ function DashboardLayout({
   const shouldShowDropdown =
     showPropertySearch && isSearchFocused && searchValue.trim().length > 0;
 
-  const handleSearchChange = (value: string) => {
+  function handleSearchChange(value: string) {
     const nextParams = new URLSearchParams(searchParams);
 
     if (value.trim()) {
@@ -247,17 +251,17 @@ function DashboardLayout({
     }
 
     setSearchParams(nextParams, { replace: true });
-  };
+  }
 
-  const handleClearSearch = () => {
+  function handleClearSearch() {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("search");
     setSearchParams(nextParams, { replace: true });
-  };
+  }
 
-  const closeSearchDropdown = () => {
+  function closeSearchDropdown() {
     setIsSearchFocused(false);
-  };
+  }
 
   const rootBg = isDark
     ? "min-h-screen bg-[var(--color-dark-main)] text-white"
@@ -278,14 +282,6 @@ function DashboardLayout({
   const titleHeading = isDark
     ? "text-white"
     : "text-[var(--color-primary)]";
-
-  const notifBtn = isDark
-    ? "border-white/10 bg-white/10 hover:bg-white/15"
-    : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]";
-
-  const notifIcon = isDark
-    ? "h-5 w-5 text-[var(--color-secondary)]"
-    : "h-5 w-5 text-[var(--color-primary)]";
 
   const chevronColor = isDark
     ? "text-white/50"
@@ -316,7 +312,7 @@ function DashboardLayout({
     : "border-[var(--color-border-light)]";
 
   return (
-    <PartnerThemeContext.Provider value={mode}>
+    <PartnerThemeContext.Provider value={mode as "light" | "dark"}>
       <div className={rootBg}>
         <div className="flex min-h-screen">
           <aside className="sticky top-0 hidden h-screen w-[270px] shrink-0 flex-col bg-[var(--color-primary-dark)] text-white shadow-2xl lg:flex">
@@ -471,7 +467,7 @@ function DashboardLayout({
                               return (
                                 <Link
                                   key={id}
-                                  to={`/properties/${id}`}
+                                  to={`/listings/${id}`}
                                   onMouseDown={(event) =>
                                     event.preventDefault()
                                   }
@@ -580,14 +576,10 @@ function DashboardLayout({
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  className={`relative flex h-11 w-11 items-center justify-center rounded-full border transition ${notifBtn}`}
-                >
-                  <Bell className={notifIcon} />
-
-                  <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[var(--color-danger)] ring-2 ring-white" />
-                </button>
+                <NotificationDropdown
+                  isDark={isDark}
+                  hasAuthSession={hasAuthSession}
+                />
 
                 <div className="relative">
                   <button

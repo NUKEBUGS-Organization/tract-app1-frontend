@@ -29,7 +29,7 @@ import { useGetListingDocumentsQuery } from "../../services/listingService";
 
 import Button from "../../components/common/Button";
 import ConfirmModal from "../../components/common/ConfirmModal";
-import {DetailPageSkeleton} from "../../components/common/Skeleton"
+import { DetailPageSkeleton } from "../../components/common/Skeleton";
 import StatusBadge from "../../components/common/StatusBadge";
 
 import {
@@ -74,6 +74,20 @@ import {
   mergePerson,
 } from "./components/listingDetailHelpers";
 
+function getErrorMessage(error: any, fallback: string) {
+  const message = error?.data?.message || error?.data?.error || error?.error;
+
+  if (Array.isArray(message)) {
+    return message.join(", ");
+  }
+
+  if (typeof message === "object" && message !== null) {
+    return message.message || fallback;
+  }
+
+  return message || fallback;
+}
+
 function AdminListingDetailsPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
@@ -82,18 +96,20 @@ function AdminListingDetailsPage() {
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [apiSuccess, setApiSuccess] = useState<string | null>(null);
+
   const {
     data: listing,
     isLoading,
     isError,
+    refetch: refetchListing,
   } = useGetAdminListingQuery(id, { skip: !id });
 
   const listingDoc = getDoc(listing);
 
-  const {
-    data: documentsResponse,
-    isLoading: isDocumentsLoading,
-  } = useGetListingDocumentsQuery(id, { skip: !id });
+  const { data: documentsResponse, isLoading: isDocumentsLoading } =
+    useGetListingDocumentsQuery(id, { skip: !id });
 
   const sellerRaw = listingDoc?.seller_id ?? null;
   const sellerId = getRelationIdValue(sellerRaw);
@@ -114,31 +130,72 @@ function AdminListingDetailsPage() {
     useDeleteAdminListingMutation();
 
   async function handleApprove() {
-    if (!id) return;
-    await approveListing(id).unwrap();
+    if (!id || isApproving) return;
+
+    try {
+      setApiError(null);
+      setApiSuccess(null);
+
+      await approveListing(id).unwrap();
+
+      setApiSuccess(
+        "Listing approved successfully. If backend notification is enabled, seller will receive the listing live notification."
+      );
+
+      await refetchListing();
+    } catch (error: any) {
+      setApiError(getErrorMessage(error, "Unable to approve listing."));
+    }
   }
 
   async function handleReject() {
-    if (!id || rejectReason.trim().length < 3) return;
+    if (!id || isRejecting) return;
 
-    await rejectListing({ id, reason: rejectReason.trim() }).unwrap();
+    const reason = rejectReason.trim();
 
-    setIsRejectOpen(false);
-    setRejectReason("");
+    if (reason.length < 3) {
+      setApiError("Rejection reason must be at least 3 characters.");
+      return;
+    }
+
+    try {
+      setApiError(null);
+      setApiSuccess(null);
+
+      await rejectListing({ id, reason }).unwrap();
+
+      setApiSuccess(
+        "Listing rejected successfully. If backend notification is enabled, seller will receive the rejection notification."
+      );
+
+      setIsRejectOpen(false);
+      setRejectReason("");
+
+      await refetchListing();
+    } catch (error: any) {
+      setApiError(getErrorMessage(error, "Unable to reject listing."));
+    }
   }
 
   async function handleDelete() {
-    if (!id) return;
+    if (!id || isDeleting) return;
 
-    await deleteListing(id).unwrap();
+    try {
+      setApiError(null);
+      setApiSuccess(null);
 
-    setIsDeleteOpen(false);
-    navigate("/properties", { replace: true });
+      await deleteListing(id).unwrap();
+
+      setIsDeleteOpen(false);
+      navigate("/properties", { replace: true });
+    } catch (error: any) {
+      setApiError(getErrorMessage(error, "Unable to delete listing."));
+    }
   }
 
- if (isLoading) {
-  return <DetailPageSkeleton />;
-}
+  if (isLoading) {
+    return <DetailPageSkeleton />;
+  }
 
   if (isError || !listingDoc) {
     return (
@@ -263,7 +320,11 @@ function AdminListingDetailsPage() {
                 <Button
                   type="button"
                   variant="danger"
-                  onClick={() => setIsRejectOpen(true)}
+                  onClick={() => {
+                    setApiError(null);
+                    setApiSuccess(null);
+                    setIsRejectOpen(true);
+                  }}
                   className="justify-center"
                 >
                   <XCircle className="h-4 w-4" />
@@ -275,7 +336,11 @@ function AdminListingDetailsPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setIsDeleteOpen(true)}
+              onClick={() => {
+                setApiError(null);
+                setApiSuccess(null);
+                setIsDeleteOpen(true);
+              }}
               className="justify-center"
             >
               <Trash2 className="h-4 w-4" />
@@ -285,36 +350,48 @@ function AdminListingDetailsPage() {
         </div>
       </section>
 
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-  <MetricCard
-    label="Asking Price"
-    value={formatMoney(price)}
-    helper="Mapped from market_price"
-    featured
-    icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
-  />
+      {apiError && (
+        <div className="rounded-2xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm font-semibold text-[var(--color-danger)]">
+          {apiError}
+        </div>
+      )}
 
-  <MetricCard
-    label="Reserve Price"
-    value={formatMoney(reservePrice)}
-    helper="Mapped from hidden_reserve"
-    icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
-  />
+      {apiSuccess && (
+        <div className="rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 p-4 text-sm font-semibold text-[var(--color-primary)]">
+          {apiSuccess}
+        </div>
+      )}
 
-  <MetricCard
-    label="Bid Count"
-    value={listingDoc.bid_count ?? "-"}
-    helper="Total bids received"
-    icon={<ShieldCheck className="h-5 w-5" aria-hidden="true" />}
-  />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Asking Price"
+          value={formatMoney(price)}
+          helper="Mapped from market_price"
+          featured
+          icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
+        />
 
-  <MetricCard
-    label="Created"
-    value={formatDate(listingDoc.createdAt)}
-    helper="Listing creation date"
-    icon={<Calendar className="h-5 w-5" aria-hidden="true" />}
-  />
-</div>
+        <MetricCard
+          label="Reserve Price"
+          value={formatMoney(reservePrice)}
+          helper="Mapped from hidden_reserve"
+          icon={<DollarSign className="h-5 w-5" aria-hidden="true" />}
+        />
+
+        <MetricCard
+          label="Bid Count"
+          value={listingDoc.bid_count ?? "-"}
+          helper="Total bids received"
+          icon={<ShieldCheck className="h-5 w-5" aria-hidden="true" />}
+        />
+
+        <MetricCard
+          label="Created"
+          value={formatDate(listingDoc.createdAt)}
+          helper="Listing creation date"
+          icon={<Calendar className="h-5 w-5" aria-hidden="true" />}
+        />
+      </div>
 
       <ListingTimelineStepper steps={timelineSteps} />
 
@@ -597,15 +674,15 @@ function AdminListingDetailsPage() {
                 <ShieldCheck className="h-5 w-5" aria-hidden="true" />
               </div>
 
-             <div>
-  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/65">
-    Review Snapshot
-  </p>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/65">
+                  Review Snapshot
+                </p>
 
-  <h2 className="mt-1 font-serif text-xl font-black">
-    Key Listing Data
-  </h2>
-</div>
+                <h2 className="mt-1 font-serif text-xl font-black">
+                  Key Listing Data
+                </h2>
+              </div>
             </div>
 
             <div className="mt-5 space-y-3">
@@ -695,7 +772,11 @@ function AdminListingDetailsPage() {
                   <Button
                     type="button"
                     variant="danger"
-                    onClick={() => setIsRejectOpen(true)}
+                    onClick={() => {
+                      setApiError(null);
+                      setApiSuccess(null);
+                      setIsRejectOpen(true);
+                    }}
                     className="w-full justify-center"
                   >
                     <XCircle className="h-4 w-4" />
@@ -707,7 +788,11 @@ function AdminListingDetailsPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsDeleteOpen(true)}
+                onClick={() => {
+                  setApiError(null);
+                  setApiSuccess(null);
+                  setIsDeleteOpen(true);
+                }}
                 className="w-full justify-center"
               >
                 <Trash2 className="h-4 w-4" />
@@ -722,7 +807,7 @@ function AdminListingDetailsPage() {
         isOpen={isRejectOpen}
         variant="danger"
         title="Reject listing?"
-        description="This will mark the listing as rejected."
+        description="This will call the backend reject API and mark the listing as rejected."
         icon={<XCircle className="h-5 w-5" />}
         confirmLabel="Reject Listing"
         loadingLabel="Rejecting..."

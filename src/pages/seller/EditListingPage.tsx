@@ -7,7 +7,7 @@ import { DetailPageSkeleton } from "../../components/common/Skeleton";
 import {
   useGetListingByIdQuery,
   useUpdateListingMutation,
-   useSubmitListingMutation,
+  //  useSubmitListingMutation,
 } from "../../services/listingService";
 
 const PROPERTY_TYPES = ["sfh", "multi_family", "land"];
@@ -59,7 +59,13 @@ function getListingStatus(listing: any) {
 function isEditableListing(listing: any) {
   const status = getListingStatus(listing);
 
-  return status === "draft" || status === "withdrawn";
+  return status === "draft" || status === "withdrawn" || status === "rejected";
+}
+
+function isResubmissionListing(listing: any) {
+  const status = getListingStatus(listing);
+
+  return status === "withdrawn" || status === "rejected";
 }
 
 function isWithdrawnListing(listing: any) {
@@ -178,10 +184,12 @@ export default function EditListingPage() {
   const [updateListing, { isLoading: isUpdating }] =
   useUpdateListingMutation();
 
-const [submitListing, { isLoading: isSubmitting }] =
-  useSubmitListingMutation();
+// const [submitListing, { isLoading: isSubmitting }] =
+//   useSubmitListingMutation();
 
-const isSaving = isUpdating || isSubmitting;
+// const isSaving = isUpdating || isSubmitting;
+
+const isSaving = isUpdating;
 
   const listing = getListingFromResponse(data);
 
@@ -233,7 +241,7 @@ if (!isEditableListing(listing)) {
         </h1>
 
         <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-         This listing cannot be edited in its current status. Only draft or withdrawn
+         This listing cannot be edited in its current status. Only draft, withdrawn, or rejected
   listings can be edited.
         </p>
       </div>
@@ -279,9 +287,9 @@ const handleSave = async () => {
       body: payload,
     }).unwrap();
 
-    if (isWithdrawnListing(listing)) {
-      await submitListing(id).unwrap();
-    }
+    // if (isWithdrawnListing(listing)) {
+    //   await submitListing(id).unwrap();
+    // }
 
     navigate(`/listings/${id}`, {
       replace: true,
@@ -312,7 +320,7 @@ const handleSave = async () => {
         </Link>
 
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
-  {isWithdrawnListing(listing) ? "Withdrawn Listing" : "Draft Listing"}
+ {isResubmissionListing(listing) ? "Resubmission Listing" : "Draft Listing"}
 </p>
 
         <h1 className="mt-1 font-serif text-3xl font-black text-[var(--color-primary)]">
@@ -320,9 +328,9 @@ const handleSave = async () => {
         </h1>
 
        <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-  {isWithdrawnListing(listing)
-    ? "Update this withdrawn listing. After saving, it will be submitted again for admin review."
-    : "Update listing information before it is submitted or moved forward."}
+ {isResubmissionListing(listing)
+  ? "Update this listing. After saving, it will be submitted again for admin review."
+  : "Update listing information before it is submitted or moved forward."}
 </p>
       </div>
 
@@ -599,10 +607,10 @@ const handleSave = async () => {
   className="bg-[var(--color-primary)] px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[var(--shadow-card)] disabled:cursor-not-allowed disabled:opacity-60"
 >
   {isSaving
-    ? "Saving..."
-    : isWithdrawnListing(listing)
-      ? "Save & Submit for Review"
-      : "Save Changes"}
+  ? "Saving..."
+  : isResubmissionListing(listing)
+    ? "Save & Submit for Review"
+    : "Save Changes"}
 </button>
       </div>
     </div>

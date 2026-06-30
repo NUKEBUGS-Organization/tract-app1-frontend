@@ -49,14 +49,10 @@ function normalizeMongoRecord(item: any): any {
 function normalizeAdminPayload(payload: any): any {
   if (!payload) return payload;
 
-  // Backend sometimes returns object-shaped list:
-  // { "0": {...}, "1": {...} }
   if (isNumericKeyObject(payload)) {
     return numericKeyObjectToArray(payload).map(normalizeMongoRecord);
   }
 
-  // Paginated response:
-  // { data: [...], pagination: {...} }
   if (Array.isArray(payload?.data)) {
     return {
       ...payload,
@@ -64,8 +60,6 @@ function normalizeAdminPayload(payload: any): any {
     };
   }
 
-  // Nested object-shaped list:
-  // { data: { "0": {...}, "1": {...} } }
   if (isNumericKeyObject(payload?.data)) {
     return {
       ...payload,
@@ -73,21 +67,19 @@ function normalizeAdminPayload(payload: any): any {
     };
   }
 
-  // Direct array response
   if (Array.isArray(payload)) {
     return payload.map(normalizeMongoRecord);
   }
 
-  // Single record
   return normalizeMongoRecord(payload);
 }
 
 function unwrapAdminResponse(response: any) {
   const payload =
     response &&
-      typeof response === "object" &&
-      "success" in response &&
-      "data" in response
+    typeof response === "object" &&
+    "success" in response &&
+    "data" in response
       ? response.data
       : response;
 
@@ -174,93 +166,93 @@ export const adminService = baseApi.injectEndpoints({
       invalidatesTags: ["Admin", "User"],
     }),
 
-   // ================= LISTINGS =================
-getAdminListings: builder.query<any, PaginationQuery | void>({
-  query: (params) => ({
-    url: "admin/listings",
-    method: "GET",
-    params: params ?? undefined,
-  }),
-  transformResponse: unwrapAdminResponse,
-  providesTags: ["Admin", "Property"],
-}),
+    // ================= LISTINGS =================
+    getAdminListings: builder.query<any, PaginationQuery | void>({
+      query: (params) => ({
+        url: "admin/listings",
+        method: "GET",
+        params: params ?? undefined,
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin", "Property"],
+    }),
 
-getPendingAdminListings: builder.query<any, PaginationQuery | void>({
-  query: (params) => ({
-    url: "admin/listings/pending",
-    method: "GET",
-    params: params ?? undefined,
-  }),
-  transformResponse: unwrapAdminResponse,
-  providesTags: ["Admin", "Property"],
-}),
+    getPendingAdminListings: builder.query<any, PaginationQuery | void>({
+      query: (params) => ({
+        url: "admin/listings/pending",
+        method: "GET",
+        params: params ?? undefined,
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin", "Property"],
+    }),
 
-getAdminListing: builder.query<any, string>({
-  query: (id) => ({
-    url: `admin/listings/${id}`,
-    method: "GET",
-  }),
-  transformResponse: unwrapAdminResponse,
-  providesTags: ["Admin", "Property"],
-}),
+    getAdminListing: builder.query<any, string>({
+      query: (id) => ({
+        url: `admin/listings/${id}`,
+        method: "GET",
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin", "Property"],
+    }),
 
-approveAdminListing: builder.mutation<any, string>({
-  query: (id) => ({
-    url: `admin/listings/${id}/approve`,
-    method: "POST",
-  }),
-  transformResponse: unwrapAdminResponse,
-  invalidatesTags: ["Admin", "Property"],
-}),
+    approveAdminListing: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `admin/listings/${id}/approve`,
+        method: "POST",
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "Property", "Notification" as any],
+    }),
 
-rejectAdminListing: builder.mutation<any, { id: string; reason: string }>({
-  query: ({ id, reason }) => ({
-    url: `admin/listings/${id}/reject`,
-    method: "POST",
-    body: { reason },
-  }),
-  transformResponse: unwrapAdminResponse,
-  invalidatesTags: ["Admin", "Property"],
-}),
+    rejectAdminListing: builder.mutation<any, { id: string; reason: string }>({
+      query: ({ id, reason }) => ({
+        url: `admin/listings/${id}/reject`,
+        method: "POST",
+        body: { reason },
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "Property", "Notification" as any],
+    }),
 
-deleteAdminListing: builder.mutation<any, string>({
-  query: (id) => ({
-    url: `admin/listings/${id}`,
-    method: "DELETE",
-  }),
-  transformResponse: unwrapAdminResponse,
-  invalidatesTags: ["Admin", "Property"],
-}),
+    deleteAdminListing: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `admin/listings/${id}`,
+        method: "DELETE",
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "Property"],
+    }),
 
-updateAdminListing: builder.mutation<any, { id: string; body: any }>({
-  query: ({ id, body }) => ({
-    url: `admin/listings/${id}`,
-    method: "PATCH",
-    body,
-  }),
-  transformResponse: unwrapAdminResponse,
-  invalidatesTags: ["Admin", "Property"],
-}),
+    updateAdminListing: builder.mutation<any, { id: string; body: any }>({
+      query: ({ id, body }) => ({
+        url: `admin/listings/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "Property"],
+    }),
 
-updateAdminListingStatus: builder.mutation<
-  any,
-  {
-    id: string;
-    status: string;
-    reason?: string;
-  }
->({
-  query: ({ id, status, reason }) => ({
-    url: `admin/listings/${id}/status`,
-    method: "PATCH",
-    body: {
-      status,
-      ...(reason ? { reason } : {}),
-    },
-  }),
-  transformResponse: unwrapAdminResponse,
-  invalidatesTags: ["Admin", "Property"],
-}),
+    updateAdminListingStatus: builder.mutation<
+      any,
+      {
+        id: string;
+        status: string;
+        reason?: string;
+      }
+    >({
+      query: ({ id, status, reason }) => ({
+        url: `admin/listings/${id}/status`,
+        method: "PATCH",
+        body: {
+          status,
+          ...(reason ? { reason } : {}),
+        },
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "Property"],
+    }),
 
     // ================= BIDS =================
     getAdminBids: builder.query<any, PaginationQuery | void>({

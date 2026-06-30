@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import {
+  useApproveAdminListingMutation,
   useDeleteAdminListingMutation,
   useGetAdminListingsQuery,
   useGetPendingAdminListingsQuery,
@@ -102,6 +103,20 @@ function getListingLocation(listing: any) {
   return [listing?.city, listing?.state_code].filter(Boolean).join(", ") || "-";
 }
 
+function getErrorMessage(error: any, fallback: string) {
+  const message = error?.data?.message || error?.data?.error || error?.error;
+
+  if (Array.isArray(message)) {
+    return message.join(", ");
+  }
+
+  if (typeof message === "object" && message !== null) {
+    return message.message || fallback;
+  }
+
+  return message || fallback;
+}
+
 function AdminListingsPage() {
   const [tab, setTab] = useState<ListingTab>("all");
   const [page, setPage] = useState(1);
@@ -124,6 +139,9 @@ function AdminListingsPage() {
     {}
   );
 
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [apiSuccess, setApiSuccess] = useState<string | null>(null);
+
   const allListingsQuery = useGetAdminListingsQuery(
     { page, limit: 20 },
     { skip: tab !== "all" }
@@ -135,6 +153,9 @@ function AdminListingsPage() {
   );
 
   const activeQuery = tab === "all" ? allListingsQuery : pendingListingsQuery;
+
+  const [approveListing, { isLoading: isApproving }] =
+    useApproveAdminListingMutation();
 
   const [updateListingStatus, { isLoading: isStatusUpdating }] =
     useUpdateAdminListingStatusMutation();
@@ -154,17 +175,15 @@ function AdminListingsPage() {
         )
       : rawListings;
 
-  const cityOptions = useMemo<string[]>((() => {
+  const cityOptions = useMemo<string[]>(() => {
     const locations = tabListings
       .map((listing: any): string => getListingLocation(listing))
       .filter((location: string) => {
         return location.trim().length > 0 && location !== "-";
       });
 
-    return Array.from(new Set(locations)).sort((a, b) =>
-      a.localeCompare(b)
-    );
-  }) as any, [tabListings]);
+    return Array.from(new Set(locations)).sort((a, b) => a.localeCompare(b));
+  }, [tabListings]);
 
   const hasActiveFilters =
     searchValue.trim().length > 0 ||
@@ -207,42 +226,82 @@ function AdminListingsPage() {
     setCityFilter("all");
   }
 
+  function clearApiMessages() {
+    setApiError(null);
+    setApiSuccess(null);
+  }
+
   function openStatusModal(listing: any) {
     const currentStatus = getListingStatus(listing, localStatuses);
 
+    clearApiMessages();
     setStatusTarget(listing);
     setStatusValue(normalizeValue(currentStatus));
     setStatusReason("");
   }
 
   function openMakeLiveModal(listing: any) {
+    clearApiMessages();
     setMakeLiveTarget(listing);
+  }
+
+  async function refetchActiveQuery() {
+    await activeQuery.refetch();
   }
 
   async function handleChangeStatus() {
     if (!statusTarget || !statusValue) return;
 
     const listingId = getListingId(statusTarget);
+    const normalizedStatusValue = normalizeValue(statusValue);
+    const trimmedReason = statusReason.trim();
+
+    if (normalizedStatusValue === "rejected" && trimmedReason.length < 3) {
+      setApiError("Rejection reason must be at least 3 characters.");
+      return;
+    }
 
     try {
+      clearApiMessages();
       setProcessingListingId(listingId);
 
-      await updateListingStatus({
-        id: listingId,
-        status: statusValue,
-        reason: statusReason.trim() || undefined,
-      }).unwrap();
+      if (normalizedStatusValue === "live") {
+        await approveListing(listingId).unwrap();
+
+        setApiSuccess(
+          "Listing approved successfully through the approve API."
+        );
+      } else if (normalizedStatusValue === "rejected") {
+        await rejectListing({
+          id: listingId,
+          reason: trimmedReason,
+        }).unwrap();
+
+        setApiSuccess(
+          "Listing rejected successfully through the reject API."
+        );
+      } else {
+        await updateListingStatus({
+          id: listingId,
+          status: normalizedStatusValue,
+          reason: trimmedReason || undefined,
+        }).unwrap();
+
+        setApiSuccess("Listing status updated successfully.");
+      }
 
       setLocalStatuses((current) => ({
         ...current,
-        [listingId]: statusValue,
+        [listingId]: normalizedStatusValue,
       }));
 
       setStatusTarget(null);
       setStatusValue("");
       setStatusReason("");
 
-      activeQuery.refetch();
+      await refetchActiveQuery();
+    } catch (error: any) {
+      setApiError(getErrorMessage(error, "Unable to update listing status."));
     } finally {
       setProcessingListingId("");
     }
@@ -254,38 +313,49 @@ function AdminListingsPage() {
     const listingId = getListingId(makeLiveTarget);
 
     try {
+      clearApiMessages();
       setProcessingListingId(listingId);
 
-      await updateListingStatus({
-        id: listingId,
-        status: "live",
-        reason: "Admin changed listing status to live.",
-      }).unwrap();
+      await approveListing(listingId).unwrap();
 
       setLocalStatuses((current) => ({
         ...current,
         [listingId]: "live",
       }));
 
+      setApiSuccess(
+        "Listing approved successfully. This used the backend approve API."
+      );
+
       setMakeLiveTarget(null);
 
-      activeQuery.refetch();
+      await refetchActiveQuery();
+    } catch (error: any) {
+      setApiError(getErrorMessage(error, "Unable to make listing live."));
     } finally {
       setProcessingListingId("");
     }
   }
 
   async function handleReject() {
-    if (!rejectTarget || rejectReason.trim().length < 3) return;
+    if (!rejectTarget) return;
+
+    const reason = rejectReason.trim();
+
+    if (reason.length < 3) {
+      setApiError("Rejection reason must be at least 3 characters.");
+      return;
+    }
 
     const listingId = getListingId(rejectTarget);
 
     try {
+      clearApiMessages();
       setProcessingListingId(listingId);
 
       await rejectListing({
         id: listingId,
-        reason: rejectReason.trim(),
+        reason,
       }).unwrap();
 
       setLocalStatuses((current) => ({
@@ -293,10 +363,16 @@ function AdminListingsPage() {
         [listingId]: "rejected",
       }));
 
+      setApiSuccess(
+        "Listing rejected successfully. This used the backend reject API."
+      );
+
       setRejectTarget(null);
       setRejectReason("");
 
-      activeQuery.refetch();
+      await refetchActiveQuery();
+    } catch (error: any) {
+      setApiError(getErrorMessage(error, "Unable to reject listing."));
     } finally {
       setProcessingListingId("");
     }
@@ -308,13 +384,18 @@ function AdminListingsPage() {
     const listingId = getListingId(deleteTarget);
 
     try {
+      clearApiMessages();
       setProcessingListingId(listingId);
 
       await deleteListing(listingId).unwrap();
 
+      setApiSuccess("Listing deleted successfully.");
+
       setDeleteTarget(null);
 
-      activeQuery.refetch();
+      await refetchActiveQuery();
+    } catch (error: any) {
+      setApiError(getErrorMessage(error, "Unable to delete listing."));
     } finally {
       setProcessingListingId("");
     }
@@ -389,22 +470,36 @@ function AdminListingsPage() {
         </div>
       </section>
 
-      {!activeQuery.isLoading && !activeQuery.isError && tabListings.length > 0 && (
-        <AdminListingFilters
-          searchValue={searchValue}
-          statusFilter={statusFilter}
-          cityFilter={cityFilter}
-          cityOptions={cityOptions}
-          statusOptions={LISTING_STATUS_OPTIONS}
-          hasActiveFilters={hasActiveFilters}
-          shownCount={listings.length}
-          totalCount={tabListings.length}
-          onSearchChange={setSearchValue}
-          onStatusFilterChange={setStatusFilter}
-          onCityFilterChange={setCityFilter}
-          onClear={clearFilters}
-        />
+      {apiError && (
+        <div className="rounded-2xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm font-semibold text-[var(--color-danger)]">
+          {apiError}
+        </div>
       )}
+
+      {apiSuccess && (
+        <div className="rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 p-4 text-sm font-semibold text-[var(--color-primary)]">
+          {apiSuccess}
+        </div>
+      )}
+
+      {!activeQuery.isLoading &&
+        !activeQuery.isError &&
+        tabListings.length > 0 && (
+          <AdminListingFilters
+            searchValue={searchValue}
+            statusFilter={statusFilter}
+            cityFilter={cityFilter}
+            cityOptions={cityOptions}
+            statusOptions={LISTING_STATUS_OPTIONS}
+            hasActiveFilters={hasActiveFilters}
+            shownCount={listings.length}
+            totalCount={tabListings.length}
+            onSearchChange={setSearchValue}
+            onStatusFilterChange={setStatusFilter}
+            onCityFilterChange={setCityFilter}
+            onClear={clearFilters}
+          />
+        )}
 
       {activeQuery.isLoading ? (
         <div className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
@@ -469,6 +564,9 @@ function AdminListingsPage() {
               const listingId = getListingId(listing);
               const status = getListingStatus(listing, localStatuses);
 
+              const isThisApproving =
+                isApproving && processingListingId === listingId;
+
               return (
                 <AdminListingCard
                   key={listingId}
@@ -477,7 +575,8 @@ function AdminListingsPage() {
                   location={getListingLocation(listing)}
                   formattedStatus={formatStatusLabel(status)}
                   isStatusUpdating={
-                    isStatusUpdating && processingListingId === listingId
+                    (isStatusUpdating || isThisApproving) &&
+                    processingListingId === listingId
                   }
                   isRejecting={isRejecting && processingListingId === listingId}
                   isDeleting={isDeleting && processingListingId === listingId}
@@ -486,8 +585,14 @@ function AdminListingsPage() {
                   canDeleteListing={canDeleteListing}
                   onMakeLive={openMakeLiveModal}
                   onChangeStatus={openStatusModal}
-                  onReject={setRejectTarget}
-                  onDelete={setDeleteTarget}
+                  onReject={(listingItem: any) => {
+                    clearApiMessages();
+                    setRejectTarget(listingItem);
+                  }}
+                  onDelete={(listingItem: any) => {
+                    clearApiMessages();
+                    setDeleteTarget(listingItem);
+                  }}
                 />
               );
             })}
@@ -543,6 +648,9 @@ function AdminListingsPage() {
                   const listingId = getListingId(listing);
                   const status = getListingStatus(listing, localStatuses);
 
+                  const isThisApproving =
+                    isApproving && processingListingId === listingId;
+
                   const isThisStatusUpdating =
                     isStatusUpdating && processingListingId === listingId;
 
@@ -553,7 +661,10 @@ function AdminListingsPage() {
                     isDeleting && processingListingId === listingId;
 
                   const isBusy =
-                    isThisStatusUpdating || isThisRejecting || isThisDeleting;
+                    isThisApproving ||
+                    isThisStatusUpdating ||
+                    isThisRejecting ||
+                    isThisDeleting;
 
                   return (
                     <tr
@@ -610,7 +721,7 @@ function AdminListingsPage() {
                             <ActionIconButton
                               label="Make Live"
                               variant="success"
-                              isLoading={isThisStatusUpdating}
+                              isLoading={isThisApproving}
                               disabled={isBusy}
                               onClick={() => openMakeLiveModal(listing)}
                               icon={
@@ -628,7 +739,10 @@ function AdminListingsPage() {
                               variant="danger"
                               isLoading={isThisRejecting}
                               disabled={isBusy}
-                              onClick={() => setRejectTarget(listing)}
+                              onClick={() => {
+                                clearApiMessages();
+                                setRejectTarget(listing);
+                              }}
                               icon={
                                 <XCircle
                                   className="h-4 w-4"
@@ -644,7 +758,10 @@ function AdminListingsPage() {
                               variant="neutral"
                               isLoading={isThisDeleting}
                               disabled={isBusy}
-                              onClick={() => setDeleteTarget(listing)}
+                              onClick={() => {
+                                clearApiMessages();
+                                setDeleteTarget(listing);
+                              }}
                               icon={
                                 <Trash2
                                   className="h-4 w-4"
@@ -703,13 +820,13 @@ function AdminListingsPage() {
         isOpen={Boolean(makeLiveTarget)}
         variant="success"
         title="Make listing live?"
-        description={`This will change "${
+        description={`This will call the backend approve API for "${
           makeLiveTarget ? getListingTitle(makeLiveTarget) : "this listing"
-        }" status to live.`}
+        }".`}
         icon={<CheckCircle className="h-5 w-5" />}
         confirmLabel="Make Live"
-        loadingLabel="Updating..."
-        isLoading={isStatusUpdating && processingListingId === makeLiveTargetId}
+        loadingLabel="Approving..."
+        isLoading={isApproving && processingListingId === makeLiveTargetId}
         onCancel={() => setMakeLiveTarget(null)}
         onConfirm={handleMakeLive}
       />
@@ -720,11 +837,17 @@ function AdminListingsPage() {
         title="Change listing status?"
         description={`Select a new status for "${
           statusTarget ? getListingTitle(statusTarget) : "this listing"
-        }".`}
+        }". Live will use the approve API. Rejected will use the reject API.`}
         icon={<RefreshCcw className="h-5 w-5" />}
         confirmLabel="Update Status"
         loadingLabel="Updating..."
-        isLoading={isStatusUpdating && processingListingId === statusTargetId}
+        isLoading={
+          statusValue === "live"
+            ? isApproving && processingListingId === statusTargetId
+            : statusValue === "rejected"
+            ? isRejecting && processingListingId === statusTargetId
+            : isStatusUpdating && processingListingId === statusTargetId
+        }
         onCancel={() => {
           setStatusTarget(null);
           setStatusValue("");
@@ -760,7 +883,7 @@ function AdminListingsPage() {
               htmlFor="listing-status-reason"
               className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-[var(--color-text-muted)]"
             >
-              Reason optional
+              {statusValue === "rejected" ? "Rejection reason" : "Reason optional"}
             </label>
 
             <textarea
@@ -768,9 +891,20 @@ function AdminListingsPage() {
               value={statusReason}
               onChange={(event) => setStatusReason(event.target.value)}
               rows={4}
-              placeholder="Optional reason for status change..."
+              placeholder={
+                statusValue === "rejected"
+                  ? "Enter rejection reason..."
+                  : "Optional reason for status change..."
+              }
               className="w-full resize-none rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm outline-none transition focus:border-[var(--color-secondary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-secondary)]/30"
             />
+
+            {statusValue === "rejected" && (
+              <p className="mt-2 text-xs font-semibold text-[var(--color-text-muted)]">
+                Minimum 3 characters are required because rejected status uses
+                the backend reject API.
+              </p>
+            )}
           </div>
         </div>
       </ConfirmModal>
@@ -779,9 +913,9 @@ function AdminListingsPage() {
         isOpen={Boolean(rejectTarget)}
         variant="danger"
         title="Reject listing?"
-        description={`This will mark "${
+        description={`This will call the backend reject API for "${
           rejectTarget ? getListingTitle(rejectTarget) : "this listing"
-        }" as rejected.`}
+        }".`}
         icon={<XCircle className="h-5 w-5" />}
         confirmLabel="Reject Listing"
         loadingLabel="Rejecting..."
