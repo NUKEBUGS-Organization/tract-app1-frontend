@@ -66,9 +66,9 @@ function unwrapNotifications(
     data: list.map(normalizeNotification),
     unread_count:
       nestedPayload?.unread_count ??
-      nestedPayload?.unreadCount ??
+      
       payload?.unread_count ??
-      payload?.unreadCount ??
+   
       0,
     pagination: nestedPayload?.pagination ?? payload?.pagination ?? null,
   };

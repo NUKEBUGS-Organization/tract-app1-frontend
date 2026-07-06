@@ -44,11 +44,11 @@ interface DashboardLayoutProps {
 function getUserName(user: unknown) {
   const authUser = user as
     | {
-        full_name?: string;
-        fullName?: string;
-        name?: string;
-        email?: string;
-      }
+      full_name?: string;
+      fullName?: string;
+      name?: string;
+      email?: string;
+    }
     | null
     | undefined;
 
@@ -366,9 +366,8 @@ function DashboardLayout({
                     </div>
 
                     <span
-                      className={`text-base font-extrabold tracking-tight ${
-                        isDark ? "text-white" : "text-[var(--color-primary)]"
-                      }`}
+                      className={`text-base font-extrabold tracking-tight ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                        }`}
                     >
                       TRACT
                     </span>
@@ -396,9 +395,8 @@ function DashboardLayout({
                 {showPropertySearch && (
                   <div className="relative hidden w-[280px] md:block xl:w-[320px]">
                     <div
-                      className={`flex h-11 items-center gap-3 rounded-none px-4 ${
-                        isDark ? "bg-white/10" : "bg-white/70"
-                      }`}
+                      className={`flex h-11 items-center gap-3 rounded-none px-4 ${isDark ? "bg-white/10" : "bg-white/70"
+                        }`}
                     >
                       <Search className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
 
@@ -416,11 +414,10 @@ function DashboardLayout({
                         }}
                         placeholder="Search properties..."
                         aria-label="Search properties"
-                        className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${
-                          isDark
+                        className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${isDark
                             ? "text-white"
                             : "text-[var(--color-text-main)]"
-                        }`}
+                          }`}
                       />
 
                       {searchValue && (
@@ -528,26 +525,23 @@ function DashboardLayout({
                     title={
                       isDark ? "Switch to light mode" : "Switch to dark mode"
                     }
-                    className={`relative flex h-11 w-[88px] items-center rounded-full border transition-all duration-300 ${
-                      isDark
+                    className={`relative flex h-11 w-[88px] items-center rounded-full border transition-all duration-300 ${isDark
                         ? "border-white/15 bg-white/10 hover:bg-white/15"
                         : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]"
-                    }`}
+                      }`}
                   >
                     <span
-                      className={`absolute inset-[3px] rounded-full transition-all duration-300 ${
-                        isDark
+                      className={`absolute inset-[3px] rounded-full transition-all duration-300 ${isDark
                           ? "bg-[var(--color-dark-card)]"
                           : "bg-[var(--color-bg-soft)]"
-                      }`}
+                        }`}
                     />
 
                     <span
-                      className={`absolute z-10 flex h-8 w-8 items-center justify-center rounded-full shadow-md transition-all duration-300 ${
-                        isDark
+                      className={`absolute z-10 flex h-8 w-8 items-center justify-center rounded-full shadow-md transition-all duration-300 ${isDark
                           ? "left-[5px] bg-[var(--color-primary)] text-[var(--color-secondary)]"
                           : "left-[49px] bg-[var(--color-secondary)] text-[var(--color-primary-dark)]"
-                      }`}
+                        }`}
                     >
                       {isDark ? (
                         <Moon className="h-3.5 w-3.5" />
@@ -557,19 +551,17 @@ function DashboardLayout({
                     </span>
 
                     <span
-                      className={`absolute left-[40px] z-10 text-[9px] font-black uppercase tracking-widest transition-opacity duration-200 ${
-                        isDark ? "opacity-100 text-white/30" : "opacity-0"
-                      }`}
+                      className={`absolute left-[40px] z-10 text-[9px] font-black uppercase tracking-widest transition-opacity duration-200 ${isDark ? "opacity-100 text-white/30" : "opacity-0"
+                        }`}
                     >
                       Day
                     </span>
 
                     <span
-                      className={`absolute left-[12px] z-10 text-[9px] font-black uppercase tracking-widest transition-opacity duration-200 ${
-                        isLight
+                      className={`absolute left-[12px] z-10 text-[9px] font-black uppercase tracking-widest transition-opacity duration-200 ${isLight
                           ? "opacity-100 text-[var(--color-text-muted)]"
                           : "opacity-0"
-                      }`}
+                        }`}
                     >
                       Ngt
                     </span>
@@ -579,6 +571,7 @@ function DashboardLayout({
                 <NotificationDropdown
                   isDark={isDark}
                   hasAuthSession={hasAuthSession}
+                  userRole={userRole}
                 />
 
                 <div className="relative">
@@ -593,9 +586,8 @@ function DashboardLayout({
                     </div>
 
                     <ChevronDown
-                      className={`hidden h-4 w-4 transition md:block ${chevronColor} ${
-                        isProfileMenuOpen ? "rotate-180" : ""
-                      }`}
+                      className={`hidden h-4 w-4 transition md:block ${chevronColor} ${isProfileMenuOpen ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
 

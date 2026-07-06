@@ -18,9 +18,16 @@ import {
   type NotificationItem,
 } from "../../services/notificationService";
 
+import {
+  PARTNER_ROLES,
+  isAllowedRole,
+  normalizeRole,
+} from "../../constants/roles";
+
 interface NotificationDropdownProps {
   isDark: boolean;
   hasAuthSession: boolean;
+  userRole?: string;
 }
 
 function getNotificationId(notification: NotificationItem) {
@@ -38,11 +45,46 @@ function getId(value: any) {
 }
 
 function getNotificationActionUrl(notification: NotificationItem) {
-  return (
-    notification?.action_url ||
-    (notification as any)?.actionUrl ||
-    ""
-  );
+  return notification?.action_url || (notification as any)?.actionUrl || "";
+}
+
+function getMetadataId(metadata: Record<string, any>, keys: string[]) {
+  for (const key of keys) {
+    const value = metadata?.[key];
+    const id = getId(value) || value;
+
+    if (id) return String(id);
+  }
+
+  return "";
+}
+
+function getIdFromActionUrl(actionUrl: string, segment: string) {
+  if (!actionUrl) return "";
+
+  const match = actionUrl.match(new RegExp(`/${segment}/([^/]+)`));
+
+  return match?.[1] || "";
+}
+
+function getDealIdFromActionUrl(actionUrl?: string | null) {
+  if (!actionUrl) return "";
+
+  const dealChatMatch = actionUrl.match(/\/deals\/([^/]+)\/chat/);
+  if (dealChatMatch?.[1]) return dealChatMatch[1];
+
+  const dealMatch = actionUrl.match(/\/deals\/([^/]+)/);
+  if (dealMatch?.[1]) return dealMatch[1];
+
+  return "";
+}
+
+function normalizeInternalUrl(actionUrl: string) {
+  if (!actionUrl || typeof actionUrl !== "string") return "";
+
+  if (actionUrl.startsWith("http")) return "";
+
+  return actionUrl.startsWith("/") ? actionUrl : `/${actionUrl}`;
 }
 
 function getNotificationChatRoomId(notification: NotificationItem) {
@@ -59,30 +101,105 @@ function getNotificationChatRoomId(notification: NotificationItem) {
   );
 }
 
-function normalizeInternalUrl(actionUrl: string) {
-  if (!actionUrl || typeof actionUrl !== "string") return "";
-
-  if (actionUrl.startsWith("http")) return "";
-
-  return actionUrl.startsWith("/") ? actionUrl : `/${actionUrl}`;
-}
-
-function getNotificationTarget(notification: NotificationItem) {
+function getNotificationTarget(notification: NotificationItem, userRole?: string) {
   const type = String(notification?.type || "").toLowerCase();
+  const role = normalizeRole(userRole);
+  const metadata = notification?.metadata || {};
+  const actionUrl = getNotificationActionUrl(notification);
+
+  const listingId =
+    getMetadataId(metadata, [
+      "listing_id",
+      "listingId",
+      "property_id",
+      "propertyId",
+    ]) ||
+    getIdFromActionUrl(actionUrl, "listings") ||
+    getIdFromActionUrl(actionUrl, "properties");
+
+  const bidId =
+    getMetadataId(metadata, ["bid_id", "bidId"]) ||
+    getIdFromActionUrl(actionUrl, "bids");
+
+  const contractId =
+    getMetadataId(metadata, ["contract_id", "contractId"]) ||
+    getIdFromActionUrl(actionUrl, "contracts");
+
+  const dealId =
+    getMetadataId(metadata, ["deal_id", "dealId"]) ||
+    getDealIdFromActionUrl(actionUrl);
 
   if (type === "chat_new_message") {
     const roomId = getNotificationChatRoomId(notification);
 
-    if (roomId) {
-      return `/chat/${roomId}`;
-    }
+    if (roomId) return `/chat/${roomId}`;
 
     return "/chat";
   }
 
-  const actionUrl = normalizeInternalUrl(getNotificationActionUrl(notification));
+  if (role === "admin") {
+    if (type.includes("listing") && listingId) return `/properties/${listingId}`;
+    if (type.includes("bid") && bidId) return `/bids/${bidId}`;
+    if (type.includes("contract") && contractId) return `/contracts/${contractId}`;
+    if (type.includes("deal") && dealId) return `/deals/${dealId}`;
 
-  return actionUrl || "/dashboard";
+    return normalizeInternalUrl(actionUrl) || "/dashboard";
+  }
+
+  if (role === "seller") {
+    if (
+      type === "listing_live" ||
+      type === "listing_approved" ||
+      type === "listing_needs_info" ||
+      type.includes("listing")
+    ) {
+      return "/my-listings";
+    }
+
+    if (
+      type === "listing_bid_received" ||
+      type === "listing_bid_cap_reached" ||
+      type.includes("bid")
+    ) {
+      return "/bids";
+    }
+
+    if (type.includes("contract")) {
+      return "/contracts";
+    }
+
+    if (type.includes("deal")) {
+      return dealId ? `/deals/${dealId}` : "/deals";
+    }
+
+    return normalizeInternalUrl(actionUrl) || "/dashboard";
+  }
+
+  if (isAllowedRole(role, PARTNER_ROLES)) {
+    if (type === "bid_selected") {
+      return "/my-contracts";
+    }
+
+    if (type === "bid_rejected" || type === "bid_backup") {
+      return "/my-bids";
+    }
+
+    if (type.includes("contract")) {
+      return "/my-contracts";
+    }
+
+    if (type.includes("deal")) {
+      return dealId ? `/deals/${dealId}` : "/deals";
+    }
+
+    if (type.includes("listing") && listingId) {
+      return `/properties/${listingId}`;
+    }
+
+    return normalizeInternalUrl(actionUrl) || "/dashboard";
+  }
+
+  return normalizeInternalUrl(actionUrl) || "/dashboard";
 }
 
 function formatNotificationTime(value?: string) {
@@ -112,6 +229,7 @@ function formatNotificationType(type?: string) {
 function NotificationDropdown({
   isDark,
   hasAuthSession,
+  userRole,
 }: NotificationDropdownProps) {
   const navigate = useNavigate();
 
@@ -131,6 +249,7 @@ function NotificationDropdown({
     fetchUnreadNotificationCount,
     {
       data: unreadNotificationCount = 0,
+      isFetching: isFetchingUnreadCount,
       error: unreadNotificationError,
     },
   ] = useLazyGetUnreadNotificationCountQuery();
@@ -197,10 +316,9 @@ function NotificationDropdown({
 
   async function handleNotificationClick(notification: NotificationItem) {
     const notificationId = getNotificationId(notification);
-    const target = getNotificationTarget(notification);
+    const target = getNotificationTarget(notification, userRole);
 
     setIsOpen(false);
-
     navigate(target);
 
     if (notificationId && !notification.is_read) {
@@ -260,6 +378,8 @@ function NotificationDropdown({
         aria-label="Open notifications"
       >
         <Bell className={notifIcon} />
+
+        {isFetchingUnreadCount && unreadNotificationCount === 0 ? null : null}
 
         {unreadNotificationCount > 0 && (
           <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-danger)] px-1.5 text-[10px] font-black text-white ring-2 ring-white">

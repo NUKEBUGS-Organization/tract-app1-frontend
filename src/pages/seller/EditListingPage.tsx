@@ -68,9 +68,9 @@ function isResubmissionListing(listing: any) {
   return status === "withdrawn" || status === "rejected";
 }
 
-function isWithdrawnListing(listing: any) {
-  return getListingStatus(listing) === "withdrawn";
-}
+// function isWithdrawnListing(listing: any) {
+//   return getListingStatus(listing) === "withdrawn";
+// }
 
 function numberOrUndefined(value: string) {
   if (value === "") return undefined;
