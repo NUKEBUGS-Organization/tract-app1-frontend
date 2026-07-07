@@ -113,6 +113,7 @@ function getStatusVariant(status?: string): StatusBadgeVariant {
   if (normalizedStatus === "under_contract") return "warning";
   if (normalizedStatus === "closed") return "dark";
   if (normalizedStatus === "withdrawn") return "danger";
+  if (normalizedStatus === "rejected") return "danger";
   if (normalizedStatus === "deleted") return "danger";
 
   return "neutral";
@@ -154,8 +155,10 @@ function getListingLabel(listing: any) {
   return `${address}${state}${zip}`;
 }
 
-function isDraftListing(listing: any) {
-  return String(listing?.status || "").toLowerCase() === "draft";
+function isEditableListing(listing: any) {
+  const status = String(listing?.status || "").toLowerCase();
+
+  return status === "draft" || status === "withdrawn" || status === "rejected";
 }
 
 function getBidCount(listing: any) {
@@ -671,7 +674,7 @@ if (isLoading) {
                                   <ArrowUpRight className="h-3 w-3" />
                                 </Link>
 
-                                {isDraftListing(listing) && (
+                               {isEditableListing(listing) && (
                                   <Link
                                     to={`/listings/${id}/edit`}
                                     className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)]"
