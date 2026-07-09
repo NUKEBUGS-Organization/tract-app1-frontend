@@ -71,7 +71,7 @@ export default function KycPage() {
       const token = getKycAccessToken(response);
 
       if (!token) {
-        setApiError("KYC token was not returned by backend.");
+        setApiError("KYC token was not returned.");
         return;
       }
 

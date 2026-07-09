@@ -139,7 +139,7 @@ function AdminListingDetailsPage() {
       await approveListing(id).unwrap();
 
       setApiSuccess(
-        "Listing approved successfully. If backend notification is enabled, seller will receive the listing live notification."
+        "Listing approved successfully."
       );
 
       await refetchListing();
@@ -165,7 +165,7 @@ function AdminListingDetailsPage() {
       await rejectListing({ id, reason }).unwrap();
 
       setApiSuccess(
-        "Listing rejected successfully. If backend notification is enabled, seller will receive the rejection notification."
+        "Listing rejected successfully."
       );
 
       setIsRejectOpen(false);
@@ -807,7 +807,7 @@ function AdminListingDetailsPage() {
         isOpen={isRejectOpen}
         variant="danger"
         title="Reject listing?"
-        description="This will call the backend reject API and mark the listing as rejected."
+        description="This will mark the listing as rejected."
         icon={<XCircle className="h-5 w-5" />}
         confirmLabel="Reject Listing"
         loadingLabel="Rejecting..."

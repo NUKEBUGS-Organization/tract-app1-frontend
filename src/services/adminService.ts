@@ -13,6 +13,12 @@ type RoomMessagesQuery = PaginationQuery & {
   roomId: string;
 };
 
+type ScoreEventsQuery = PaginationQuery & {
+  user_id?: string;
+  deal_id?: string;
+  event_type?: string;
+};
+
 function isNumericKeyObject(value: any) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
@@ -77,9 +83,9 @@ function normalizeAdminPayload(payload: any): any {
 function unwrapAdminResponse(response: any) {
   const payload =
     response &&
-    typeof response === "object" &&
-    "success" in response &&
-    "data" in response
+      typeof response === "object" &&
+      "success" in response &&
+      "data" in response
       ? response.data
       : response;
 
@@ -132,6 +138,72 @@ export const adminService = baseApi.injectEndpoints({
       query: (id) => ({
         url: `admin/users/${id}/unban`,
         method: "POST",
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "User"],
+    }),
+
+    // ================= SCORES =================
+    getAdminUserScore: builder.query<any, string>({
+      query: (id) => ({
+        url: `users/${id}/score`,
+        method: "GET",
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin", "User"],
+    }),
+
+    getAdminScoreEvents: builder.query<any, ScoreEventsQuery | void>({
+      query: (params) => ({
+        url: "admin/scores",
+        method: "GET",
+        params: params ?? undefined,
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin"],
+    }),
+
+    getAdminScoreRules: builder.query<any, void>({
+      query: () => ({
+        url: "admin/score-rules",
+        method: "GET",
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin"],
+    }),
+
+    applyAdminScorePenalty: builder.mutation<
+      any,
+      {
+        user_id: string;
+        event_type: string;
+        deal_id?: string;
+        note?: string;
+        delta?: number;
+      }
+    >({
+      query: (body) => ({
+        url: "scores/penalty",
+        method: "POST",
+        body,
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "User"],
+    }),
+
+    resetAdminUserScore: builder.mutation<
+      any,
+      {
+        userId: string;
+        note?: string;
+      }
+    >({
+      query: ({ userId, note }) => ({
+        url: `admin/scores/${userId}/reset`,
+        method: "POST",
+        body: {
+          ...(note ? { note } : {}),
+        },
       }),
       transformResponse: unwrapAdminResponse,
       invalidatesTags: ["Admin", "User"],
@@ -363,6 +435,12 @@ export const {
   useGetAdminUserQuery,
   useBanAdminUserMutation,
   useUnbanAdminUserMutation,
+
+  useGetAdminUserScoreQuery,
+  useGetAdminScoreEventsQuery,
+  useGetAdminScoreRulesQuery,
+  useApplyAdminScorePenaltyMutation,
+  useResetAdminUserScoreMutation,
 
   useGetPendingKycUsersQuery,
   useApproveKycUserMutation,

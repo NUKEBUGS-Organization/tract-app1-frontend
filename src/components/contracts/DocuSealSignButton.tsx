@@ -79,7 +79,7 @@ function DocuSealSignButton({
       const response = await getContractSignUrl(contractId).unwrap();
 
       if (!response?.embed_src) {
-        throw new Error("Signing URL was not returned by backend.");
+        throw new Error("Signing URL was not returned.");
       }
 
       const opened = openSigningWindow(response.embed_src);

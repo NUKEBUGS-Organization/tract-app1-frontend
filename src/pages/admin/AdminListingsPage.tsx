@@ -324,7 +324,7 @@ function AdminListingsPage() {
       }));
 
       setApiSuccess(
-        "Listing approved successfully. This used the backend approve API."
+        "Listing approved successfully."
       );
 
       setMakeLiveTarget(null);
@@ -364,7 +364,7 @@ function AdminListingsPage() {
       }));
 
       setApiSuccess(
-        "Listing rejected successfully. This used the backend reject API."
+        "Listing rejected successfully."
       );
 
       setRejectTarget(null);
@@ -820,7 +820,7 @@ function AdminListingsPage() {
         isOpen={Boolean(makeLiveTarget)}
         variant="success"
         title="Make listing live?"
-        description={`This will call the backend approve API for "${
+        description={`This will approve for "${
           makeLiveTarget ? getListingTitle(makeLiveTarget) : "this listing"
         }".`}
         icon={<CheckCircle className="h-5 w-5" />}
@@ -901,8 +901,7 @@ function AdminListingsPage() {
 
             {statusValue === "rejected" && (
               <p className="mt-2 text-xs font-semibold text-[var(--color-text-muted)]">
-                Minimum 3 characters are required because rejected status uses
-                the backend reject API.
+                Minimum 3 characters are required.
               </p>
             )}
           </div>
@@ -913,7 +912,7 @@ function AdminListingsPage() {
         isOpen={Boolean(rejectTarget)}
         variant="danger"
         title="Reject listing?"
-        description={`This will call the backend reject API for "${
+        description={`This will reject for "${
           rejectTarget ? getListingTitle(rejectTarget) : "this listing"
         }".`}
         icon={<XCircle className="h-5 w-5" />}

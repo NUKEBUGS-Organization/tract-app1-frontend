@@ -457,7 +457,7 @@ function NotificationDropdown({
                     isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
                   }`}
                 >
-                  Backend returned an error. Check backend logs.
+                  Please check your network connection or try again later.
                 </p>
               </div>
             )}

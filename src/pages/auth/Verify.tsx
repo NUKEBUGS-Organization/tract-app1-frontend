@@ -192,7 +192,7 @@ export default function VerifyPage() {
         const resetToken = responseData?.resetToken || responseData?.reset_token;
 
         if (!resetToken) {
-          setApiError("Reset token was not returned by backend.");
+          setApiError("Reset token was not returned.");
           return;
         }
 
@@ -214,7 +214,7 @@ export default function VerifyPage() {
       const user = responseData?.user ?? null;
 
       if (!accessToken || !refreshToken) {
-        setApiError("Login tokens were not returned by backend.");
+        setApiError("Login tokens were not returned.");
         return;
       }
 
