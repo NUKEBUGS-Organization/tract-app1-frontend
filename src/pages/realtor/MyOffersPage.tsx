@@ -12,7 +12,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { useGetMyBidsQuery } from "../../services/listingService";
-import { useGetMeQuery } from "../../services/userService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
 
 function formatMoney(value: any) {
@@ -30,7 +29,11 @@ function normalizeOffers(data: any): any[] {
   const payload = raw?.data ?? raw;
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.bids)) return payload.bids;
-  // Do NOT use Object.values — it would turn API meta-objects into fake bid arrays
+  if (typeof payload === "object" && payload !== null) {
+    return Object.values(payload).filter((item: any) =>
+      Boolean(item && typeof item === "object" && (item._id || item.id))
+    );
+  }
   return [];
 }
 
@@ -77,9 +80,8 @@ function getOfferStatusConfig(status: string) {
   return map[status] ?? map.active;
 }
 
-function calcNetToSeller(price: number, commissionPct: number): number {
-  return price - price * (commissionPct / 100);
-}
+// net_to_seller is computed by the backend at submission time — no frontend recalculation needed
+// (backend only deducts commission when payment_source === "Seller Pays Commission")
 
 function OfferCard({ bid, isDark }: { bid: any; isDark: boolean }) {
   const status = getOfferStatus(bid);
@@ -88,9 +90,12 @@ function OfferCard({ bid, isDark }: { bid: any; isDark: boolean }) {
 
   const isActionRequired = status === "selected" || status === "backup";
   const offerPrice = bid?.bid_price || bid?.amount;
-  const commissionPct = bid?.commission_percentage || 2.5;
-  const netToSeller =
-    offerPrice ? calcNetToSeller(Number(offerPrice), commissionPct) : null;
+  const commissionPct = bid?.commission_percentage;
+  // Use the value already computed by the backend — it correctly handles
+  // payment_source: only deducts when "Seller Pays Commission"
+  const netToSeller: number | null =
+    bid?.net_to_seller != null ? Number(bid.net_to_seller) : null;
+  const paymentSource: string | null = bid?.payment_source ?? null;
 
   const listingAddress =
     bid?.listing?.address ||
@@ -208,7 +213,7 @@ function OfferCard({ bid, isDark }: { bid: any; isDark: boolean }) {
 
         {/* Details pills */}
         <div className="mt-3 flex flex-wrap gap-2">
-          {commissionPct && (
+          {commissionPct != null && (
             <span
               className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold ${
                 isDark
@@ -217,7 +222,10 @@ function OfferCard({ bid, isDark }: { bid: any; isDark: boolean }) {
               }`}
             >
               <BadgeCheck className="h-3 w-3" />
-              {commissionPct}% Commission
+              {commissionPct}%{" "}
+              {paymentSource === "Buyer Pays Commission"
+                ? "(Buyer pays)"
+                : "(Seller pays)"}
             </span>
           )}
           {closingTimeline && (
@@ -297,28 +305,13 @@ export default function RealtorMyOffersPage() {
   const theme = usePartnerTheme();
   const isDark = theme === "dark";
 
-  // Get current user id so we only show THIS user's offers
-  const { data: meData } = useGetMeQuery();
-  const currentUserId =
-    (meData as any)?.data?._id ||
-    (meData as any)?.data?.id ||
-    (meData as any)?._id ||
-    (meData as any)?.id ||
-    "";
-
   const { data: bidsData, isLoading } = useGetMyBidsQuery();
   const rawOffers = normalizeOffers(bidsData);
 
-  // Filter to only this user's bids (same pattern as wholesaler MyContractsPage)
-  const allOffers = currentUserId
-    ? rawOffers.filter((b: any) => {
-        const bidderId =
-          typeof b?.bidder_id === "object"
-            ? b.bidder_id?._id || b.bidder_id?.id || ""
-            : String(b?.bidder_id || "");
-        return bidderId === currentUserId;
-      })
-    : rawOffers;
+  // GET /bids/my-bids is already scoped to the authenticated user by the backend —
+  // no client-side filter needed. The previous bidder_id filter caused all offers
+  // to be silently dropped due to ObjectId format mismatches.
+  const allOffers = rawOffers;
 
   const activeOffers = allOffers.filter((b) =>
     ["active", "selected", "backup"].includes(getOfferStatus(b)),

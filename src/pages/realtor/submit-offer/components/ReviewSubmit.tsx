@@ -3,8 +3,16 @@ import type { OfferFormState } from "../types";
 
 // ─── Utility (local to this step) ────────────────────────────────────────────
 
-function calcNetToSeller(price: number, commissionPct: number): number {
-  return price - price * (commissionPct / 100);
+// Mirrors backend: only deduct commission when seller pays
+function calcNetToSeller(
+  price: number,
+  commissionPct: number,
+  paymentSource: string
+): number {
+  if (paymentSource === "Seller Pays Commission") {
+    return price - price * (commissionPct / 100);
+  }
+  return price; // Buyer pays — seller keeps full amount
 }
 
 function formatMoney(value: number) {
@@ -39,18 +47,26 @@ export default function ReviewSubmit({
   onBack,
   isDark,
 }: ReviewSubmitProps) {
+  const sellerPays = form.payment_source === "Seller Pays Commission";
   const netToSeller =
-    parsedOfferPrice > 0 ? calcNetToSeller(parsedOfferPrice, form.commission_pct) : 0;
+    parsedOfferPrice > 0
+      ? calcNetToSeller(parsedOfferPrice, form.commission_pct, form.payment_source)
+      : 0;
 
   // Build the rows for the summary table
   const rows: { label: string; value: string; highlight?: boolean }[] = [
-    { label: "Property", value: propertyLabel },
+    { label: "Property",           value: propertyLabel },
     { label: "Proposed Sale Price", value: formatMoney(parsedOfferPrice) },
-    { label: "Closing Timeline", value: `${form.closing_timeline_days} Days` },
-    { label: "Commission", value: `${form.commission_pct}%` },
-    { label: "Net-to-Seller", value: formatMoney(netToSeller), highlight: true },
-    { label: "Agency Role", value: form.agency_role },
-    { label: "Payment Source", value: form.payment_source },
+    { label: "Closing Timeline",   value: `${form.closing_timeline_days} Days` },
+    {
+      label: "Commission",
+      value: sellerPays
+        ? `${form.commission_pct}% (Seller pays)`
+        : `${form.commission_pct}% (Buyer pays)`,
+    },
+    { label: "Net-to-Seller",      value: formatMoney(netToSeller), highlight: true },
+    { label: "Agency Role",        value: form.agency_role },
+    { label: "Payment Source",     value: form.payment_source },
   ];
 
   return (

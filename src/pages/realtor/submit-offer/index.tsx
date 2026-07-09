@@ -210,10 +210,11 @@ export default function RealtorSubmitOfferPage() {
     setIsSubmitting(true);
 
     try {
+      // Realtor-only payload — backend buildRoleFields() requires exactly these 4
+      // fields for Role.REALTOR. Wholesaler fields (inspection_period,
+      // due_diligence_period) must NOT be sent for realtors.
       const payload: Record<string, unknown> = {
         bid_price: parsedOfferPrice,
-        inspection_period: 7,           // realtor default — not user-configurable
-        due_diligence_period: 10,        // realtor default — not user-configurable
         commission_percentage: form.commission_pct,
         agency_role: form.agency_role,
         payment_source: form.payment_source,

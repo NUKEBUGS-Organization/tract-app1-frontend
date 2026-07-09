@@ -389,10 +389,10 @@ function PropertyImageGallery({ listing, isDark }: { listing: any; isDark: boole
                       type="button"
                       onClick={() => setActiveIndex(index)}
                       className={`relative aspect-square overflow-hidden rounded-2xl border transition ${active
-                          ? "border-[var(--color-secondary)] ring-2 ring-[var(--color-secondary)]/40"
-                          : isDark
-                            ? "border-white/10 hover:border-[var(--color-secondary)]"
-                            : "border-[var(--color-border-light)] hover:border-[var(--color-primary)]"
+                        ? "border-[var(--color-secondary)] ring-2 ring-[var(--color-secondary)]/40"
+                        : isDark
+                          ? "border-white/10 hover:border-[var(--color-secondary)]"
+                          : "border-[var(--color-border-light)] hover:border-[var(--color-primary)]"
                         }`}
                     >
                       <img
@@ -937,7 +937,7 @@ export default function PropertyDetailPage() {
               <Detail label="Motivation" value={listing?.motivation} isDark={isDark} />
               <Detail label="Sell Timeline" value={listing?.sell_timeline} isDark={isDark} />
               <Detail label="Realtor Commission" value={listing?.realtor_commission} isDark={isDark} />
-              <Detail label="Suggested Price" value={formatMoney(listing?.suggested_price)} isDark={isDark} />
+              {/* <Detail label="Suggested Price" value={formatMoney(listing?.suggested_price)} isDark={isDark} /> */}
             </div>
           </div>
         </div>

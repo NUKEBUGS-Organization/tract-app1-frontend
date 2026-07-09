@@ -3,8 +3,20 @@ import type { OfferFormState } from "../types";
 
 // ─── Utility helpers (local to this step) ────────────────────────────────────
 
-function calcNetToSeller(price: number, commissionPct: number): number {
-  return price - price * (commissionPct / 100);
+/**
+ * Mirrors the backend logic in bids.service.ts:
+ * - Only deducts commission from net_to_seller when paymentSource === "Seller Pays Commission"
+ * - If buyer pays, the seller receives the full bid price
+ */
+function calcNetToSeller(
+  price: number,
+  commissionPct: number,
+  paymentSource: string
+): number {
+  if (paymentSource === "Seller Pays Commission") {
+    return price - price * (commissionPct / 100);
+  }
+  return price; // Buyer pays — seller gets full amount
 }
 
 function formatMoney(value: number) {
@@ -88,8 +100,12 @@ export default function ProfessionalSetup({
   fieldErrors,
   isDark,
 }: ProfessionalSetupProps) {
+  // Net-to-seller depends on who pays the commission — mirrors backend logic
+  const sellerPays = paymentSource === "Seller Pays Commission";
   const netToSeller =
-    parsedOfferPrice > 0 ? calcNetToSeller(parsedOfferPrice, commissionPct) : 0;
+    parsedOfferPrice > 0
+      ? calcNetToSeller(parsedOfferPrice, commissionPct, paymentSource)
+      : 0;
 
   return (
     <div className="space-y-6">
@@ -217,19 +233,27 @@ export default function ProfessionalSetup({
               </span>
             </div>
 
-            {/* Commission row */}
+            {/* Commission row — label changes based on who pays */}
             <div className="flex items-center justify-between">
               <span
                 className={`text-sm ${isDark ? "text-white/70" : "text-[var(--color-text-muted)]"
                   }`}
               >
-                Commission ({commissionPct}%)
+                Commission ({commissionPct}%){" "}
+                <span className={`text-[10px] font-black uppercase ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]/70"}`}>
+                  {sellerPays ? "(Seller pays)" : "(Buyer pays)"}
+                </span>
               </span>
               <span
-                className={`text-sm font-black ${isDark ? "text-red-400" : "text-[var(--color-danger)]"
-                  }`}
+                className={`text-sm font-black ${
+                  sellerPays
+                    ? isDark ? "text-red-400" : "text-[var(--color-danger)]"
+                    : isDark ? "text-green-400" : "text-green-600"
+                }`}
               >
-                −{formatMoney(parsedOfferPrice * (commissionPct / 100))}
+                {sellerPays
+                  ? `−${formatMoney(parsedOfferPrice * (commissionPct / 100))}`
+                  : "Paid by Buyer"}
               </span>
             </div>
 

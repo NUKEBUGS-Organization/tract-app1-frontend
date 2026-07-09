@@ -33,7 +33,11 @@ function normalizeOffers(data: any): any[] {
   const payload = raw?.data ?? raw;
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.bids)) return payload.bids;
-  if (typeof payload === "object" && payload !== null) return Object.values(payload);
+  if (typeof payload === "object" && payload !== null) {
+    return Object.values(payload).filter((item: any) =>
+      Boolean(item && typeof item === "object" && (item._id || item.id))
+    );
+  }
   return [];
 }
 

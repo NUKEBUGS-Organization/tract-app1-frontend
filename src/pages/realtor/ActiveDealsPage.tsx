@@ -10,6 +10,7 @@ import {
   Loader2,
   MessageSquare,
   RefreshCw,
+  ShieldCheck,
   Upload,
   XCircle,
 } from "lucide-react";
@@ -44,7 +45,10 @@ function normalizeArray(data: any): any[] {
   if (!data) return [];
   const payload = data?.data ?? data;
   if (Array.isArray(payload)) return payload;
-  if (typeof payload === "object" && payload !== null) return Object.values(payload);
+  if (typeof payload === "object" && payload !== null)
+    return Object.values(payload).filter(
+      (item: any) => item && typeof item === "object" && (item._id || item.id),
+    );
   return [];
 }
 
@@ -78,7 +82,12 @@ function getCountdownParts(deadlineValue?: string, now = Date.now()) {
     minutes: String(minutes).padStart(2, "0"),
     seconds: String(seconds).padStart(2, "0"),
     totalMs: safeDiff,
-    isUrgent: diff > 0 && diff < 24 * 60 * 60 * 1000,
+    compact:
+      diff <= 0
+        ? "Deadline passed"
+        : days > 0
+          ? `${days}d ${hours}h ${minutes}m remaining`
+          : `${hours}h ${minutes}m ${seconds}s remaining`,
   };
 }
 
@@ -100,12 +109,9 @@ function getId(item: any): string {
 
 /* ─── Status config ──────────────────────────────────────────────────── */
 function getDealStatusConfig(status: string) {
-  const map: Record<
-    string,
-    { label: string; className: string; icon: React.ElementType }
-  > = {
+  const map: Record<string, { label: string; className: string; icon: React.ElementType }> = {
     active: {
-      label: "Under Contract",
+      label: "Listing Active",
       className:
         "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border border-[var(--color-warning)]/25",
       icon: Handshake,
@@ -115,18 +121,6 @@ function getDealStatusConfig(status: string) {
       className:
         "bg-[var(--color-danger)]/10 text-[var(--color-danger)] border border-[var(--color-danger)]/25",
       icon: FileSignature,
-    },
-    backup_activated: {
-      label: "Backup Activated",
-      className:
-        "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border border-[var(--color-warning)]/25",
-      icon: FileText,
-    },
-    under_review: {
-      label: "Under Review",
-      className:
-        "bg-[var(--color-secondary)]/15 text-[var(--color-secondary)] border border-[var(--color-secondary)]/30",
-      icon: FileText,
     },
     proceeding_to_closing: {
       label: "Proceeding to Closing",
@@ -148,121 +142,111 @@ function getDealStatusConfig(status: string) {
     not_started: {
       label: "Not Started",
       className:
-        "bg-[var(--color-border-light)] text-[var(--color-text-muted)] border border-[var(--color-border-light)]",
+        "bg-white/10 text-white border border-white/20",
       icon: FileText,
     },
   };
   return map[status] ?? map.not_started;
 }
 
-/* ─── Deal Tracker Step component ────────────────────────────────────── */
-const REALTOR_TRACKER_STAGES = [
-  { key: "listing_secured", label: "Listing Secured" },
-  { key: "marketing_prep", label: "Marketing Preparation" },
-  { key: "market_launch", label: "Market Launch" },
-  { key: "buyer_engagement", label: "Buyer Engagement" },
-  { key: "negotiation", label: "Negotiation" },
-  { key: "under_contract", label: "Under Contract" },
-  { key: "closing", label: "Closing" },
-];
-
-function DealTrackerPipeline({
-  currentStage,
-  isCancelled,
+/* ─── Stat Card ──────────────────────────────────────────────────────── */
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  isDark,
 }: {
-  currentStage: number;
-  isCancelled: boolean;
+  title: string;
+  value: string | number;
+  icon: any;
+  isDark: boolean;
 }) {
   return (
-    <div className="space-y-3">
-      {REALTOR_TRACKER_STAGES.map((stage, i) => {
-        const isDone = i < currentStage && !isCancelled;
-        const isCurrent = i === currentStage && !isCancelled;
-        const isLocked = i > currentStage || isCancelled;
-        return (
-          <div key={stage.key} className={`flex gap-4 ${isLocked ? "opacity-40" : ""}`}>
-            <div className="flex flex-col items-center">
-              <div
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all ${isDone
-                    ? "border-[var(--color-primary)] bg-[var(--color-primary)]"
-                    : isCurrent
-                      ? "border-[var(--color-danger)] bg-[var(--color-danger)] shadow-[0_0_0_5px_rgba(220,38,38,0.18)]"
-                      : "border-[var(--color-border-light)] bg-white"
-                  }`}
-              >
-                {isDone && <CheckCircle2 className="h-4 w-4 text-white" />}
-                {isCurrent && <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-white" />}
-              </div>
-              {i < REALTOR_TRACKER_STAGES.length - 1 && (
-                <div
-                  className={`my-1 min-h-[24px] w-0.5 ${isDone ? "bg-[var(--color-primary)]" : "bg-[var(--color-border-light)]"
-                    }`}
-                />
-              )}
-            </div>
-            <div className="pb-4 pt-1">
-              <p
-                className={`text-[13px] font-black uppercase tracking-wider ${isDone
-                    ? "text-[var(--color-primary)]"
-                    : isCurrent
-                      ? "text-[var(--color-danger)]"
-                      : "text-[var(--color-text-muted)]"
-                  }`}
-              >
-                {stage.label}
-              </p>
-            </div>
-          </div>
-        );
-      })}
+    <div
+      className={`rounded-2xl border p-5 shadow-[var(--shadow-premium)] transition ${isDark ? "border-white/10 bg-white/[0.04] hover:border-white/20" : "border-[var(--color-border-light)] bg-[var(--color-bg-card)] hover:border-[var(--color-secondary)]/30"}`}
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <p
+          className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}
+        >
+          {title}
+        </p>
+        <Icon className="h-5 w-5 text-[var(--color-secondary)]" />
+      </div>
+      <p
+        className={`break-words font-serif text-xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
 
-/* ─── Countdown Banner ───────────────────────────────────────────────── */
-function SevenDayBanner({
+/* ─── Phase Countdown Banner ─────────────────────────────────────────── */
+function PhaseCountdownBanner({
+  title,
+  subtitle,
   deadline,
   startAt,
+  color,
+  isDark,
   now,
-  hasProof,
-  onUpload,
-  isUploading,
+  children,
 }: {
+  title: string;
+  subtitle: string;
   deadline?: string;
   startAt?: string;
+  color: "danger" | "warning" | "secondary";
+  isDark: boolean;
   now: number;
-  hasProof: boolean;
-  onUpload: (url: string) => void;
-  isUploading: boolean;
+  children?: React.ReactNode;
 }) {
   const cd = getCountdownParts(deadline, now);
   const progress = getProgress(startAt, deadline, now);
 
-  if (!cd || hasProof) return null;
+  const colorMap = {
+    danger: {
+      border: "border-[var(--color-danger)]/30",
+      bg: isDark ? "bg-[var(--color-danger)]/8" : "bg-[var(--color-danger)]/5",
+      text: "text-[var(--color-danger)]",
+      bar: "bg-[var(--color-danger)]",
+      box: isDark ? "border-white/10 bg-black/30" : "border-[var(--color-border-light)] bg-white",
+    },
+    warning: {
+      border: "border-[var(--color-warning)]/30",
+      bg: isDark ? "bg-[var(--color-warning)]/8" : "bg-[var(--color-warning)]/5",
+      text: "text-[var(--color-warning)]",
+      bar: "bg-[var(--color-warning)]",
+      box: isDark ? "border-white/10 bg-black/30" : "border-[var(--color-border-light)] bg-white",
+    },
+    secondary: {
+      border: "border-[var(--color-secondary)]/30",
+      bg: isDark ? "bg-[var(--color-secondary)]/8" : "bg-[var(--color-secondary)]/5",
+      text: "text-[var(--color-secondary)]",
+      bar: "bg-[var(--color-secondary)]",
+      box: isDark ? "border-white/10 bg-black/30" : "border-[var(--color-border-light)] bg-white",
+    },
+  };
+  const c = colorMap[color];
 
-  const isUrgent = cd.isUrgent || cd.expired;
-  const borderColor = isUrgent ? "border-[var(--color-danger)]/30" : "border-[var(--color-warning)]/30";
-  const bgColor = isUrgent ? "bg-[var(--color-danger)]/5" : "bg-[var(--color-warning)]/5";
-  const textColor = isUrgent ? "text-[var(--color-danger)]" : "text-[var(--color-warning)]";
-  const barColor = isUrgent ? "bg-[var(--color-danger)]" : "bg-[var(--color-warning)]";
+  if (!cd) return null;
 
   return (
-    <div className={`overflow-hidden rounded-2xl border p-6 shadow-[var(--shadow-card)] ${borderColor} ${bgColor}`}>
+    <div className={`overflow-hidden rounded-2xl border p-6 shadow-[var(--shadow-card)] ${c.border} ${c.bg}`}>
       <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
         <div className="flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <Clock3 className={`h-4 w-4 ${textColor}`} />
-            <p className={`text-[11px] font-black uppercase tracking-[0.22em] ${textColor}`}>
-              {cd.expired ? "Kill Switch — Deadline Passed!" : "7-Day Market Launch Rule"}
+            <Clock3 className={`h-4 w-4 ${c.text}`} />
+            <p className={`text-[11px] font-black uppercase tracking-[0.22em] ${c.text}`}>
+              {title}
             </p>
           </div>
-          <p className="text-sm font-semibold text-[var(--color-text-muted)]">
-            {cd.expired
-              ? "The seller may now cancel your agreement. Upload proof immediately."
-              : "Upload proof of marketing (MLS, open houses, social media, etc.)"}
+          <p className={`text-sm font-semibold ${isDark ? "text-white/60" : "text-[var(--color-text-muted)]"}`}>
+            {subtitle}
           </p>
           {deadline && (
-            <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+            <p className={`mt-1 text-xs ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
               Deadline:{" "}
               {new Date(deadline).toLocaleString(undefined, {
                 month: "short",
@@ -275,49 +259,23 @@ function SevenDayBanner({
           )}
           <div className="mt-4">
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+              <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"}`}>
                 Window Progress
               </span>
-              <span className={`text-[10px] font-black ${textColor}`}>
+              <span className={`text-[10px] font-black ${c.text}`}>
                 {Math.round(progress)}%
               </span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[var(--color-border-light)]">
+            <div className={`h-2 overflow-hidden rounded-full ${isDark ? "bg-white/10" : "bg-[var(--color-border-light)]"}`}>
               <div
-                className={`h-full rounded-full transition-all duration-1000 ${barColor}`}
+                className={`h-full rounded-full transition-all duration-1000 ${c.bar}`}
                 style={{ width: `${progress}%` }}
               />
             </div>
           </div>
-          {/* Upload proof button */}
-          <div className="mt-4">
-            <label
-              className={`inline-flex cursor-pointer items-center gap-2 rounded-xl border px-5 py-3 text-[10px] font-black uppercase tracking-[0.18em] transition ${isUploading
-                  ? "pointer-events-none opacity-50"
-                  : isUrgent
-                    ? "border-[var(--color-danger)] bg-[var(--color-danger)] text-white hover:opacity-90"
-                    : "border-[var(--color-primary)] bg-[var(--color-primary)] text-white hover:opacity-90"
-                }`}
-            >
-              <Upload className="h-4 w-4" />
-              {isUploading ? "Uploading..." : "Upload Marketing Proof"}
-              <input
-                type="file"
-                className="sr-only"
-                disabled={isUploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const dummyUrl = `https://mock-storage.com/realtor-proof/${encodeURIComponent(file.name)}`;
-                  onUpload(dummyUrl);
-                }}
-              />
-            </label>
-          </div>
+          {children && <div className="mt-4">{children}</div>}
         </div>
-
-        {/* Countdown box */}
-        <div className="grid grid-cols-4 gap-2 rounded-xl border border-[var(--color-border-light)] bg-white p-3 md:w-[260px]">
+        <div className={`grid grid-cols-4 gap-2 rounded-xl border p-3 md:w-[260px] ${c.box}`}>
           {[
             { label: "Days", value: cd.days },
             { label: "Hrs", value: cd.hours },
@@ -325,10 +283,10 @@ function SevenDayBanner({
             { label: "Sec", value: cd.seconds },
           ].map((item) => (
             <div key={item.label} className="text-center">
-              <p className={`font-serif text-2xl font-black ${isUrgent ? "text-[var(--color-danger)]" : "text-[var(--color-primary)]"}`}>
+              <p className={`font-serif text-2xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
                 {item.value}
               </p>
-              <p className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+              <p className={`text-[9px] font-black uppercase tracking-widest ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"}`}>
                 {item.label}
               </p>
             </div>
@@ -339,7 +297,78 @@ function SevenDayBanner({
   );
 }
 
-/* ─── Main Types ─────────────────────────────────────────────────────── */
+/* ─── Tracker Step ────────────────────────────────────────────────────── */
+function TrackerStep({
+  title,
+  description,
+  done,
+  current,
+  locked,
+  isDark,
+}: {
+  title: string;
+  description: string;
+  done: boolean;
+  current: boolean;
+  locked: boolean;
+  isDark: boolean;
+}) {
+  return (
+    <div className={`group relative flex gap-5 ${locked ? "opacity-35" : ""}`}>
+      <div className="flex flex-col items-center">
+        <div
+          className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all ${done
+              ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]"
+              : current
+                ? "border-[var(--color-danger)] bg-[var(--color-danger)] shadow-[0_0_0_5px_rgba(220,38,38,0.18)]"
+                : isDark
+                  ? "border-white/10 bg-transparent"
+                  : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+            }`}
+        >
+          {done && <CheckCircle2 className="h-4 w-4 text-[var(--color-dark-main)]" />}
+          {current && <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-white" />}
+        </div>
+        <div
+          className={`my-1 min-h-[30px] w-[2px] flex-1 transition-all ${done
+              ? "bg-[var(--color-secondary)]"
+              : isDark
+                ? "bg-white/10"
+                : "bg-[var(--color-border-light)]"
+            }`}
+        />
+      </div>
+      <div className="pb-8 pt-1">
+        <p
+          className={`text-[13px] font-black uppercase tracking-wider transition-all ${done
+              ? "text-[var(--color-secondary)]"
+              : current
+                ? "text-[var(--color-danger)]"
+                : isDark
+                  ? "text-white/40"
+                  : "text-[var(--color-text-muted)]"
+            }`}
+        >
+          {title}
+        </p>
+        <p
+          className={`mt-1.5 text-sm leading-relaxed ${done || current
+              ? isDark
+                ? "text-white/70"
+                : "text-[var(--color-text-main)]"
+              : isDark
+                ? "text-white/30"
+                : "text-[var(--color-text-muted)]"
+            }`}
+        >
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Unified Entry Type ─────────────────────────────────────────────── */
 interface UnifiedEntry {
   _entryKey: string;
   _type: "deal" | "pending_contract";
@@ -354,6 +383,147 @@ interface UnifiedEntry {
   proofUrl?: string;
   chatUnlocked?: boolean;
   bidId?: string;
+  commissionPct?: number | null;
+  agencyRole?: string | null;
+  closingTimelineDays?: number | null;
+  netToSeller?: number | null;
+  paymentSource?: string | null;
+}
+
+/* ─── Cancel Confirm Modal ───────────────────────────────────────────── */
+function CancelConfirmModal({
+  open,
+  type,
+  dealTitle,
+  isLoading,
+  isDark,
+  onConfirm,
+  onClose,
+}: {
+  open: boolean;
+  type: "deal" | "agreement";
+  dealTitle: string;
+  isLoading: boolean;
+  isDark: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+  const isDeal = type === "deal";
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backdropFilter: "blur(6px)", background: "rgba(0,0,0,0.55)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className={`w-full max-w-md rounded-2xl border shadow-[0_25px_60px_rgba(0,0,0,0.45)] ${isDark
+            ? "border-white/10 bg-[#0f0f14]"
+            : "border-[var(--color-border-light)] bg-white"
+          }`}
+      >
+        {/* Header */}
+        <div className={`flex items-center justify-between border-b p-5 ${isDark ? "border-white/10" : "border-[var(--color-border-light)]"
+          }`}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-danger)]/10">
+              <AlertTriangle className="h-5 w-5 text-[var(--color-danger)]" />
+            </div>
+            <div>
+              <p className={`text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-danger)]`}>
+                Destructive Action
+              </p>
+              <h3 className={`mt-0.5 font-serif text-lg font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                }`}>
+                {isDeal ? "Cancel Deal" : "Cancel Agreement"}
+              </h3>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isLoading}
+            className={`rounded-full p-2 transition ${isDark ? "hover:bg-white/8 text-white/40" : "hover:bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
+              }`}
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5">
+          <p className={`text-sm leading-6 ${isDark ? "text-white/70" : "text-[var(--color-text-muted)]"
+            }`}>
+            You are about to cancel the{" "}
+            {isDeal ? "deal" : "listing agreement"} for{" "}
+            <span className={`font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+              }`}>
+              {dealTitle}
+            </span>.
+          </p>
+
+          <div className={`mt-4 space-y-2.5 rounded-xl border p-4 ${isDark
+              ? "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/8"
+              : "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5"
+            }`}>
+            {(isDeal
+              ? [
+                "This deal will be permanently cancelled.",
+                "The seller will be notified immediately.",
+                "This action cannot be undone.",
+                "May negatively affect your Professional Score.",
+              ]
+              : [
+                "The listing agreement will be cancelled.",
+                "You will lose your exclusive representation status.",
+                "The seller will be notified immediately.",
+                "This action cannot be undone.",
+              ]
+            ).map((line) => (
+              <div key={line} className="flex items-start gap-2.5">
+                <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-danger)]" />
+                <p className={`text-[12px] font-semibold leading-5 ${isDark ? "text-white/65" : "text-[var(--color-text-main)]"
+                  }`}>
+                  {line}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className={`flex gap-3 border-t p-5 ${isDark ? "border-white/10" : "border-[var(--color-border-light)]"
+          }`}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isLoading}
+            className={`flex-1 border py-3.5 text-[11px] font-black uppercase tracking-[0.18em] transition disabled:opacity-50 ${isDark
+                ? "border-white/15 text-white/60 hover:bg-white/5"
+                : "border-[var(--color-border-light)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-soft)]"
+              }`}
+          >
+            Keep {isDeal ? "Deal" : "Agreement"}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="flex flex-1 items-center justify-center gap-2 bg-[var(--color-danger)] py-3.5 text-[11px] font-black uppercase tracking-[0.18em] text-white shadow-[0_0_20px_rgba(220,38,38,0.25)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <XCircle className="h-4 w-4" />
+            )}
+            {isLoading
+              ? "Cancelling..."
+              : `Confirm — Cancel ${isDeal ? "Deal" : "Agreement"}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ─── Main Component ─────────────────────────────────────────────────── */
@@ -365,6 +535,9 @@ export default function RealtorActiveDealsPage() {
   const [now, setNow] = useState(Date.now());
   const [docuSealError, setDocuSealError] = useState("");
   const [isDocuSealRefreshing, setIsDocuSealRefreshing] = useState(false);
+  const [cancelModal, setCancelModal] = useState<{ open: boolean; type: "deal" | "agreement" }>(
+    { open: false, type: "deal" },
+  );
 
   const {
     data: dealsData,
@@ -403,7 +576,7 @@ export default function RealtorActiveDealsPage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  // Build unified entries
+  /* Build unified entries */
   const unifiedEntries: UnifiedEntry[] = useMemo(() => {
     const entries: UnifiedEntry[] = [];
     const dealListingIds = new Set<string>();
@@ -418,20 +591,31 @@ export default function RealtorActiveDealsPage() {
       const contractObj =
         typeof contract === "object" && contract !== null ? contract : null;
 
+      const matchingBid = allBids.find((b) => {
+        const bList = b?.listing || b?.property_id || b?.listing_id;
+        return (
+          (typeof bList === "object" ? getId(bList) : String(bList || "")) === listingId
+        );
+      });
+
       entries.push({
         _entryKey: listingId,
         _type: "deal",
         _raw: deal,
-        address:
-          (typeof listing === "object" ? listing?.address : null) || "Untitled Deal",
+        address: (typeof listing === "object" ? listing?.address : null) || "Untitled Deal",
         status: String(deal?.status || "active").toLowerCase(),
-        bidPrice: null,
+        bidPrice: matchingBid?.bid_price ?? null,
         dealId: getId(deal),
         contractObj,
         contractId: contractObj ? getId(contractObj) : getId(contract),
         marketLaunchDeadline: deal?.market_launch_deadline || deal?.marketing_deadline,
         proofUrl: deal?.market_launch_proof_url || deal?.marketing_proof_url,
         chatUnlocked: deal?.chat_unlocked,
+        commissionPct: matchingBid?.commission_percentage ?? null,
+        agencyRole: matchingBid?.agency_role ?? null,
+        closingTimelineDays: matchingBid?.closing_timeline_days ?? null,
+        netToSeller: matchingBid?.net_to_seller ?? null,
+        paymentSource: matchingBid?.payment_source ?? null,
       });
     }
 
@@ -451,8 +635,13 @@ export default function RealtorActiveDealsPage() {
         address:
           (typeof listing === "object" ? listing?.address : null) || "Untitled Property",
         status: "pending_signature",
-        bidPrice: bid?.bid_price,
+        bidPrice: bid?.bid_price ?? null,
         bidId: getId(bid),
+        commissionPct: bid?.commission_percentage ?? null,
+        agencyRole: bid?.agency_role ?? null,
+        closingTimelineDays: bid?.closing_timeline_days ?? null,
+        netToSeller: bid?.net_to_seller ?? null,
+        paymentSource: bid?.payment_source ?? null,
       });
     }
 
@@ -460,19 +649,13 @@ export default function RealtorActiveDealsPage() {
   }, [allDeals, allBids]);
 
   const _tempActiveEntryKey =
-    listingIdFromUrl ||
-    (unifiedEntries.length > 0 ? unifiedEntries[0]._entryKey : "");
-  const _tempActiveEntry = unifiedEntries.find(
-    (e) => e._entryKey === _tempActiveEntryKey,
-  );
+    listingIdFromUrl || (unifiedEntries.length > 0 ? unifiedEntries[0]._entryKey : "");
+  const _tempActiveEntry = unifiedEntries.find((e) => e._entryKey === _tempActiveEntryKey);
   const _pendingBidId =
-    _tempActiveEntry?._type === "pending_contract"
-      ? _tempActiveEntry.bidId || ""
-      : "";
+    _tempActiveEntry?._type === "pending_contract" ? _tempActiveEntry.bidId || "" : "";
 
   const activeEntryKey =
-    listingIdFromUrl ||
-    (unifiedEntries.length > 0 ? unifiedEntries[0]._entryKey : "");
+    listingIdFromUrl || (unifiedEntries.length > 0 ? unifiedEntries[0]._entryKey : "");
 
   useEffect(() => {
     if (activeEntryKey && !listingIdFromUrl && !isLoading) {
@@ -483,10 +666,8 @@ export default function RealtorActiveDealsPage() {
   const activeEntry = unifiedEntries.find((e) => e._entryKey === activeEntryKey);
   const isPendingContract = activeEntry?._type === "pending_contract";
 
-  const {
-    data: myContractsData,
-    refetch: refetchContractByBid,
-  } = useGetMyContractsQuery();
+  const { data: myContractsData, refetch: refetchContractByBid, isFetching: isFetchingContractByBid } =
+    useGetMyContractsQuery();
 
   const contractByBidData = useMemo(() => {
     if (!myContractsData || !_pendingBidId) return null;
@@ -511,30 +692,217 @@ export default function RealtorActiveDealsPage() {
   const sellerSigned = Boolean(contract?.seller_signed_at);
   const buyerSigned = Boolean(contract?.buyer_signed_at);
   const isSigned = sellerSigned && buyerSigned;
+  const isPending = Boolean(contractId && !isSigned);
 
   const marketLaunchDeadline = activeEntry?.marketLaunchDeadline;
   const proofUrl = activeEntry?.proofUrl;
   const hasProof = Boolean(proofUrl);
+  const proceedToClosing = entryStatus === "proceeding_to_closing" || entryStatus === "closed";
+  const activeCountdown = getCountdownParts(marketLaunchDeadline, now);
 
-  // Determine current deal tracker stage
-  function getCurrentStage(): number {
-    if (isCancelled) return -1;
-    if (!isSigned) return 0; // Listing secured
-    if (!hasProof) return 1; // Marketing preparation
-    const dealStatus = entryStatus;
-    if (dealStatus === "proceeding_to_closing") return 5;
-    if (dealStatus === "closed") return 6;
-    return 2; // Market launch / buyer engagement
-  }
+  const chatRoomId = getDealChatRoomId(activeEntry?.dealId);
+  const chatUnlocked = activeEntry?.chatUnlocked || isSigned;
+  const dealTitle = activeEntry?.address || "No Deal Selected";
+  const dealId = activeEntry?.dealId || "";
 
-  const currentStage = getCurrentStage();
+  /* Dynamic tracker steps */
+  const pendingHasContract = isPendingContract && Boolean(contractId);
+  const pendingSellerSigned = isPendingContract && sellerSigned;
+  const pendingBuyerSigned = isPendingContract && buyerSigned;
+  const pendingIsSigned = isPendingContract && isSigned;
 
-  const handleUploadMarketLaunchProof = async (url: string) => {
-    if (!activeEntry?.dealId) return;
+  const trackerSteps = isPendingContract
+    ? [
+      {
+        title: "Offer Selected",
+        description: "Your representation offer was accepted by the seller.",
+        done: true,
+        current: false,
+        locked: false,
+      },
+      {
+        title: "Listing Agreement Created",
+        description: pendingHasContract
+          ? `Agreement ID: ...${contractId.slice(-8)}`
+          : "Waiting for the seller to generate the listing agreement.",
+        done: pendingHasContract,
+        current: !pendingHasContract,
+        locked: false,
+      },
+      {
+        title: "Seller Signature",
+        description: pendingSellerSigned
+          ? `Seller signed at ${formatDateTime(contract?.seller_signed_at)}.`
+          : pendingHasContract
+            ? "Waiting for seller to sign the agreement."
+            : "Waiting for agreement to be created first.",
+        done: pendingSellerSigned,
+        current: Boolean(pendingHasContract && !pendingSellerSigned),
+        locked: !pendingHasContract,
+      },
+      {
+        title: "Your Signature",
+        description: pendingBuyerSigned
+          ? `You signed at ${formatDateTime(contract?.buyer_signed_at)}.`
+          : pendingSellerSigned
+            ? "Action required: Please sign the listing agreement."
+            : "Waiting for seller signature first.",
+        done: pendingBuyerSigned,
+        current: Boolean(pendingSellerSigned && !pendingBuyerSigned),
+        locked: !pendingSellerSigned,
+      },
+      {
+        title: "Listing Secured",
+        description: pendingIsSigned
+          ? "Both parties signed. Listing is officially active."
+          : "Both parties must sign to activate the listing.",
+        done: pendingIsSigned,
+        current: false,
+        locked: !pendingIsSigned,
+      },
+      {
+        title: "7-Day Marketing Launch",
+        description: "Upload MLS listing, open house schedule, or social media proof within 7 days of signing.",
+        done: false,
+        current: false,
+        locked: !pendingIsSigned,
+      },
+      {
+        title: "Buyer Engagement",
+        description: "Manage inquiries, schedule showings, and coordinate with interested buyers.",
+        done: false,
+        current: false,
+        locked: true,
+      },
+      {
+        title: "Negotiation & Offer Review",
+        description: "Review buyer offers and negotiate on behalf of the seller.",
+        done: false,
+        current: false,
+        locked: true,
+      },
+      {
+        title: "Under Contract with Buyer",
+        description: "A buyer is selected. Purchase contract signed. Closing timeline activated.",
+        done: false,
+        current: false,
+        locked: true,
+      },
+      {
+        title: "Closing",
+        description: "Transaction closes. Commission disbursed. Professional Score updated.",
+        done: false,
+        current: false,
+        locked: true,
+      },
+    ]
+    : [
+      {
+        title: "Offer Selected",
+        description: "Your representation offer was accepted by the seller.",
+        done: true,
+        current: false,
+        locked: false,
+      },
+      {
+        title: "Listing Agreement Created",
+        description: contractId
+          ? `Agreement ID: ...${contractId.slice(-8)}`
+          : "Waiting for the seller to generate the listing agreement.",
+        done: Boolean(contractId),
+        current: !contractId,
+        locked: false,
+      },
+      {
+        title: "Seller Signature",
+        description: sellerSigned
+          ? `Seller signed at ${formatDateTime(contract?.seller_signed_at)}.`
+          : "Waiting for seller to sign the agreement.",
+        done: sellerSigned,
+        current: Boolean(contractId && !sellerSigned),
+        locked: !contractId,
+      },
+      {
+        title: "Your Signature",
+        description: buyerSigned
+          ? `You signed at ${formatDateTime(contract?.buyer_signed_at)}.`
+          : sellerSigned
+            ? "Action required: Please sign the listing agreement."
+            : "Waiting for seller signature first.",
+        done: buyerSigned,
+        current: Boolean(sellerSigned && !buyerSigned),
+        locked: !sellerSigned,
+      },
+      {
+        title: "Listing Secured",
+        description: isSigned
+          ? "Both parties signed. Listing is officially active."
+          : "Both parties must sign to activate the listing.",
+        done: isSigned,
+        current: false,
+        locked: !isSigned,
+      },
+      {
+        title: "7-Day Marketing Launch",
+        description: marketLaunchDeadline
+          ? hasProof
+            ? "Marketing proof uploaded successfully. Listing is visible to buyers."
+            : `Kill-switch deadline active. ${activeCountdown?.compact || ""}. Upload MLS or marketing proof now.`
+          : "7-day clock starts after both parties sign the agreement.",
+        done: hasProof,
+        current: Boolean(isSigned && marketLaunchDeadline && !hasProof),
+        locked: !isSigned || !marketLaunchDeadline,
+      },
+      {
+        title: "Buyer Engagement",
+        description: hasProof
+          ? "Property is live. Manage inquiries, showings, and buyer feedback."
+          : "Starts after marketing proof is submitted.",
+        done: Boolean(hasProof && proceedToClosing),
+        current: Boolean(hasProof && !proceedToClosing),
+        locked: !hasProof,
+      },
+      {
+        title: "Negotiation & Offer Review",
+        description: proceedToClosing
+          ? "Negotiation complete. Buyer offer accepted."
+          : "Review buyer offers and negotiate on behalf of the seller.",
+        done: proceedToClosing,
+        current: Boolean(hasProof && !proceedToClosing),
+        locked: !hasProof,
+      },
+      {
+        title: "Proceed to Closing",
+        description: proceedToClosing
+          ? `Confirmed ✓ — Closing process initiated.`
+          : "Confirm when buyer and seller have agreed on final terms.",
+        done: proceedToClosing,
+        current: Boolean(hasProof && !proceedToClosing),
+        locked: !hasProof,
+      },
+      {
+        title: "Closing",
+        description:
+          entryStatus === "closed"
+            ? "Transaction closed. Commission disbursed. Professional Score updated."
+            : proceedToClosing
+              ? "Title & escrow opened. Closing scheduled."
+              : "Final stage — transaction closes and commission is disbursed.",
+        done: entryStatus === "closed",
+        current: proceedToClosing && entryStatus !== "closed",
+        locked: !proceedToClosing,
+      },
+    ];
+
+  /* Handlers */
+  const handleUploadMarketLaunchProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeEntry?.dealId) return;
+    const dummyUrl = `https://mock-storage.com/realtor-proof/${encodeURIComponent(file.name)}`;
     try {
       await uploadMarketLaunchProof({
         dealId: activeEntry.dealId,
-        market_launch_proof_url: url,
+        market_launch_proof_url: dummyUrl,
       }).unwrap();
       await refetchDeals();
     } catch (err: any) {
@@ -556,10 +924,10 @@ export default function RealtorActiveDealsPage() {
 
   const handleCancelDeal = async () => {
     if (!activeEntry?.dealId) return;
-    if (!window.confirm("Are you sure you want to cancel this deal?")) return;
     try {
       await cancelDealMutation(activeEntry.dealId).unwrap();
       await refetchDeals();
+      setCancelModal({ open: false, type: "deal" });
     } catch (err: any) {
       console.error("Failed to cancel deal:", err);
       alert("Failed to cancel deal. Please try again.");
@@ -575,11 +943,8 @@ export default function RealtorActiveDealsPage() {
     try {
       setIsDocuSealRefreshing(true);
       setDocuSealError("");
-      // Fetch fresh data
       await refetchDeals();
       if (_pendingBidId) await refetchContractByBid();
-    } catch (err) {
-      console.error("Error refreshing after DocuSeal sign:", err);
     } finally {
       setIsDocuSealRefreshing(false);
     }
@@ -587,94 +952,114 @@ export default function RealtorActiveDealsPage() {
 
   async function handleCancelContract() {
     if (!contractId) return;
-    if (!window.confirm("Are you sure you want to cancel this contract?")) return;
+    setCancelModal({ open: true, type: "agreement" });
+  }
+
+  async function executeCancelContract() {
+    if (!contractId) return;
     try {
       await cancelContractMutation(contractId).unwrap();
       if (isPendingContract) await refetchContractByBid();
       else await refetchDeals();
+      setCancelModal({ open: false, type: "agreement" });
     } catch (err: any) {
       console.error("Error cancelling contract:", err);
     }
   }
 
-  const chatRoomId = getDealChatRoomId(activeEntry?.dealId);
-  const chatUnlocked = activeEntry?.chatUnlocked || isSigned;
-
-  // ─── Render ───────────────────────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className={`rounded-2xl border px-8 py-6 text-center shadow-[var(--shadow-card)] ${isDark ? "border-white/10 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-white"}`}>
-          <Loader2 className={`mx-auto h-8 w-8 animate-spin ${isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"}`} />
-          <p className={`mt-3 text-sm font-semibold ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
-            Loading Active Deals...
+  /* ─── Render ─────────────────────────────────────────────────────── */
+  return (
+    <div className="space-y-8 pb-24">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-secondary)]">
+            Realtor Portal
+          </p>
+          <h1
+            className={`mt-1 font-serif text-3xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}
+          >
+            Deal Tracker
+          </h1>
+          <p
+            className={`mt-2 max-w-2xl text-sm leading-6 ${isDark ? "text-white/55" : "text-[var(--color-text-muted)]"}`}
+          >
+            Track your listing agreements, 7-day marketing deadlines, and guide your deals to closing.
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={isFetchingDeals}
+          className={`flex items-center gap-2 border px-5 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark
+            ? "border-white/10 bg-white/5 hover:border-white/25"
+            : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]/40"
+            }`}
+        >
+          <RefreshCw className={`h-4 w-4 ${isFetchingDeals ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
       </div>
-    );
-  }
 
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <section className={`relative overflow-hidden rounded-2xl p-8 ${isDark ? "bg-transparent border border-white/5" : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary)]/90"}`}>
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.35]"
-          style={{
-            backgroundImage: `radial-gradient(${isDark ? "rgba(212,175,55,0.35)" : "rgba(212,175,55,0.45)"} 1px, transparent 1px)`,
-            backgroundSize: "18px 18px",
-            maskImage: "radial-gradient(ellipse 80% 80% at 70% 30%, black 0%, transparent 70%)",
-            WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 70% 30%, black 0%, transparent 70%)",
-          }}
-        />
-        <div className={`pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-2 ${isDark ? "border-[#d4af37]/20 shadow-[0_0_60px_rgba(212,175,55,0.1)]" : "border-white/10"}`} />
-        <div className={`pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border-2 ${isDark ? "border-[#d4af37]/30 shadow-[0_0_50px_rgba(212,175,55,0.15)]" : "border-[var(--color-secondary)]/20"}`} />
-
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className={`mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 backdrop-blur-sm ${isDark ? "border-[#d4af37]/30 bg-[#d4af37]/10" : "border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/15"}`}>
-              <Handshake className={`h-3 w-3 ${isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]"}`} />
-              <span className={`text-[10px] font-black uppercase tracking-[0.25em] ${isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]"}`}>
-                Deal Tracker
-              </span>
-            </div>
-            <h1 className="font-serif text-3xl font-black leading-tight text-white lg:text-4xl">
-              Active Deals
-            </h1>
-            <div className={`mt-1 h-0.5 w-16 rounded-full ${isDark ? "bg-[#d4af37]/60" : "bg-[var(--color-secondary)]/60"}`} />
-            <p className={`mt-4 max-w-xl text-sm leading-relaxed ${isDark ? "text-white/60" : "text-white/70"}`}>
-              Track your listing agreements, marketing milestones, and deal progress.
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex min-h-[320px] items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="mx-auto h-9 w-9 animate-spin text-[var(--color-secondary)]" />
+            <p className={`mt-4 text-base font-semibold ${isDark ? "text-white/45" : "text-[var(--color-text-muted)]"}`}>
+              Loading your deals...
             </p>
           </div>
-
-          <div className="flex flex-wrap gap-3">
-            <div className={`group flex items-center gap-3 rounded-2xl border px-5 py-3 transition hover:scale-[1.02] hover:shadow-lg ${isDark ? "border-white/10 bg-white/5 hover:bg-white/10 hover:border-[#d4af37]/30" : "border-white/20 bg-white/10 hover:bg-white/20"}`}>
-              <Handshake className={`h-5 w-5 ${isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]"}`} />
-              <div>
-                <p className={`text-[9px] font-black uppercase tracking-wider ${isDark ? "text-white/40" : "text-white/50"}`}>
-                  Active Deals
-                </p>
-                <p className="text-xl font-black text-white tabular-nums">
-                  {unifiedEntries.length}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={isFetchingDeals}
-              className="inline-flex items-center gap-2 border border-white/20 bg-white/10 px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:bg-white/15 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${isFetchingDeals ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
-          </div>
         </div>
-      </section>
+      )}
+
+      {/* Cancelled banner */}
+      {isCancelled && (
+        <div className="rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm font-semibold text-[var(--color-danger)]">
+          This listing agreement is cancelled. Deal tracker actions are disabled.
+        </div>
+      )}
+
+      {/* 7-Day Marketing Countdown Banner */}
+      {marketLaunchDeadline && !hasProof && !isCancelled && !isLoading && (
+        <PhaseCountdownBanner
+          title="Action Required: 7-Day Marketing Rule"
+          subtitle="Upload proof of marketing (MLS listing, open house, social media, etc.) before the Kill Switch activates."
+          deadline={marketLaunchDeadline}
+          startAt={contract?.buyer_signed_at}
+          color="danger"
+          isDark={isDark}
+          now={now}
+        >
+          <label
+            className={`inline-flex cursor-pointer items-center gap-2 px-5 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] transition ${isUploadingProof
+              ? "cursor-not-allowed bg-[var(--color-border-light)] text-[var(--color-text-muted)]"
+              : "bg-[var(--color-danger)] text-white hover:scale-[1.02] shadow-[0_0_20px_rgba(220,38,38,0.2)]"
+              }`}
+          >
+            {isUploadingProof ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            {isUploadingProof ? "Uploading..." : "Upload Marketing Proof"}
+            <input
+              type="file"
+              accept="application/pdf,image/png,image/jpeg"
+              className="hidden"
+              onChange={handleUploadMarketLaunchProof}
+              disabled={isUploadingProof}
+            />
+          </label>
+        </PhaseCountdownBanner>
+      )}
 
       {/* Empty state */}
-      {unifiedEntries.length === 0 && (
-        <div className={`rounded-2xl border p-12 text-center shadow-[var(--shadow-card)] ${isDark ? "border-white/8 bg-white/[0.03]" : "border-[var(--color-border-light)] bg-white"}`}>
+      {!isLoading && unifiedEntries.length === 0 && (
+        <div
+          className={`rounded-2xl border p-12 text-center shadow-[var(--shadow-card)] ${isDark ? "border-white/8 bg-white/[0.03]" : "border-[var(--color-border-light)] bg-white"}`}
+        >
           <Handshake className={`mx-auto h-8 w-8 ${isDark ? "text-white/20" : "text-[var(--color-text-muted)]"}`} />
           <p className={`mt-3 text-sm font-bold ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
             No active deals yet.
@@ -688,263 +1073,412 @@ export default function RealtorActiveDealsPage() {
         </div>
       )}
 
-      {/* Split layout */}
-      {unifiedEntries.length > 0 && (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-          {/* Left: Deal list */}
-          <div className="flex flex-col gap-3">
-            <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
-              Your Deals ({unifiedEntries.length})
-            </p>
-            {unifiedEntries.map((entry) => {
-              const isActive = entry._entryKey === activeEntryKey;
-              const sConf = getDealStatusConfig(entry.status);
-              const StatusIcon = sConf.icon;
-              return (
-                <button
-                  key={entry._entryKey}
-                  type="button"
-                  onClick={() =>
-                    setSearchParams({ listingId: entry._entryKey }, { replace: true })
-                  }
-                  className={`w-full rounded-2xl border p-4 text-left transition-all duration-200 ${isActive
-                      ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-[0_0_0_1px_var(--color-primary)]"
-                      : isDark
-                        ? "border-white/10 bg-white/[0.04] hover:border-[var(--color-secondary)]/50 hover:shadow-md"
-                        : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)] hover:shadow-md"
-                    }`}
+      {/* Select Deal Dropdown */}
+      {!isLoading && unifiedEntries.length > 0 && (
+        <div
+          className={`rounded-2xl border p-5 shadow-[var(--shadow-premium)] ${isDark ? "border-white/10 bg-white/[0.03]" : "border-[var(--color-border-light)] bg-[var(--color-bg-card)]"}`}
+        >
+          <label
+            className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}
+          >
+            Select Active Deal
+          </label>
+          <select
+            value={activeEntryKey}
+            onChange={(e) => setSearchParams({ listingId: e.target.value })}
+            className={`mt-3 w-full border px-4 py-3 text-sm font-bold outline-none focus:border-[var(--color-secondary)] ${isDark
+              ? "border-white/10 bg-black/40 text-white"
+              : "border-[var(--color-border-light)] bg-white text-[var(--color-text-main)]"
+              }`}
+          >
+            {unifiedEntries.map((entry) => (
+              <option key={entry._entryKey} value={entry._entryKey}>
+                {entry.address} (
+                {entry._type === "pending_contract"
+                  ? "Pending Signature"
+                  : entry.status
+                    .split("_")
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(" ")}
+                )
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Stat Cards */}
+      {activeEntry && !isLoading && (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+          <StatCard
+            title="Contract Status"
+            value={
+              contractId
+                ? isSigned
+                  ? "Signed"
+                  : isPending
+                    ? "Pending"
+                    : "Created"
+                : isPendingContract
+                  ? isFetchingContractByBid
+                    ? "Loading..."
+                    : "Not Created"
+                  : "Not Created"
+            }
+            icon={FileText}
+            isDark={isDark}
+          />
+          <StatCard
+            title="Signatures"
+            value={`${sellerSigned ? "Seller ✓" : "Seller —"} / ${buyerSigned ? "You ✓" : "You —"}`}
+            icon={FileSignature}
+            isDark={isDark}
+          />
+          <StatCard
+            title="Sale Price"
+            value={formatMoney(activeEntry.bidPrice)}
+            icon={ShieldCheck}
+            isDark={isDark}
+          />
+          <StatCard
+            title="Marketing Deadline"
+            value={
+              activeCountdown && !hasProof
+                ? activeCountdown.compact
+                : hasProof
+                  ? "Proof Uploaded ✓"
+                  : "—"
+            }
+            icon={Clock3}
+            isDark={isDark}
+          />
+        </div>
+      )}
+
+      {/* Main Dashboard */}
+      {activeEntry && !isLoading && (
+        <div
+          className={`rounded-2xl border shadow-[var(--shadow-premium)] ${isDark ? "border-white/10 bg-white/[0.03]" : "border-[var(--color-border-light)] bg-[var(--color-bg-card)]"}`}
+        >
+          {/* Panel header */}
+          <div
+            className={`flex flex-wrap items-center justify-between gap-4 border-b p-6 ${isDark ? "border-white/10" : "border-[var(--color-border-light)]"}`}
+          >
+            <div>
+              <h2
+                className={`font-serif text-2xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}
+              >
+                {dealTitle}
+              </h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <span
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-black uppercase tracking-wider ${statusConfig.className}`}
+              >
+                <statusConfig.icon className="h-3.5 w-3.5" />
+                {statusConfig.label}
+              </span>
+              {chatUnlocked && chatRoomId && (
+                <Link
+                  to={`/chat/${chatRoomId}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/20"
                 >
-                  <p className={`truncate text-sm font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
-                    {entry.address}
-                  </p>
-                  <span
-                    className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${sConf.className}`}
-                  >
-                    <StatusIcon className="h-2.5 w-2.5" />
-                    {sConf.label}
-                  </span>
-                </button>
-              );
-            })}
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Open Chat
+                </Link>
+              )}
+            </div>
           </div>
 
-          {/* Right: Deal detail */}
-          {activeEntry && (
-            <div className="space-y-6">
-              {/* Status header */}
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
-                    Deal Detail
-                  </p>
-                  <h2 className={`mt-1 font-serif text-2xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
-                    {activeEntry.address}
-                  </h2>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${statusConfig.className}`}
-                  >
-                    <statusConfig.icon className="h-3.5 w-3.5" />
-                    {statusConfig.label}
-                  </span>
-                  {chatUnlocked && chatRoomId && (
-                    <Link
-                      to={`/chat/${chatRoomId}`}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/20"
-                    >
-                      <MessageSquare className="h-3.5 w-3.5" />
-                      Open Chat
-                    </Link>
-                  )}
-                </div>
-              </div>
-
-              {/* 7-Day Market Launch Countdown */}
-              {!isCancelled && isSigned && (
-                <SevenDayBanner
-                  deadline={marketLaunchDeadline}
-                  startAt={contract?.buyer_signed_at || activeEntry._raw?.createdAt}
-                  now={now}
-                  hasProof={hasProof}
-                  onUpload={handleUploadMarketLaunchProof}
-                  isUploading={isUploadingProof}
+          <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+            {/* Left: Tracker */}
+            <div className="space-y-0 pt-4">
+              {trackerSteps.map((step) => (
+                <TrackerStep
+                  key={step.title}
+                  title={step.title}
+                  description={step.description}
+                  done={step.done}
+                  current={step.current}
+                  locked={step.locked}
+                  isDark={isDark}
                 />
-              )}
+              ))}
+            </div>
 
-              {/* Proof uploaded confirmation */}
-              {hasProof && (
-                <div className="flex items-start gap-4 rounded-2xl border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 p-5">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-primary)]" />
+            {/* Right: Panels */}
+            <div className="space-y-5">
+              {/* Contract Panel */}
+              <div
+                className={`rounded-2xl border p-5 ${isDark ? "border-white/10 bg-black/20" : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"}`}
+              >
+                <p
+                  className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}
+                >
+                  Listing Agreement
+                </p>
+                <h3
+                  className={`mt-2 font-serif text-2xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}
+                >
+                  {!contractId
+                    ? "Not Created"
+                    : isCancelled
+                      ? "Cancelled"
+                      : isSigned
+                        ? "Listing Secured"
+                        : isPending
+                          ? "Signature Required"
+                          : "Created"}
+                </h3>
+
+                <div className="mt-5 space-y-4 text-sm">
+                  {contractId && (
+                    <div>
+                      <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
+                        Agreement ID
+                      </p>
+                      <p className={`mt-1 break-all font-bold ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
+                        {contractId}
+                      </p>
+                    </div>
+                  )}
                   <div>
-                    <p className="text-sm font-black text-[var(--color-primary)]">
-                      Marketing Proof Uploaded ✓
+                    <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
+                      Seller Signed
                     </p>
-                    <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-                      The seller has been notified. Continue managing buyer engagement.
+                    <p className={`mt-1 font-bold ${sellerSigned ? "text-[#16a34a]" : isDark ? "text-white/60" : "text-[var(--color-text-muted)]"}`}>
+                      {sellerSigned ? formatDateTime(contract?.seller_signed_at) : "Pending"}
                     </p>
                   </div>
-                </div>
-              )}
+                  <div>
+                    <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
+                      You Signed
+                    </p>
+                    <p className={`mt-1 font-bold ${buyerSigned ? "text-[#16a34a]" : isDark ? "text-white/60" : "text-[var(--color-text-muted)]"}`}>
+                      {buyerSigned ? formatDateTime(contract?.buyer_signed_at) : "Pending"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
+                      Marketing Proof
+                    </p>
+                    <p className={`mt-1 font-bold ${hasProof ? "text-[#16a34a]" : isDark ? "text-white/60" : "text-[var(--color-text-muted)]"}`}>
+                      {hasProof ? "✓ Uploaded" : "Not Yet"}
+                    </p>
+                  </div>
 
-              {/* Contract Signing */}
-              {isPendingContract && (
-                <div className={`rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark ? "border-white/10 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-white"}`}>
-                  <h3 className={`font-serif text-lg font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
-                    Listing Agreement
-                  </h3>
-                  <p className="mt-1.5 text-sm text-[var(--color-text-muted)]">
-                    {!contractId
-                      ? "Waiting for the seller to generate the listing agreement."
-                      : !sellerSigned
-                        ? "Waiting for the seller to sign the agreement."
-                        : !buyerSigned
-                          ? "The seller has signed. Your signature is required."
-                          : "Both parties have signed. Listing is active!"}
-                  </p>
-
-                  {contractId && !buyerSigned && sellerSigned && (
-                    <div className="mt-4 flex flex-col items-start gap-2">
-                      {docuSealError && (
-                        <div className="text-xs font-bold text-[var(--color-danger)]">
-                          {docuSealError}
-                        </div>
-                      )}
-                      <DocuSealSignButton
-                        contractId={contractId}
-                        label="Sign Agreement (DocuSeal)"
-                        loadingLabel="Opening DocuSeal..."
-                        disabled={isDocuSealRefreshing}
-                        className="inline-flex items-center gap-2 bg-[var(--color-secondary)] px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] disabled:pointer-events-none disabled:opacity-50"
-                        onError={(msg) => setDocuSealError(msg)}
-                        onSigningOpened={() => setDocuSealError("")}
-                        onReturnFromSigning={handleDocuSealReturn}
-                      />
+                  {/* Pending contract awaiting contract creation */}
+                  {isPendingContract && !contractId && !isFetchingContractByBid && (
+                    <div>
+                      <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
+                        Status
+                      </p>
+                      <p className="mt-1 font-bold text-[var(--color-warning)]">
+                        Offer selected — waiting for seller to create listing agreement
+                      </p>
+                    </div>
+                  )}
+                  {isPendingContract && isFetchingContractByBid && (
+                    <div className={`flex items-center gap-2 ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"}`}>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading agreement...
                     </div>
                   )}
 
-                  {contractId && !isSigned && (
+                  {contract?.pdf_url && (
+                    <a
+                      href={contract.pdf_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] hover:underline"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      View Agreement PDF
+                    </a>
+                  )}
+                </div>
+
+                {/* DocuSeal Sign Button */}
+                {contractId && sellerSigned && !buyerSigned && !isCancelled && (
+                  <div className="mt-4 space-y-2">
+                    {docuSealError && (
+                      <p className="rounded border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-3 py-2 text-[11px] font-semibold text-[var(--color-danger)]">
+                        {docuSealError}
+                      </p>
+                    )}
+                    <DocuSealSignButton
+                      contractId={contractId}
+                      label="Sign Agreement (DocuSeal)"
+                      loadingLabel="Opening DocuSeal..."
+                      disabled={isDocuSealRefreshing}
+                      className="w-full bg-[var(--color-secondary)] py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.01] disabled:pointer-events-none disabled:opacity-50"
+                      onError={(msg) => setDocuSealError(msg)}
+                      onSigningOpened={() => setDocuSealError("")}
+                      onReturnFromSigning={handleDocuSealReturn}
+                    />
                     <button
                       type="button"
                       onClick={handleCancelContract}
                       disabled={isCancellingContract}
-                      className="mt-3 ml-3 inline-flex items-center gap-2 border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/20 disabled:pointer-events-none disabled:opacity-50"
+                      className="w-full border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/20 disabled:pointer-events-none disabled:opacity-50"
                     >
-                      <XCircle className="h-4 w-4" />
-                      Cancel Contract
+                      <XCircle className="h-4 w-4 inline mr-1.5" />
+                      Cancel Agreement
                     </button>
-                  )}
+                  </div>
+                )}
+              </div>
+
+              {/* Deal Panel — Realtor-specific fields */}
+              {!isPendingContract && activeEntry?.dealId && (
+                <div
+                  className={`rounded-2xl border p-5 ${isDark ? "border-white/10 bg-black/20" : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"}`}
+                >
+                  <p
+                    className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}
+                  >
+                    Deal Info
+                  </p>
+                  <h3
+                    className={`mt-2 font-serif text-xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}
+                  >
+                    {entryStatus.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                  </h3>
+                  <div className="mt-4 space-y-3 text-sm">
+                    {[
+                      {
+                        label: "Proposed Sale Price",
+                        value: formatMoney(activeEntry.bidPrice),
+                        color: "text-[var(--color-secondary)]",
+                      },
+                      {
+                        label: "Commission",
+                        value:
+                          activeEntry.commissionPct != null
+                            ? `${activeEntry.commissionPct}% ${activeEntry.paymentSource === "Buyer Pays Commission" ? "(Buyer pays)" : "(Seller pays)"}`
+                            : "—",
+                      },
+                      {
+                        label: "Net-to-Seller",
+                        value: formatMoney(activeEntry.netToSeller),
+                      },
+                      {
+                        label: "Agency Role",
+                        value: activeEntry.agencyRole || "—",
+                      },
+                      {
+                        label: "Closing Timeline",
+                        value: activeEntry.closingTimelineDays
+                          ? `${activeEntry.closingTimelineDays} Days`
+                          : "—",
+                      },
+                      {
+                        label: "Deal ID",
+                        value: dealId ? `...${dealId.slice(-8)}` : "—",
+                      },
+                      {
+                        label: "Chat",
+                        value: chatUnlocked && !isCancelled ? "Unlocked" : "Locked",
+                      },
+                    ].map((row) => (
+                      <div key={row.label}>
+                        <p
+                          className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}
+                        >
+                          {row.label}
+                        </p>
+                        <p
+                          className={`mt-1 font-bold ${"color" in row && row.color ? row.color : isDark ? "text-white" : "text-[var(--color-primary)]"}`}
+                        >
+                          {row.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                {/* Deal Tracker Pipeline */}
-                <div className={`rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark ? "border-white/10 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-white"}`}>
-                  <h3 className={`mb-5 font-serif text-lg font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
-                    Deal Progress
-                  </h3>
-                  <DealTrackerPipeline
-                    currentStage={currentStage < 0 ? 0 : currentStage}
-                    isCancelled={isCancelled}
-                  />
+              {/* Actions Panel */}
+              {!isCancelled && isSigned && (
+                <div
+                  className={`rounded-2xl border p-5 ${isDark ? "border-white/10 bg-black/20" : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"}`}
+                >
+                  <p
+                    className={`mb-3 text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}
+                  >
+                    Actions
+                  </p>
+                  <div className="space-y-3">
+                    {hasProof && !proceedToClosing && (
+                      <button
+                        type="button"
+                        onClick={handleProceedToClosing}
+                        disabled={isProceedingToClosing}
+                        className="w-full bg-[var(--color-secondary)] py-3.5 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.01] disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        {isProceedingToClosing ? "Processing..." : "Proceed to Closing"}
+                      </button>
+                    )}
+                    {!hasProof && (
+                      <label
+                        className={`inline-flex w-full cursor-pointer items-center justify-center gap-2 border border-[var(--color-primary)] bg-[var(--color-primary)] py-3 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:opacity-90 ${isUploadingProof ? "pointer-events-none opacity-50" : ""}`}
+                      >
+                        <Upload className="h-4 w-4" />
+                        {isUploadingProof ? "Uploading..." : "Upload Marketing Proof"}
+                        <input
+                          type="file"
+                          accept="application/pdf,image/png,image/jpeg"
+                          className="hidden"
+                          onChange={handleUploadMarketLaunchProof}
+                          disabled={isUploadingProof}
+                        />
+                      </label>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setCancelModal({ open: true, type: "deal" })}
+                      className={`flex w-full items-center justify-center gap-2 border px-5 py-3.5 text-[11px] font-black uppercase tracking-[0.2em] transition ${isDark
+                          ? "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/15"
+                          : "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                        }`}
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Cancel Deal
+                    </button>
+                  </div>
                 </div>
+              )}
 
-                {/* Deal Actions */}
-                <div className="space-y-4">
-                  {/* Stats */}
-                  <div className={`rounded-2xl border p-5 shadow-[var(--shadow-card)] ${isDark ? "border-white/10 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-white"}`}>
-                    <p className={`mb-3 text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
-                      Deal Info
-                    </p>
-                    <div className="space-y-3">
-                      {[
-                        {
-                          label: "Offer Price",
-                          value: formatMoney(activeEntry.bidPrice || activeEntry._raw?.bid_price),
-                        },
-                        {
-                          label: "Contract ID",
-                          value: contractId ? `...${contractId.slice(-8)}` : "Pending",
-                        },
-                        {
-                          label: "Seller Signed",
-                          value: sellerSigned ? `✓ ${formatDateTime(contract?.seller_signed_at)}` : "Pending",
-                        },
-                        {
-                          label: "Realtor Signed",
-                          value: buyerSigned ? `✓ ${formatDateTime(contract?.buyer_signed_at)}` : "Pending",
-                        },
-                        {
-                          label: "Marketing Proof",
-                          value: hasProof ? "✓ Uploaded" : "Not Yet",
-                        },
-                      ].map((row) => (
-                        <div
-                          key={row.label}
-                          className={`flex items-center justify-between rounded-xl border px-4 py-3 ${isDark ? "border-white/8 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"}`}
-                        >
-                          <span className={`text-[11px] ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"}`}>
-                            {row.label}
-                          </span>
-                          <span className={`text-[11px] font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
-                            {row.value}
-                          </span>
-                        </div>
-                      ))}
+              {/* Awaiting signature info */}
+              {!isSigned && !isCancelled && (
+                <div className="rounded-2xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/5 p-5">
+                  <div className="flex items-start gap-3">
+                    <FileSignature className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-warning)]" />
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.15em] text-[var(--color-warning)]">
+                        Awaiting Signatures
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
+                        The 7-day marketing clock starts after both parties sign the listing agreement.
+                      </p>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  {!isCancelled && isSigned && (
-                    <div className={`rounded-2xl border p-5 shadow-[var(--shadow-card)] ${isDark ? "border-white/10 bg-white/[0.04]" : "border-[var(--color-border-light)] bg-white"}`}>
-                      <p className={`mb-3 text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
-                        Actions
-                      </p>
-                      <div className="space-y-3">
-                        {hasProof && entryStatus !== "proceeding_to_closing" && (
-                          <button
-                            type="button"
-                            onClick={handleProceedToClosing}
-                            disabled={isProceedingToClosing}
-                            className="w-full bg-[var(--color-secondary)] py-3.5 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.01] disabled:pointer-events-none disabled:opacity-50"
-                          >
-                            {isProceedingToClosing ? "Processing..." : "Proceed to Closing"}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={handleCancelDeal}
-                          disabled={isCancellingDeal}
-                          className="w-full border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/20 disabled:pointer-events-none disabled:opacity-50"
-                        >
-                          {isCancellingDeal ? "Cancelling..." : "Cancel Deal"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 7-day info if not yet signed */}
-                  {!isSigned && !isCancelled && (
-                    <div className="rounded-2xl border border-[var(--color-warning)]/30 bg-[var(--color-warning)]/5 p-5">
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-warning)]" />
-                        <div>
-                          <p className="text-[11px] font-black uppercase tracking-[0.15em] text-[var(--color-warning)]">
-                            Awaiting Signatures
-                          </p>
-                          <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
-                            The 7-day marketing clock starts after both parties sign the listing agreement.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
+      {/* Cancel Confirm Modal */}
+      <CancelConfirmModal
+        open={cancelModal.open}
+        type={cancelModal.type}
+        dealTitle={dealTitle}
+        isLoading={cancelModal.type === "deal" ? isCancellingDeal : isCancellingContract}
+        isDark={isDark}
+        onConfirm={cancelModal.type === "deal" ? handleCancelDeal : executeCancelContract}
+        onClose={() => setCancelModal((m) => ({ ...m, open: false }))}
+      />
     </div>
   );
 }
