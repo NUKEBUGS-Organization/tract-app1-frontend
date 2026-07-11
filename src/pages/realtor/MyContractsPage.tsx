@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   XCircle,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { useGetMyBidsQuery } from "../../services/listingService";
 import { useGetMyContractsQuery } from "../../services/contractService";
@@ -340,12 +341,24 @@ export default function RealtorMyContractsPage() {
     (meData as any)?.id ||
     "";
 
-  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
-  const { data: contractsData = [], isLoading: isLoadingContracts } =
-    useGetMyContractsQuery();
-  const { data: dealsData, isLoading: isLoadingDeals } = useGetMyDealsQuery();
+  const { data: bidsData, isLoading: isLoadingBids, refetch: refetchBids, isFetching: isFetchingBids } =
+    useGetMyBidsQuery(undefined, { refetchOnMountOrArgChange: true });
+  const { data: contractsData = [], isLoading: isLoadingContracts, refetch: refetchContracts, isFetching: isFetchingContracts } =
+    useGetMyContractsQuery(undefined, { refetchOnMountOrArgChange: true });
+  const { data: dealsData, isLoading: isLoadingDeals, refetch: refetchDeals, isFetching: isFetchingDeals } =
+    useGetMyDealsQuery(undefined, { refetchOnMountOrArgChange: true });
 
   const isLoading = isLoadingBids || isLoadingContracts || isLoadingDeals;
+  const isFetching = isFetchingBids || isFetchingContracts || isFetchingDeals;
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      refetchBids(),
+      refetchContracts(),
+      refetchDeals(),
+    ]);
+  };
+
   const allDeals = Array.isArray(dealsData) ? dealsData : [];
 
   const rawOffers = normalizeOffers(bidsData);
@@ -498,6 +511,20 @@ export default function RealtorMyContractsPage() {
                 </div>
               </div>
             ))}
+
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isFetching}
+              className={`flex items-center gap-2 rounded-2xl border px-5 py-3 transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 ${
+                isDark
+                  ? "border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:border-[#d4af37]/30"
+                  : "border-white/20 bg-white/10 text-white hover:bg-white/20"
+              }`}
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              <span className="text-[10px] font-black uppercase tracking-wider">Refresh</span>
+            </button>
           </div>
         </div>
       </section>

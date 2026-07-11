@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import {
+    AlertTriangle,
     ArrowUpRight,
     CheckCircle2,
     Clock,
@@ -7,10 +9,11 @@ import {
     Gavel,
     History,
     Loader2,
+    RefreshCw,
     ShieldCheck,
     XCircle,
 } from "lucide-react";
-import { useGetMyBidsQuery } from "../../services/listingService";
+import { useGetMyBidsQuery, useDeleteOwnBidMutation } from "../../services/listingService";
 import { useAppSelector } from "../../redux/hooks";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
 
@@ -80,11 +83,153 @@ function getBidStatusConfig(status: string) {
     return map[status] ?? map.active;
 }
 
-function BidCard({ bid, isDark }: { bid: any; isDark: boolean }) {
+// ─── Withdraw Confirm Modal ───────────────────────────────────────────────────
+function WithdrawConfirmModal({
+    open,
+    address,
+    isLoading,
+    isDark,
+    onConfirm,
+    onClose,
+}: {
+    open: boolean;
+    address: string;
+    isLoading: boolean;
+    isDark: boolean;
+    onConfirm: () => void;
+    onClose: () => void;
+}) {
+    if (!open) return null;
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backdropFilter: "blur(6px)", background: "rgba(0,0,0,0.55)" }}
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        >
+            <div
+                className={`w-full max-w-md rounded-2xl border shadow-[0_25px_60px_rgba(0,0,0,0.45)] ${
+                    isDark
+                        ? "border-white/10 bg-[#0f0f14]"
+                        : "border-[var(--color-border-light)] bg-white"
+                }`}
+            >
+                {/* Header */}
+                <div className={`flex items-center justify-between border-b p-5 ${
+                    isDark ? "border-white/10" : "border-[var(--color-border-light)]"
+                }`}>
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-danger)]/10">
+                            <AlertTriangle className="h-5 w-5 text-[var(--color-danger)]" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-danger)]">
+                                Destructive Action
+                            </p>
+                            <h3 className={`mt-0.5 font-serif text-lg font-black ${
+                                isDark ? "text-white" : "text-[var(--color-primary)]"
+                            }`}>
+                                Withdraw Bid
+                            </h3>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={isLoading}
+                        className={`rounded-full p-2 transition ${
+                            isDark ? "hover:bg-white/8 text-white/40" : "hover:bg-[var(--color-bg-soft)] text-[var(--color-text-muted)]"
+                        }`}
+                    >
+                        <XCircle className="h-5 w-5" />
+                    </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-5">
+                    <p className={`text-sm leading-6 ${
+                        isDark ? "text-white/70" : "text-[var(--color-text-muted)]"
+                    }`}>
+                        You are about to withdraw your bid for{" "}
+                        <span className={`font-black ${
+                            isDark ? "text-white" : "text-[var(--color-primary)]"
+                        }`}>
+                            {address}
+                        </span>.
+                    </p>
+
+                    <div className={`mt-4 space-y-2.5 rounded-xl border p-4 ${
+                        isDark
+                            ? "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/8"
+                            : "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5"
+                    }`}>
+                        {[
+                            "Your bid will be permanently removed.",
+                            "The seller will no longer see your submission.",
+                            "You can submit a new bid if the listing remains active.",
+                            "This action cannot be undone.",
+                        ].map((line) => (
+                            <div key={line} className="flex items-start gap-2.5">
+                                <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-danger)]" />
+                                <p className={`text-[12px] font-semibold leading-5 ${
+                                    isDark ? "text-white/65" : "text-[var(--color-text-main)]"
+                                }`}>
+                                    {line}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className={`flex gap-3 border-t p-5 ${
+                    isDark ? "border-white/10" : "border-[var(--color-border-light)]"
+                }`}>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={isLoading}
+                        className={`flex-1 border py-3.5 text-[11px] font-black uppercase tracking-[0.18em] transition disabled:opacity-50 ${
+                            isDark
+                                ? "border-white/15 text-white/60 hover:bg-white/5"
+                                : "border-[var(--color-border-light)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-soft)]"
+                        }`}
+                    >
+                        Keep Bid
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onConfirm}
+                        disabled={isLoading}
+                        className="flex flex-1 items-center justify-center gap-2 bg-[var(--color-danger)] py-3.5 text-[11px] font-black uppercase tracking-[0.18em] text-white shadow-[0_0_20px_rgba(220,38,38,0.25)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <XCircle className="h-4 w-4" />
+                        )}
+                        {isLoading ? "Withdrawing..." : "Confirm — Withdraw Bid"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function BidCard({
+    bid,
+    isDark,
+    onWithdraw,
+    isWithdrawing,
+}: {
+    bid: any;
+    isDark: boolean;
+    onWithdraw?: (bidId: string, address: string) => void;
+    isWithdrawing?: boolean;
+}) {
     const status = getBidStatus(bid);
     const config = getBidStatusConfig(status);
     const StatusIcon = config.icon;
-
+    const bidId = bid?._id || bid?.id;
     const isActionRequired = status === "selected" || status === "backup";
     const bidPrice = bid?.bid_price || bid?.amount;
     const listingAddress =
@@ -216,12 +361,34 @@ function BidCard({ bid, isDark }: { bid: any; isDark: boolean }) {
                     {status === "selected" && (
                         <Link
                             to={`/deals?listingId=${listingId}`}
-                            className={`flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] ${isDark ? "hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]" : ""
-                                }`}
+                            className={`flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] ${
+                                isDark ? "hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]" : ""
+                            }`}
                         >
                             Go to Deal
                             <ArrowUpRight className="h-3.5 w-3.5" />
                         </Link>
+                    )}
+
+                    {/* Withdraw button — only for pending (active) bids */}
+                    {status === "active" && onWithdraw && (
+                        <button
+                            type="button"
+                            onClick={() => onWithdraw(bidId, listingAddress)}
+                            disabled={isWithdrawing}
+                            className={`flex items-center gap-1.5 border px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] transition disabled:opacity-50 ${
+                                isDark
+                                    ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/15"
+                                    : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                            }`}
+                        >
+                            {isWithdrawing ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                                <XCircle className="h-3.5 w-3.5" />
+                            )}
+                            Withdraw Bid
+                        </button>
                     )}
                 </div>
 
@@ -254,7 +421,34 @@ export default function MyBidsPage() {
     const theme = usePartnerTheme();
     const isDark = theme === "dark";
 
-    const { data: bidsData, isLoading } = useGetMyBidsQuery();
+    const { data: bidsData, isLoading, refetch, isFetching } = useGetMyBidsQuery(undefined, {
+        refetchOnMountOrArgChange: true,
+    });
+    const [deleteOwnBid, { isLoading: isWithdrawing }] = useDeleteOwnBidMutation();
+
+    const [withdrawModal, setWithdrawModal] = useState<{ open: boolean; bidId: string | null; address: string }>(
+        { open: false, bidId: null, address: "" }
+    );
+
+    function openWithdrawModal(bidId: string, address: string) {
+        setWithdrawModal({ open: true, bidId, address });
+    }
+
+    function closeWithdrawModal() {
+        setWithdrawModal({ open: false, bidId: null, address: "" });
+    }
+
+    async function confirmWithdraw() {
+        if (!withdrawModal.bidId) return;
+        try {
+            await deleteOwnBid(withdrawModal.bidId).unwrap();
+            closeWithdrawModal();
+            await refetch();
+        } catch {
+            // TODO: surface error toast
+        }
+    }
+
     const user = useAppSelector((state) => state.auth.user);
     const currentUserId = getCurrentUserId(user);
 
@@ -446,13 +640,18 @@ export default function MyBidsPage() {
                         Pending Bids ({activeBids.length})
                     </p>
                     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                        {activeBids.map((bid: any) => (
-                            <BidCard
-                                key={String(bid?._id || bid?.id)}
-                                bid={bid}
-                                isDark={isDark}
-                            />
-                        ))}
+                        {activeBids.map((bid: any) => {
+                            const bidId = bid?._id || bid?.id;
+                            return (
+                                <BidCard
+                                    key={String(bidId)}
+                                    bid={bid}
+                                    isDark={isDark}
+                                    onWithdraw={openWithdrawModal}
+                                    isWithdrawing={withdrawModal.bidId === bidId && isWithdrawing}
+                                />
+                            );
+                        })}
                     </div>
                 </div>
             )}
@@ -477,6 +676,16 @@ export default function MyBidsPage() {
                     </div>
                 </div>
             )}
+
+            {/* Withdraw Confirm Modal */}
+            <WithdrawConfirmModal
+                open={withdrawModal.open}
+                address={withdrawModal.address}
+                isLoading={isWithdrawing}
+                isDark={isDark}
+                onConfirm={confirmWithdraw}
+                onClose={closeWithdrawModal}
+            />
         </div>
     );
 }

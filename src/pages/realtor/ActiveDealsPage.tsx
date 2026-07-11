@@ -318,12 +318,12 @@ function TrackerStep({
       <div className="flex flex-col items-center">
         <div
           className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all ${done
-              ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]"
-              : current
-                ? "border-[var(--color-danger)] bg-[var(--color-danger)] shadow-[0_0_0_5px_rgba(220,38,38,0.18)]"
-                : isDark
-                  ? "border-white/10 bg-transparent"
-                  : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+            ? "border-[var(--color-secondary)] bg-[var(--color-secondary)]"
+            : current
+              ? "border-[var(--color-danger)] bg-[var(--color-danger)] shadow-[0_0_0_5px_rgba(220,38,38,0.18)]"
+              : isDark
+                ? "border-white/10 bg-transparent"
+                : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
             }`}
         >
           {done && <CheckCircle2 className="h-4 w-4 text-[var(--color-dark-main)]" />}
@@ -331,34 +331,34 @@ function TrackerStep({
         </div>
         <div
           className={`my-1 min-h-[30px] w-[2px] flex-1 transition-all ${done
-              ? "bg-[var(--color-secondary)]"
-              : isDark
-                ? "bg-white/10"
-                : "bg-[var(--color-border-light)]"
+            ? "bg-[var(--color-secondary)]"
+            : isDark
+              ? "bg-white/10"
+              : "bg-[var(--color-border-light)]"
             }`}
         />
       </div>
       <div className="pb-8 pt-1">
         <p
           className={`text-[13px] font-black uppercase tracking-wider transition-all ${done
-              ? "text-[var(--color-secondary)]"
-              : current
-                ? "text-[var(--color-danger)]"
-                : isDark
-                  ? "text-white/40"
-                  : "text-[var(--color-text-muted)]"
+            ? "text-[var(--color-secondary)]"
+            : current
+              ? "text-[var(--color-danger)]"
+              : isDark
+                ? "text-white/40"
+                : "text-[var(--color-text-muted)]"
             }`}
         >
           {title}
         </p>
         <p
           className={`mt-1.5 text-sm leading-relaxed ${done || current
-              ? isDark
-                ? "text-white/70"
-                : "text-[var(--color-text-main)]"
-              : isDark
-                ? "text-white/30"
-                : "text-[var(--color-text-muted)]"
+            ? isDark
+              ? "text-white/70"
+              : "text-[var(--color-text-main)]"
+            : isDark
+              ? "text-white/30"
+              : "text-[var(--color-text-muted)]"
             }`}
         >
           {description}
@@ -418,8 +418,8 @@ function CancelConfirmModal({
     >
       <div
         className={`w-full max-w-md rounded-2xl border shadow-[0_25px_60px_rgba(0,0,0,0.45)] ${isDark
-            ? "border-white/10 bg-[#0f0f14]"
-            : "border-[var(--color-border-light)] bg-white"
+          ? "border-white/10 bg-[#0f0f14]"
+          : "border-[var(--color-border-light)] bg-white"
           }`}
       >
         {/* Header */}
@@ -463,8 +463,8 @@ function CancelConfirmModal({
           </p>
 
           <div className={`mt-4 space-y-2.5 rounded-xl border p-4 ${isDark
-              ? "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/8"
-              : "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5"
+            ? "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/8"
+            : "border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5"
             }`}>
             {(isDeal
               ? [
@@ -499,8 +499,8 @@ function CancelConfirmModal({
             onClick={onClose}
             disabled={isLoading}
             className={`flex-1 border py-3.5 text-[11px] font-black uppercase tracking-[0.18em] transition disabled:opacity-50 ${isDark
-                ? "border-white/15 text-white/60 hover:bg-white/5"
-                : "border-[var(--color-border-light)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-soft)]"
+              ? "border-white/15 text-white/60 hover:bg-white/5"
+              : "border-[var(--color-border-light)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-soft)]"
               }`}
           >
             Keep {isDeal ? "Deal" : "Agreement"}
@@ -936,19 +936,41 @@ export default function RealtorActiveDealsPage() {
 
   async function handleRefresh() {
     await refetchDeals();
-    if (_pendingBidId) await refetchContractByBid();
+    await refetchContractByBid();
   }
 
+
+  // test this again ?? if doent work remove the await block + settime out
   async function handleDocuSealReturn() {
     try {
       setIsDocuSealRefreshing(true);
       setDocuSealError("");
+
+      // First pass — immediate refetch (may arrive before webhook lands)
       await refetchDeals();
-      if (_pendingBidId) await refetchContractByBid();
+      await refetchContractByBid();
+
+      // Second pass — delayed refetch 3 seconds later.
+      // DocuSeal fires onReturnFromSigning only 1 second after window focus,
+      // but the DocuSeal → backend webhook can take a few more seconds to
+      // update buyer_signed_at. This ensures the UI reflects the signed state.
+      await new Promise<void>((resolve) => {
+        window.setTimeout(async () => {
+          try {
+            await refetchDeals();
+            await refetchContractByBid();
+          } finally {
+            resolve();
+          }
+        }, 3000);
+      });
+      // await block end 
     } finally {
       setIsDocuSealRefreshing(false);
     }
   }
+
+
 
   async function handleCancelContract() {
     if (!contractId) return;
@@ -1300,9 +1322,9 @@ export default function RealtorActiveDealsPage() {
 
                 {/* DocuSeal Sign Button */}
                 {contractId && sellerSigned && !buyerSigned && !isCancelled && (
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-4">
                     {docuSealError && (
-                      <p className="rounded border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-3 py-2 text-[11px] font-semibold text-[var(--color-danger)]">
+                      <p className="mb-2 rounded border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-3 py-2 text-[11px] font-semibold text-[var(--color-danger)]">
                         {docuSealError}
                       </p>
                     )}
@@ -1311,18 +1333,28 @@ export default function RealtorActiveDealsPage() {
                       label="Sign Agreement (DocuSeal)"
                       loadingLabel="Opening DocuSeal..."
                       disabled={isDocuSealRefreshing}
-                      className="w-full bg-[var(--color-secondary)] py-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.01] disabled:pointer-events-none disabled:opacity-50"
+                      className="flex w-full items-center justify-center gap-2 bg-[var(--color-secondary)] py-3.5 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.01] disabled:pointer-events-none disabled:opacity-50"
                       onError={(msg) => setDocuSealError(msg)}
                       onSigningOpened={() => setDocuSealError("")}
                       onReturnFromSigning={handleDocuSealReturn}
                     />
+                  </div>
+                )}
+
+                {/* Cancel Agreement Button */}
+                {contractId && !isCancelled && !isSigned && (
+                  <div className="mt-3">
                     <button
                       type="button"
                       onClick={handleCancelContract}
                       disabled={isCancellingContract}
-                      className="w-full border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/20 disabled:pointer-events-none disabled:opacity-50"
+                      className="flex w-full items-center justify-center gap-2 border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/20 disabled:pointer-events-none disabled:opacity-50"
                     >
-                      <XCircle className="h-4 w-4 inline mr-1.5" />
+                      {isCancellingContract ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <XCircle className="h-4 w-4" />
+                      )}
                       Cancel Agreement
                     </button>
                   </div>
@@ -1421,7 +1453,10 @@ export default function RealtorActiveDealsPage() {
                     )}
                     {!hasProof && (
                       <label
-                        className={`inline-flex w-full cursor-pointer items-center justify-center gap-2 border border-[var(--color-primary)] bg-[var(--color-primary)] py-3 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:opacity-90 ${isUploadingProof ? "pointer-events-none opacity-50" : ""}`}
+                        className={`inline-flex w-full cursor-pointer items-center justify-center gap-2 border py-3.5 text-[10px] font-black uppercase tracking-[0.18em] transition hover:scale-[1.01] ${isDark
+                            ? "border-[var(--color-secondary)] bg-[var(--color-secondary)] text-[var(--color-dark-main)] shadow-[var(--shadow-premium)] hover:opacity-90"
+                            : "border-[var(--color-primary)] bg-[var(--color-primary)] text-white hover:opacity-90"
+                          } ${isUploadingProof ? "pointer-events-none opacity-50" : ""}`}
                       >
                         <Upload className="h-4 w-4" />
                         {isUploadingProof ? "Uploading..." : "Upload Marketing Proof"}
@@ -1438,8 +1473,8 @@ export default function RealtorActiveDealsPage() {
                       type="button"
                       onClick={() => setCancelModal({ open: true, type: "deal" })}
                       className={`flex w-full items-center justify-center gap-2 border px-5 py-3.5 text-[11px] font-black uppercase tracking-[0.2em] transition ${isDark
-                          ? "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/15"
-                          : "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                        ? "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/15"
+                        : "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
                         }`}
                     >
                       <XCircle className="h-4 w-4" />
@@ -1464,6 +1499,17 @@ export default function RealtorActiveDealsPage() {
                     </div>
                   </div>
                 </div>
+              )}
+
+
+              {chatUnlocked && chatRoomId && !isCancelled && entryStatus !== "closed" && (
+                <Link
+                  to={`/chat/${chatRoomId}`}
+                  className="flex w-full items-center justify-center gap-2 border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] transition hover:bg-[var(--color-secondary)]/20"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Open Deal Chat
+                </Link>
               )}
             </div>
           </div>
