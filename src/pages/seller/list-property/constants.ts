@@ -35,6 +35,11 @@ export const PROPERTY_TYPES = [
 export const STATES = [
   { code: "NY", name: "New York" },
   { code: "NJ", name: "New Jersey" },
+  { code: "MD", name: "Maryland" },
+  { code: "TX", name: "Texas" },
+  { code: "DE", name: "Delaware" },
+  { code: "FL", name: "Florida" },
+  { code: "PA", name: "Pennsylvania" },
 ];
 
 export const CONDITIONS = [
