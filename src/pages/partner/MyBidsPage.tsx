@@ -9,7 +9,6 @@ import {
     Gavel,
     History,
     Loader2,
-    RefreshCw,
     ShieldCheck,
     XCircle,
 } from "lucide-react";
@@ -421,7 +420,7 @@ export default function MyBidsPage() {
     const theme = usePartnerTheme();
     const isDark = theme === "dark";
 
-    const { data: bidsData, isLoading, refetch, isFetching } = useGetMyBidsQuery(undefined, {
+    const { data: bidsData, isLoading, refetch } = useGetMyBidsQuery(undefined, {
         refetchOnMountOrArgChange: true,
     });
     const [deleteOwnBid, { isLoading: isWithdrawing }] = useDeleteOwnBidMutation();
