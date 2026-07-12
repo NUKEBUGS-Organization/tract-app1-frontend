@@ -23,7 +23,7 @@ import {
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
 
 interface FormState {
-  license_number: string;
+  state_license_number: string;
   brokerage_name: string;
   managing_broker: string;
   office_address: string;
@@ -47,28 +47,25 @@ function InputField({
   return (
     <div>
       <label
-        className={`mb-2 block text-[11px] font-black uppercase tracking-[0.18em] ${
-          isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
-        }`}
+        className={`mb-2 block text-[11px] font-black uppercase tracking-[0.18em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+          }`}
       >
         {label}
       </label>
       <div className="relative">
         <Icon
-          className={`absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 ${
-            isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
-          }`}
+          className={`absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+            }`}
         />
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full rounded-xl border py-3.5 pl-10 pr-4 text-sm font-medium outline-none transition focus:ring-2 ${
-            isDark
-              ? "border-white/15 bg-white/[0.04] text-white placeholder:text-white/20 focus:border-[#d4af37] focus:ring-[#d4af37]/10"
-              : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)]/60 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/10"
-          }`}
+          className={`w-full rounded-xl border py-3.5 pl-10 pr-4 text-sm font-medium outline-none transition focus:ring-2 ${isDark
+            ? "border-white/15 bg-white/[0.04] text-white placeholder:text-white/20 focus:border-[#d4af37] focus:ring-[#d4af37]/10"
+            : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)]/60 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/10"
+            }`}
         />
       </div>
     </div>
@@ -90,7 +87,7 @@ export default function RealtorVerificationPage() {
   const [justSubmitted, setJustSubmitted] = useState(false);
 
   const [form, setForm] = useState<FormState>({
-    license_number: "",
+    state_license_number: "",
     brokerage_name: "",
     managing_broker: "",
     office_address: "",
@@ -118,7 +115,7 @@ export default function RealtorVerificationPage() {
   async function handleSubmit() {
     setError(null);
 
-    if (!form.license_number.trim()) {
+    if (!form.state_license_number.trim()) {
       setError("Please enter your State License Number.");
       return;
     }
@@ -137,14 +134,14 @@ export default function RealtorVerificationPage() {
 
     try {
       await submitVerification({
-        license_number: form.license_number,
+        state_license_number: form.state_license_number,
         brokerage_name: form.brokerage_name,
         managing_broker: form.managing_broker,
         office_address: form.office_address,
       }).unwrap();
 
       setJustSubmitted(true);
-      setForm({ license_number: "", brokerage_name: "", managing_broker: "", office_address: "" });
+      setForm({ state_license_number: "", brokerage_name: "", managing_broker: "", office_address: "" });
       refetchStatus();
     } catch (err: any) {
       const message =
@@ -160,11 +157,10 @@ export default function RealtorVerificationPage() {
     <div className="min-h-[calc(100vh-150px)] space-y-8">
       {/* ── Hero Header ── */}
       <section
-        className={`relative overflow-hidden rounded-2xl p-8 shadow-[var(--shadow-card)] ${
-          isDark
-            ? "bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10"
-            : "bg-[var(--color-primary)]"
-        }`}
+        className={`relative overflow-hidden rounded-2xl p-8 shadow-[var(--shadow-card)] ${isDark
+          ? "bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10"
+          : "bg-[var(--color-primary)]"
+          }`}
       >
         <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border border-white/5" />
         <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border border-white/5" />
@@ -192,24 +188,22 @@ export default function RealtorVerificationPage() {
       {/* ── Approved ── */}
       {isApproved && (
         <div
-          className={`flex items-center gap-4 rounded-2xl border p-6 shadow-[var(--shadow-card)] ${
-            isDark
-              ? "border-white/10 bg-white/[0.06]"
-              : "border-[var(--color-border-light)] bg-white"
-          }`}
+          className={`flex items-center gap-4 rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark
+            ? "border-white/10 bg-white/[0.06]"
+            : "border-[var(--color-border-light)] bg-white"
+            }`}
         >
           <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
-              isDark
-                ? "bg-[var(--color-primary)]/15 text-[var(--color-primary)]"
-                : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
-            }`}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${isDark
+              ? "bg-[var(--color-primary)]/15 text-[var(--color-primary)]"
+              : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+              }`}
           >
             <CheckCircle2 className="h-6 w-6" />
           </div>
           <div className="flex-1">
             <p className={`text-sm font-bold ${isDark ? "text-white" : "text-[var(--color-primary)]"}`}>
-              Credentials verified — Dashboard unlocked
+              Credentials verified —  Full platform access
             </p>
             <p className={`mt-0.5 text-xs ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
               You're all set. Your account has full access to the Live Property Stream.
@@ -217,11 +211,10 @@ export default function RealtorVerificationPage() {
           </div>
           <Link
             to="/properties"
-            className={`inline-flex items-center gap-2 px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition ${
-              isDark
-                ? "border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/5 text-[var(--color-secondary)] hover:bg-[var(--color-secondary)]/10"
-                : "border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 text-[var(--color-secondary)] hover:bg-[var(--color-secondary)]/20"
-            }`}
+            className={`inline-flex items-center gap-2 px-5 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition ${isDark
+              ? "border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/5 text-[var(--color-secondary)] hover:bg-[var(--color-secondary)]/10"
+              : "border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 text-[var(--color-secondary)] hover:bg-[var(--color-secondary)]/20"
+              }`}
           >
             Browse Properties
             <ArrowRight className="h-3.5 w-3.5" />
@@ -232,18 +225,16 @@ export default function RealtorVerificationPage() {
       {/* ── Pending ── */}
       {isPending && !isApproved && (
         <div
-          className={`flex items-start gap-4 rounded-2xl border p-6 shadow-[var(--shadow-card)] ${
-            isDark
-              ? "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/[0.08]"
-              : "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10"
-          }`}
+          className={`flex items-start gap-4 rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark
+            ? "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/[0.08]"
+            : "border-[var(--color-warning)]/30 bg-[var(--color-warning)]/10"
+            }`}
         >
           <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
-              isDark
-                ? "bg-[var(--color-warning)]/15 text-[var(--color-warning)]"
-                : "bg-[var(--color-warning)]/10 text-[var(--color-warning)]"
-            }`}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${isDark
+              ? "bg-[var(--color-warning)]/15 text-[var(--color-warning)]"
+              : "bg-[var(--color-warning)]/10 text-[var(--color-warning)]"
+              }`}
           >
             <Clock className="h-6 w-6" />
           </div>
@@ -253,8 +244,7 @@ export default function RealtorVerificationPage() {
             </p>
             <p className={`mt-1 text-xs leading-6 ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"}`}>
               Your credentials are under review by our admin team. This typically
-              takes 1–2 business days. Your dashboard will unlock automatically
-              once approved.
+              takes 1–2 business days. You can bid on properties once approved.
             </p>
           </div>
         </div>
@@ -263,18 +253,16 @@ export default function RealtorVerificationPage() {
       {/* ── Rejected ── */}
       {isRejected && (
         <div
-          className={`flex items-start gap-4 rounded-2xl border p-6 shadow-[var(--shadow-card)] ${
-            isDark
-              ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/[0.08]"
-              : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10"
-          }`}
+          className={`flex items-start gap-4 rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark
+            ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/[0.08]"
+            : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10"
+            }`}
         >
           <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
-              isDark
-                ? "bg-[var(--color-danger)]/15 text-[var(--color-danger)]"
-                : "bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
-            }`}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${isDark
+              ? "bg-[var(--color-danger)]/15 text-[var(--color-danger)]"
+              : "bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
+              }`}
           >
             <XCircle className="h-6 w-6" />
           </div>
@@ -295,27 +283,24 @@ export default function RealtorVerificationPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main form — 2 cols */}
           <section
-            className={`lg:col-span-2 rounded-2xl border p-6 shadow-[var(--shadow-card)] ${
-              isDark
-                ? "border-white/10 bg-white/[0.04]"
-                : "border-[var(--color-border-light)] bg-white"
-            }`}
+            className={`lg:col-span-2 rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark
+              ? "border-white/10 bg-white/[0.04]"
+              : "border-[var(--color-border-light)] bg-white"
+              }`}
           >
             <div className="mb-6 flex items-center gap-3">
               <div
-                className={`flex h-10 w-10 items-center justify-center rounded-xl border ${
-                  isDark
-                    ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
-                    : "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
-                }`}
+                className={`flex h-10 w-10 items-center justify-center rounded-xl border ${isDark
+                  ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
+                  : "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
+                  }`}
               >
                 <Building2 className="h-5 w-5 text-[var(--color-secondary)]" />
               </div>
               <div>
                 <h2
-                  className={`font-serif text-xl font-black ${
-                    isDark ? "text-white" : "text-[var(--color-primary)]"
-                  }`}
+                  className={`font-serif text-xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                    }`}
                 >
                   {isRejected ? "Resubmit Credentials" : "License & Brokerage"}
                 </h2>
@@ -329,8 +314,8 @@ export default function RealtorVerificationPage() {
               <InputField
                 label="State License Number *"
                 icon={Hash}
-                value={form.license_number}
-                onChange={(v) => set("license_number", v)}
+                value={form.state_license_number}
+                onChange={(v) => set("state_license_number", v)}
                 placeholder="e.g. NY-12345678"
                 isDark={isDark}
               />
@@ -362,11 +347,10 @@ export default function RealtorVerificationPage() {
 
             {error && (
               <div
-                className={`mt-5 rounded-xl border px-4 py-3 text-xs font-semibold ${
-                  isDark
-                    ? "bg-[var(--color-danger)]/10 border-[var(--color-danger)]/30 text-[var(--color-danger)]"
-                    : "bg-red-50 border-red-300 text-red-700"
-                }`}
+                className={`mt-5 rounded-xl border px-4 py-3 text-xs font-semibold ${isDark
+                  ? "bg-[var(--color-danger)]/10 border-[var(--color-danger)]/30 text-[var(--color-danger)]"
+                  : "bg-red-50 border-red-300 text-red-700"
+                  }`}
               >
                 {error}
               </div>
@@ -389,11 +373,10 @@ export default function RealtorVerificationPage() {
           <div className="space-y-4">
             {/* What happens next */}
             <div
-              className={`rounded-2xl border p-5 ${
-                isDark
-                  ? "border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/[0.04]"
-                  : "border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/5"
-              }`}
+              className={`rounded-2xl border p-5 ${isDark
+                ? "border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/[0.04]"
+                : "border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/5"
+                }`}
             >
               <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)]">
                 What Happens Next
@@ -408,9 +391,8 @@ export default function RealtorVerificationPage() {
                   <li key={i} className="flex items-start gap-2.5">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-secondary)]" />
                     <span
-                      className={`text-xs leading-5 ${
-                        isDark ? "text-white/50" : "text-[var(--color-text-muted)]"
-                      }`}
+                      className={`text-xs leading-5 ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"
+                        }`}
                     >
                       {item}
                     </span>
@@ -421,17 +403,15 @@ export default function RealtorVerificationPage() {
 
             {/* KYC note */}
             <div
-              className={`rounded-2xl border p-5 ${
-                isDark
-                  ? "border-white/10 bg-white/[0.03]"
-                  : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
-              }`}
+              className={`rounded-2xl border p-5 ${isDark
+                ? "border-white/10 bg-white/[0.03]"
+                : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+                }`}
             >
               <div className="flex items-start gap-2.5">
                 <Info
-                  className={`mt-0.5 h-4 w-4 shrink-0 ${
-                    isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
-                  }`}
+                  className={`mt-0.5 h-4 w-4 shrink-0 ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"
+                    }`}
                 />
                 <p className={`text-xs leading-5 ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
                   <strong className={isDark ? "text-white/60" : "text-[var(--color-text-main)]"}>
@@ -448,11 +428,10 @@ export default function RealtorVerificationPage() {
 
       {/* ── Footer ── */}
       <div
-        className={`flex items-center justify-center gap-2 rounded-xl border px-5 py-4 ${
-          isDark
-            ? "border-white/10 bg-white/[0.03]"
-            : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
-        }`}
+        className={`flex items-center justify-center gap-2 rounded-xl border px-5 py-4 ${isDark
+          ? "border-white/10 bg-white/[0.03]"
+          : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
+          }`}
       >
         <ShieldCheck
           className={`h-3.5 w-3.5 ${isDark ? "text-white/30" : "text-[var(--color-text-muted)]"}`}

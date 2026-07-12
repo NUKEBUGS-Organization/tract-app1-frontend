@@ -143,11 +143,12 @@ export default function ProofOfActivityPage() {
           >
             Upload a past contract showing your legal name, dated within the
             last 3–6 months. This confirms you're an active wholesaler and is
-            reviewed by our admin team before your dashboard unlocks.
+            reviewed by our admin team before you can bid on properties.
           </p>
         </div>
       </section>
 
+      {/* ── Approved state ── */}
       {isApproved && (
         <div
           className={`flex items-center gap-4 rounded-2xl border p-6 shadow-[var(--shadow-card)] ${isDark
@@ -168,7 +169,7 @@ export default function ProofOfActivityPage() {
               className={`text-sm font-bold ${isDark ? "text-white" : "text-[var(--color-primary)]"
                 }`}
             >
-              Proof of activity verified
+              Proof of activity verified — Full platform access
             </p>
             <p
               className={`mt-0.5 text-xs ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
@@ -219,9 +220,8 @@ export default function ProofOfActivityPage() {
                 }`}
             >
               Your document has been submitted and is awaiting review by our
-              admin team. This typically takes 1–2 business days. You'll be
-              notified once it's approved, and your dashboard will unlock
-              automatically.
+              admin team. This typically takes 1–2 business days. You can bid on
+              properties once approved.
             </p>
           </div>
         </div>

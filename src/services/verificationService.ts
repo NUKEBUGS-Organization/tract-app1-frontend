@@ -3,14 +3,14 @@ import { baseApi } from "./baseApi";
 export const verificationService = baseApi.injectEndpoints({
     endpoints: (builder) => ({
 
+        // POST verifications/wholesaler — Wholesaler uploads proof-of-activity document (multipart/form-data)
         uploadProofOfActivity: builder.mutation<any, { file: File }>({
             query: ({ file }) => {
                 const formData = new FormData();
                 formData.append("file", file);
-                formData.append("document_type", "proof_of_activity");
 
                 return {
-                    url: "verifications/proof-of-activity",
+                    url: "verifications/wholesaler",
                     method: "POST",
                     body: formData,
                 };
@@ -18,35 +18,37 @@ export const verificationService = baseApi.injectEndpoints({
             invalidatesTags: ["User"],
         }),
 
+        // GET verifications/me — Returns the authenticated user's own verification record
         getProofOfActivityStatus: builder.query<any, void>({
             query: () => ({
-                url: "verifications/proof-of-activity",
+                url: "verifications/me",
                 method: "GET",
             }),
             providesTags: ["User"],
         }),
 
-
+        // POST verifications/realtor — Realtor submits license credentials (JSON body)
         uploadRealtorVerification: builder.mutation<
             any,
             {
-                license_number: string;
+                state_license_number: string;
                 brokerage_name: string;
                 managing_broker: string;
                 office_address: string;
             }
         >({
-            query: ({ license_number, brokerage_name, managing_broker, office_address }) => ({
-                url: "verifications/realtor-credentials",
+            query: ({ state_license_number, brokerage_name, managing_broker, office_address }) => ({
+                url: "verifications/realtor",
                 method: "POST",
-                body: { license_number, brokerage_name, managing_broker, office_address },
+                body: { state_license_number, brokerage_name, managing_broker, office_address },
             }),
             invalidatesTags: ["User"],
         }),
 
+        // GET verifications/me — Returns the authenticated user's own verification record
         getRealtorVerificationStatus: builder.query<any, void>({
             query: () => ({
-                url: "verifications/realtor-credentials",
+                url: "verifications/me",
                 method: "GET",
             }),
             providesTags: ["User"],
