@@ -29,6 +29,9 @@ type Props = {
   error?: string;
 };
 
+const MIN_ADDRESS_SEARCH_CHARS = 5;
+const ADDRESS_SEARCH_DEBOUNCE_MS = 700;
+
 function createSessionToken() {
   if (
     typeof window !== "undefined" &&
@@ -180,11 +183,10 @@ function PropertyLookupSummary({ result }: { result: PropertyLookupResult }) {
 
               <p className="mt-1 font-bold text-[var(--color-text-main)]">
                 {result.last_sale_price
-                  ? `${formatMoney(result.last_sale_price)}${
-                      result.last_sale_date
-                        ? ` on ${formatDate(result.last_sale_date)}`
-                        : ""
-                    }`
+                  ? `${formatMoney(result.last_sale_price)}${result.last_sale_date
+                    ? ` on ${formatDate(result.last_sale_date)}`
+                    : ""
+                  }`
                   : "-"}
               </p>
             </div>
@@ -262,9 +264,13 @@ export default function AddressAutocomplete({ form, set, error }: Props) {
   const [selectedProperty, setSelectedProperty] =
     useState<PropertyLookupResult | null>(null);
   const [lookupError, setLookupError] = useState("");
+  const [searchError, setSearchError] = useState("");
 
   const sessionTokenRef = useRef<string>(createSessionToken());
   const latestQueryRef = useRef("");
+  const lastRequestedQueryRef = useRef("");
+  const suppressSearchAfterSelectionRef = useRef(false);
+  const searchCacheRef = useRef<Record<string, AddressSuggestion[]>>({});
 
   const [searchAddresses, { isFetching: isSearching }] =
     useLazySearchPropertyAddressesQuery();
@@ -273,7 +279,7 @@ export default function AddressAutocomplete({ form, set, error }: Props) {
     useLazySelectPropertyAddressQuery();
 
   const trimmedAddress = form.address.trim();
-  const canSearch = trimmedAddress.length >= 3;
+  const canSearch = trimmedAddress.length >= MIN_ADDRESS_SEARCH_CHARS;
 
   const visibleSuggestions = useMemo<AddressSuggestion[]>(() => {
     if (!canSearch || !isDropdownOpen) return [];
@@ -285,6 +291,31 @@ export default function AddressAutocomplete({ form, set, error }: Props) {
     sessionTokenRef.current = createSessionToken();
   }
 
+  function getSearchErrorMessage(error: any) {
+    const status = error?.status;
+    const message = error?.data?.message || error?.data?.error || error?.error;
+
+    if (Array.isArray(message)) return message.join(", ");
+
+    if (status === 401) {
+      return "Your session expired. Please sign in again.";
+    }
+
+    if (status === 429) {
+      return "Too many address searches. Please wait a moment and try again.";
+    }
+
+    if (status === 500) {
+      return "Address search is not configured on the backend.";
+    }
+
+    if (status === 502) {
+      return "Google address search is unavailable or the API key is not working.";
+    }
+
+    return message || "Address search failed. You can still fill it manually.";
+  }
+
   useEffect(() => {
     if (!isFocused || !canSearch) {
       setIsDropdownOpen(false);
@@ -292,11 +323,34 @@ export default function AddressAutocomplete({ form, set, error }: Props) {
       return;
     }
 
+    if (suppressSearchAfterSelectionRef.current) {
+      setIsDropdownOpen(false);
+      setLocalSuggestions([]);
+      return;
+    }
+
     const currentQuery = trimmedAddress;
+    const normalizedQuery = currentQuery.toLowerCase();
+
     latestQueryRef.current = currentQuery;
+
+    const cachedResults = searchCacheRef.current[normalizedQuery];
+
+    if (cachedResults) {
+      setSearchError("");
+      setLocalSuggestions(cachedResults);
+      setIsDropdownOpen(true);
+      return;
+    }
+
+    if (lastRequestedQueryRef.current === normalizedQuery) {
+      return;
+    }
 
     const timer = window.setTimeout(async () => {
       try {
+        lastRequestedQueryRef.current = normalizedQuery;
+
         const results = await searchAddresses({
           query: currentQuery,
           session_token: sessionTokenRef.current,
@@ -304,15 +358,21 @@ export default function AddressAutocomplete({ form, set, error }: Props) {
 
         if (latestQueryRef.current !== currentQuery) return;
 
-        setLocalSuggestions(toAddressSuggestions(results));
+        const normalizedResults = toAddressSuggestions(results);
+
+        searchCacheRef.current[normalizedQuery] = normalizedResults;
+
+        setSearchError("");
+        setLocalSuggestions(normalizedResults);
         setIsDropdownOpen(true);
-      } catch {
+      } catch (error: any) {
         if (latestQueryRef.current !== currentQuery) return;
 
+        setSearchError(getSearchErrorMessage(error));
         setLocalSuggestions([]);
         setIsDropdownOpen(true);
       }
-    }, 300);
+    }, ADDRESS_SEARCH_DEBOUNCE_MS);
 
     return () => {
       window.clearTimeout(timer);
@@ -321,11 +381,19 @@ export default function AddressAutocomplete({ form, set, error }: Props) {
 
   async function handleSelectSuggestion(suggestion: AddressSuggestion) {
     setLookupError("");
+    setSearchError("");
     setIsDropdownOpen(false);
     setLocalSuggestions([]);
     setSelectedProperty(null);
 
-    set("address", suggestion.description);
+suppressSearchAfterSelectionRef.current = true;
+latestQueryRef.current = suggestion.description;
+lastRequestedQueryRef.current = suggestion.description.toLowerCase();
+
+setIsDropdownOpen(false);
+setLocalSuggestions([]);
+
+set("address", suggestion.description);
 
     try {
       const result = await selectAddress({
@@ -343,12 +411,23 @@ export default function AddressAutocomplete({ form, set, error }: Props) {
   }
 
   function handleManualAddressChange(value: string) {
+    suppressSearchAfterSelectionRef.current = false;
+    
     setLookupError("");
+    setSearchError("");
     setSelectedProperty(null);
     set("address", value);
 
     if (!value.trim()) {
       resetSessionToken();
+      setIsDropdownOpen(false);
+      setLocalSuggestions([]);
+      lastRequestedQueryRef.current = "";
+      latestQueryRef.current = "";
+      return;
+    }
+
+    if (value.trim().length < MIN_ADDRESS_SEARCH_CHARS) {
       setIsDropdownOpen(false);
       setLocalSuggestions([]);
     }
@@ -377,9 +456,8 @@ export default function AddressAutocomplete({ form, set, error }: Props) {
           }}
           onChange={(event) => handleManualAddressChange(event.target.value)}
           placeholder="Start typing address, e.g. 4529 Winona Ct"
-          className={`${inputBaseCls} pr-11 ${
-            error ? inputErrorCls : inputNormalCls
-          }`}
+          className={`${inputBaseCls} pr-11 ${error ? inputErrorCls : inputNormalCls
+            }`}
         />
 
         <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]">
@@ -416,13 +494,20 @@ export default function AddressAutocomplete({ form, set, error }: Props) {
             </div>
           )}
 
-          {!isSearching && visibleSuggestions.length === 0 && (
+          {!isSearching && searchError && (
+            <div className="px-4 py-3 text-sm font-semibold text-red-600">
+              {searchError}
+            </div>
+          )}
+
+          {!isSearching && !searchError && visibleSuggestions.length === 0 && (
             <div className="px-4 py-3 text-sm font-semibold text-[var(--color-text-muted)]">
               No address suggestions found.
             </div>
           )}
 
           {!isSearching &&
+            !searchError &&
             visibleSuggestions.map((suggestion) => (
               <button
                 key={suggestion.place_id}

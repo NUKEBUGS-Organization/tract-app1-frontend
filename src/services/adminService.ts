@@ -19,6 +19,11 @@ type ScoreEventsQuery = PaginationQuery & {
   event_type?: string;
 };
 
+type AdminVerificationsQuery = PaginationQuery & {
+  type?: "realtor" | "wholesaler";
+  status?: "pending" | "approved" | "rejected";
+};
+
 function isNumericKeyObject(value: any) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
@@ -238,6 +243,56 @@ export const adminService = baseApi.injectEndpoints({
       invalidatesTags: ["Admin", "User"],
     }),
 
+    // ================= PARTNER VERIFICATIONS =================
+   
+getAdminVerifications: builder.query<any, AdminVerificationsQuery | void>({
+  query: (params) => ({
+    url: "admin/verifications",
+    method: "GET",
+    params: params ?? undefined,
+  }),
+  transformResponse: unwrapAdminResponse,
+  providesTags: ["Admin", "User"],
+}),
+
+getPendingAdminVerifications: builder.query<any, PaginationQuery | void>({
+  query: (params) => ({
+    url: "admin/verifications/pending",
+    method: "GET",
+    params: params ?? undefined,
+  }),
+  transformResponse: unwrapAdminResponse,
+  providesTags: ["Admin", "User"],
+}),
+
+getAdminVerification: builder.query<any, string>({
+  query: (id) => ({
+    url: `admin/verifications/${id}`,
+    method: "GET",
+  }),
+  transformResponse: unwrapAdminResponse,
+  providesTags: ["Admin", "User"],
+}),
+
+approveAdminVerification: builder.mutation<any, string>({
+  query: (id) => ({
+    url: `admin/verifications/${id}/approve`,
+    method: "POST",
+  }),
+  transformResponse: unwrapAdminResponse,
+  invalidatesTags: ["Admin", "User"],
+}),
+
+rejectAdminVerification: builder.mutation<any, { id: string; reason: string }>({
+  query: ({ id, reason }) => ({
+    url: `admin/verifications/${id}/reject`,
+    method: "POST",
+    body: { reason },
+  }),
+  transformResponse: unwrapAdminResponse,
+  invalidatesTags: ["Admin", "User"],
+}),
+
     // ================= LISTINGS =================
     getAdminListings: builder.query<any, PaginationQuery | void>({
       query: (params) => ({
@@ -445,6 +500,12 @@ export const {
   useGetPendingKycUsersQuery,
   useApproveKycUserMutation,
   useRejectKycUserMutation,
+
+ useGetAdminVerificationsQuery,
+useGetPendingAdminVerificationsQuery,
+useGetAdminVerificationQuery,
+useApproveAdminVerificationMutation,
+useRejectAdminVerificationMutation,
 
   useGetAdminListingsQuery,
   useGetPendingAdminListingsQuery,

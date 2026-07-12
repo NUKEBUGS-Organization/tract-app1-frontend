@@ -1,16 +1,22 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router";
 import {
   CheckCircle,
+  Eye,
+  FileText,
   FilterX,
   RefreshCcw,
   Search,
   ShieldCheck,
+  UserCheck,
   XCircle,
 } from "lucide-react";
 
 import {
   useApproveKycUserMutation,
   useGetAdminUsersQuery,
+  useGetAdminVerificationsQuery,
+  useGetPendingAdminVerificationsQuery,
   useGetPendingKycUsersQuery,
   useRejectKycUserMutation,
 } from "../../services/adminService";
@@ -20,6 +26,9 @@ import Loader from "../../components/common/Loader";
 import Button from "../../components/common/Button";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import {
+  displayValue,
+  formatDateTime,
+  getApiDoc,
   getApiList,
   getMongoId,
   getPersonName,
@@ -27,41 +36,83 @@ import {
   normalizeValue,
 } from "../../utils/adminUtils";
 
-type VerificationFilter = "pending" | "all";
+type VerificationGroupFilter = "all" | "kyc" | "partner";
+type VerificationStatusFilter = "pending" | "all" | "approved" | "rejected";
+type PartnerTypeFilter = "all" | "realtor" | "wholesaler";
 
-function formatStatusLabel(status: string) {
-  if (!status) return "Unknown";
+type VerificationItem = {
+  id: string;
+  kind: "kyc" | "partner";
+  data: any;
+  user: any;
+  type: string;
+  status: string;
+};
 
-  return status
+function formatLabel(value: any) {
+  if (!value) return "-";
+
+  return value
+    .toString()
     .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 }
 
-function formatRoleLabel(role: string) {
-  if (!role) return "-";
+function getEmail(user: any) {
+  const doc = getApiDoc(user);
 
-  return role
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  return doc?.email || "-";
+}
+
+function getRole(user: any) {
+  const doc = getApiDoc(user);
+
+  return doc?.role || "-";
+}
+
+function isAdminUser(user: any) {
+  return normalizeValue(getRole(user)) === "admin";
 }
 
 function getUserKycStatus(user: any, localStatuses: Record<string, string>) {
-  const userId = getMongoId(user);
+  const doc = getApiDoc(user);
+  const userId = getMongoId(doc);
 
-  return localStatuses[userId] || user.kyc_status || "pending";
+  return localStatuses[userId] || doc?.kyc_status || "pending";
 }
 
-function getUserEmail(user: any) {
-  return user?.email || "-";
+function getVerificationUser(verification: any) {
+  const doc = getApiDoc(verification);
+  const user = doc?.user_id;
+
+  if (user && typeof user === "object") {
+    return getApiDoc(user);
+  }
+
+  return {};
 }
 
-function getUserRole(user: any) {
-  return user?.role || "-";
+function getVerificationType(verification: any) {
+  const doc = getApiDoc(verification);
+
+  return doc?.type || "-";
 }
 
-function isPendingKyc(status: string) {
+function getVerificationStatus(verification: any) {
+  const doc = getApiDoc(verification);
+
+  return doc?.status || "pending";
+}
+
+function getSubmittedAt(item: VerificationItem) {
+  const doc = getApiDoc(item.data);
+  const user = getApiDoc(item.user);
+
+  return doc?.submitted_at || doc?.createdAt || doc?.updatedAt || user?.createdAt;
+}
+
+function isPendingStatus(status: string) {
   const normalized = normalizeValue(status);
 
   return ["pending", "submitted", "in_review", "under_review"].includes(
@@ -69,37 +120,208 @@ function isPendingKyc(status: string) {
   );
 }
 
-function isApprovedKyc(status: string) {
-  return normalizeValue(status) === "approved";
+function isApprovedStatus(status: string) {
+  const normalized = normalizeValue(status);
+
+  return normalized === "approved" || normalized === "verified";
 }
 
-function isRejectedKyc(status: string) {
+function isRejectedStatus(status: string) {
   return normalizeValue(status) === "rejected";
 }
 
-function isAdminUser(user: any) {
-  return normalizeValue(user?.role) === "admin";
+function matchesStatus(status: string, filter: VerificationStatusFilter) {
+  if (filter === "all") return true;
+  if (filter === "pending") return isPendingStatus(status);
+  if (filter === "approved") return isApprovedStatus(status);
+  if (filter === "rejected") return isRejectedStatus(status);
+
+  return true;
 }
 
-function getKycCounts(users: any[], localStatuses: Record<string, string>) {
-  return users.reduce(
-    (counts, user) => {
-      const status = getUserKycStatus(user, localStatuses);
+function buildSearchText(item: VerificationItem) {
+  const doc = getApiDoc(item.data);
+  const user = getApiDoc(item.user);
 
-      if (isPendingKyc(status)) counts.pending += 1;
-      if (isApprovedKyc(status)) counts.approved += 1;
-      if (isRejectedKyc(status)) counts.rejected += 1;
+  return [
+    item.kind,
+    item.type,
+    item.status,
+    getPersonName(user),
+    getEmail(user),
+    getRole(user),
+    doc?.kyc_status,
+    doc?.state_license_number,
+    doc?.brokerage_name,
+    doc?.managing_broker,
+    doc?.office_address,
+    doc?.document_file_name,
+    doc?.rejection_reason,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
 
-      return counts;
-    },
-    {
-      pending: 0,
-      approved: 0,
-      rejected: 0,
-    }
+function SummaryCard({
+  label,
+  value,
+  description,
+  icon,
+}: {
+  label: string;
+  value: number;
+  description: string;
+  icon: ReactNode;
+}) {
+  return (
+    <div className="rounded-3xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-5 py-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+            {label}
+          </p>
+
+          <p className="mt-1 font-serif text-2xl font-black leading-none text-[var(--color-primary)]">
+            {value}
+          </p>
+
+          <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
+            {description}
+          </p>
+        </div>
+
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--color-primary)]">
+          {icon}
+        </div>
+      </div>
+    </div>
   );
 }
 
+function AdminVerificationFilters({
+  searchValue,
+  groupFilter,
+  statusFilter,
+  partnerTypeFilter,
+  shownCount,
+  totalCount,
+  hasActiveFilters,
+  onSearchChange,
+  onGroupFilterChange,
+  onStatusFilterChange,
+  onPartnerTypeFilterChange,
+  onClear,
+}: {
+  searchValue: string;
+  groupFilter: VerificationGroupFilter;
+  statusFilter: VerificationStatusFilter;
+  partnerTypeFilter: PartnerTypeFilter;
+  shownCount: number;
+  totalCount: number;
+  hasActiveFilters: boolean;
+  onSearchChange: (value: string) => void;
+  onGroupFilterChange: (value: VerificationGroupFilter) => void;
+  onStatusFilterChange: (value: VerificationStatusFilter) => void;
+  onPartnerTypeFilterChange: (value: PartnerTypeFilter) => void;
+  onClear: () => void;
+}) {
+  return (
+    <section className="rounded-3xl border border-[var(--color-border-light)] bg-white p-4 shadow-[var(--shadow-card)]">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_180px_180px_180px_auto] xl:items-center">
+        <div className="relative">
+          <label htmlFor="verification-search" className="sr-only">
+            Search verifications
+          </label>
+
+          <Search
+            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]"
+            aria-hidden="true"
+          />
+
+          <input
+            id="verification-search"
+            type="search"
+            value={searchValue}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Search by name, email, license, brokerage, document, or status..."
+            className="h-11 w-full rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] pl-11 pr-4 text-sm font-semibold text-[var(--color-text-main)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-secondary)]/30"
+          />
+        </div>
+
+        <select
+          value={groupFilter}
+          onChange={(event) =>
+            onGroupFilterChange(event.target.value as VerificationGroupFilter)
+          }
+          className="h-11 w-full rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 text-sm font-black text-[var(--color-primary)] outline-none transition focus:border-[var(--color-secondary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-secondary)]/30"
+        >
+          <option value="all">All groups</option>
+          <option value="kyc">KYC users</option>
+          <option value="partner">Partner verifications</option>
+        </select>
+
+        <select
+          value={statusFilter}
+          onChange={(event) =>
+            onStatusFilterChange(event.target.value as VerificationStatusFilter)
+          }
+          className="h-11 w-full rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 text-sm font-black text-[var(--color-primary)] outline-none transition focus:border-[var(--color-secondary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-secondary)]/30"
+        >
+          <option value="pending">Pending</option>
+          <option value="all">All statuses</option>
+          <option value="approved">Approved / Verified</option>
+          <option value="rejected">Rejected</option>
+        </select>
+
+        <select
+          value={partnerTypeFilter}
+          onChange={(event) =>
+            onPartnerTypeFilterChange(event.target.value as PartnerTypeFilter)
+          }
+          disabled={groupFilter !== "partner"}
+          className="h-11 w-full rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 text-sm font-black text-[var(--color-primary)] outline-none transition focus:border-[var(--color-secondary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-secondary)]/30 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="all">All partners</option>
+          <option value="realtor">Realtor</option>
+          <option value="wholesaler">Wholesaler</option>
+        </select>
+
+        <button
+          type="button"
+          disabled={!hasActiveFilters}
+          onClick={onClear}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--color-border-light)] bg-white px-4 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-bg-soft)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <FilterX className="h-4 w-4" aria-hidden="true" />
+          Clear
+        </button>
+      </div>
+
+      <div className="mt-3 text-xs font-semibold text-[var(--color-text-muted)]">
+        Showing{" "}
+        <strong className="text-[var(--color-primary)]">{shownCount}</strong>{" "}
+        of{" "}
+        <strong className="text-[var(--color-primary)]">{totalCount}</strong>{" "}
+        verifications in this view.
+      </div>
+    </section>
+  );
+}
+
+function InfoBox({ label, value }: { label: string; value: any }) {
+  return (
+    <div className="rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3">
+      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+        {label}
+      </p>
+
+      <p className="mt-1 break-words text-sm font-black text-[var(--color-primary)]">
+        {displayValue(value)}
+      </p>
+    </div>
+  );
+}
 
 function ActionIconButton({
   label,
@@ -143,166 +365,86 @@ function ActionIconButton({
   );
 }
 
-function AdminVerificationFilters({
-  searchValue,
-  filter,
-  shownCount,
-  totalCount,
-  hasActiveFilters,
-  onSearchChange,
-  onFilterChange,
-  onClear,
-}: {
-  searchValue: string;
-  filter: VerificationFilter;
-  shownCount: number;
-  totalCount: number;
-  hasActiveFilters: boolean;
-  onSearchChange: (value: string) => void;
-  onFilterChange: (value: VerificationFilter) => void;
-  onClear: () => void;
-}) {
-  return (
-    <section className="rounded-3xl border border-[var(--color-border-light)] bg-white p-4 shadow-[var(--shadow-card)]">
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_220px_auto] xl:items-center">
-        <div className="relative">
-          <label htmlFor="verification-search" className="sr-only">
-            Search verification users
-          </label>
-
-          <Search
-            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]"
-            aria-hidden="true"
-          />
-
-          <input
-            id="verification-search"
-            type="search"
-            value={searchValue}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search by name, email, role, or KYC status..."
-            className="h-11 w-full rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] pl-11 pr-4 text-sm font-semibold text-[var(--color-text-main)] outline-none transition placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-secondary)]/30"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="verification-filter" className="sr-only">
-            Filter verification users
-          </label>
-
-          <select
-            id="verification-filter"
-            value={filter}
-            onChange={(event) =>
-              onFilterChange(event.target.value as VerificationFilter)
-            }
-            className="h-11 w-full rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 text-sm font-black text-[var(--color-primary)] outline-none transition focus:border-[var(--color-secondary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-secondary)]/30"
-          >
-            <option value="pending">Pending users</option>
-            <option value="all">All users</option>
-          </select>
-        </div>
-
-        <button
-          type="button"
-          disabled={!hasActiveFilters}
-          onClick={onClear}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--color-border-light)] bg-white px-4 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-bg-soft)] hover:text-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <FilterX className="h-4 w-4" aria-hidden="true" />
-          Clear
-        </button>
-      </div>
-
-      <div className="mt-3 flex flex-col gap-1 text-xs font-semibold text-[var(--color-text-muted)] sm:flex-row sm:items-center sm:justify-between">
-        <span>
-          Showing{" "}
-          <strong className="text-[var(--color-primary)]">{shownCount}</strong>{" "}
-          of{" "}
-          <strong className="text-[var(--color-primary)]">{totalCount}</strong>{" "}
-          users in this view.
-        </span>
-
-        {hasActiveFilters && (
-          <span className="text-[var(--color-primary)]">
-            Search is applied to the current loaded view.
-          </span>
-        )}
-      </div>
-    </section>
-  );
-}
-
 function VerificationCard({
-  user,
-  status,
+  item,
   isApproving,
   isRejecting,
-  onApprove,
-  onReject,
+  onApproveKyc,
+  onRejectKyc,
+  onOpenPartner,
 }: {
-  user: any;
-  status: string;
+  item: VerificationItem;
   isApproving: boolean;
   isRejecting: boolean;
-  onApprove: (user: any) => void;
-  onReject: (user: any) => void;
+  onApproveKyc: (item: VerificationItem) => void;
+  onRejectKyc: (item: VerificationItem) => void;
+  onOpenPartner: (item: VerificationItem) => void;
 }) {
-  const canTakeAction = isPendingKyc(status);
+  const user = getApiDoc(item.user);
+  const isPending = isPendingStatus(item.status);
+  const isPartner = item.kind === "partner";
 
   return (
     <article className="rounded-3xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <StatusBadge
+              label={isPartner ? formatLabel(item.type) : "KYC"}
+              variant={isPartner ? "gold" : "neutral"}
+            />
+
+            <StatusBadge
+              label={formatLabel(item.status)}
+              variant={getStatusVariant(item.status) as any}
+            />
+          </div>
+
           <p className="break-words text-base font-black leading-6 text-[var(--color-primary)]">
             {getPersonName(user)}
           </p>
 
           <p className="mt-1 break-words text-xs font-semibold text-[var(--color-text-muted)]">
-            {getUserEmail(user)}
+            {getEmail(user)}
           </p>
         </div>
-
-        <StatusBadge
-          label={formatStatusLabel(status)}
-          variant={getStatusVariant(status)}
-        />
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-            Role
-          </p>
-
-          <p className="mt-1 text-sm font-black text-[var(--color-primary)]">
-            {formatRoleLabel(getUserRole(user))}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-4 py-3">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-            Action State
-          </p>
-
-          <p className="mt-1 text-sm font-black text-[var(--color-primary)]">
-            {canTakeAction ? "Review needed" : "No action needed"}
-          </p>
-        </div>
+        <InfoBox label="Role" value={formatLabel(getRole(user))} />
+        <InfoBox label="Submitted" value={formatDateTime(getSubmittedAt(item))} />
+        <InfoBox
+          label="Action State"
+          value={isPending ? "Review needed" : "No action needed"}
+        />
+        <InfoBox
+          label={isPartner ? "Verification ID" : "User ID"}
+          value={item.id}
+        />
       </div>
 
-      {canTakeAction && (
+      {isPartner ? (
+        <Button
+          type="button"
+          variant="primary"
+          onClick={() => onOpenPartner(item)}
+          className="mt-5 w-full justify-center px-4 py-3 text-xs"
+        >
+          <Eye className="h-4 w-4" />
+          Review Details
+        </Button>
+      ) : isPending ? (
         <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Button
             type="button"
             variant="primary"
             isLoading={isApproving}
             disabled={isApproving || isRejecting}
-            onClick={() => onApprove(user)}
+            onClick={() => onApproveKyc(item)}
             className="w-full justify-center px-4 py-3 text-xs"
           >
             <CheckCircle className="h-4 w-4" />
-            Approve
+            Approve KYC
           </Button>
 
           <Button
@@ -310,33 +452,46 @@ function VerificationCard({
             variant="danger"
             isLoading={isRejecting}
             disabled={isApproving || isRejecting}
-            onClick={() => onReject(user)}
+            onClick={() => onRejectKyc(item)}
             className="w-full justify-center px-4 py-3 text-xs"
           >
             <XCircle className="h-4 w-4" />
-            Reject
+            Reject KYC
           </Button>
         </div>
-      )}
+      ) : null}
     </article>
   );
 }
 
 function AdminVerificationPage() {
-  const [filter, setFilter] = useState<VerificationFilter>("pending");
+  const navigate = useNavigate();
+
+  const [groupFilter, setGroupFilter] =
+    useState<VerificationGroupFilter>("all");
+  const [statusFilter, setStatusFilter] =
+    useState<VerificationStatusFilter>("pending");
+  const [partnerTypeFilter, setPartnerTypeFilter] =
+    useState<PartnerTypeFilter>("all");
   const [searchValue, setSearchValue] = useState("");
 
-  const [approveTarget, setApproveTarget] = useState<any | null>(null);
-  const [rejectTarget, setRejectTarget] = useState<any | null>(null);
+  const [approveKycTarget, setApproveKycTarget] =
+    useState<VerificationItem | null>(null);
+  const [rejectKycTarget, setRejectKycTarget] =
+    useState<VerificationItem | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [processingKey, setProcessingKey] = useState("");
 
-  const [processingUserId, setProcessingUserId] = useState("");
   const [localKycStatuses, setLocalKycStatuses] = useState<
     Record<string, string>
   >({});
 
-  const pendingQuery = useGetPendingKycUsersQuery(undefined, {
-    skip: filter !== "pending",
+  const shouldLoadKyc = groupFilter === "all" || groupFilter === "kyc";
+  const shouldLoadPartner = groupFilter === "all" || groupFilter === "partner";
+  const usePendingEndpoint = statusFilter === "pending";
+
+  const pendingKycQuery = useGetPendingKycUsersQuery(undefined, {
+    skip: !shouldLoadKyc || !usePendingEndpoint,
   });
 
   const allUsersQuery = useGetAdminUsersQuery(
@@ -345,106 +500,235 @@ function AdminVerificationPage() {
       limit: 500,
     },
     {
-      skip: filter !== "all",
+      skip: !shouldLoadKyc || usePendingEndpoint,
     }
   );
 
-  const activeQuery = filter === "pending" ? pendingQuery : allUsersQuery;
+  const pendingPartnerQuery = useGetPendingAdminVerificationsQuery(
+    {
+      page: 1,
+      limit: 500,
+    },
+    {
+      skip: !shouldLoadPartner || !usePendingEndpoint,
+    }
+  );
 
-  const [approveKyc, { isLoading: isApproving }] = useApproveKycUserMutation();
-  const [rejectKyc, { isLoading: isRejecting }] = useRejectKycUserMutation();
+  const allPartnerQuery = useGetAdminVerificationsQuery(
+    {
+      page: 1,
+      limit: 500,
+      ...(statusFilter !== "all" && statusFilter !== "pending"
+        ? { status: statusFilter }
+        : {}),
+      ...(partnerTypeFilter !== "all" ? { type: partnerTypeFilter } : {}),
+    },
+    {
+      skip: !shouldLoadPartner || usePendingEndpoint,
+    }
+  );
 
-  const rawUsers = getApiList(activeQuery.data) as any[];
+  const activeKycQuery = usePendingEndpoint ? pendingKycQuery : allUsersQuery;
+  const activePartnerQuery = usePendingEndpoint
+    ? pendingPartnerQuery
+    : allPartnerQuery;
 
-  const viewUsers = rawUsers
-    .filter((user: any) => !isAdminUser(user))
-    .filter((user: any) => {
-      if (filter !== "pending") return true;
+  const [approveKyc, { isLoading: isApprovingKyc }] =
+    useApproveKycUserMutation();
+  const [rejectKyc, { isLoading: isRejectingKyc }] =
+    useRejectKycUserMutation();
 
-      return isPendingKyc(getUserKycStatus(user, localKycStatuses));
+  const rawKycUsers = shouldLoadKyc
+    ? (getApiList(activeKycQuery.data) as any[])
+    : [];
+
+  const rawPartnerVerifications = shouldLoadPartner
+    ? (getApiList(activePartnerQuery.data) as any[])
+    : [];
+
+  const verificationItems = useMemo<VerificationItem[]>(() => {
+    const kycItems: VerificationItem[] = rawKycUsers
+      .filter((user: any) => !isAdminUser(user))
+      .map((user: any) => {
+        const doc = getApiDoc(user);
+        const id = getMongoId(doc);
+        const status = getUserKycStatus(doc, localKycStatuses);
+
+        return {
+          id,
+          kind: "kyc" as const,
+          data: doc,
+          user: doc,
+          type: "kyc",
+          status,
+        };
+      })
+      .filter((item) => item.id && matchesStatus(item.status, statusFilter));
+
+    const partnerItems: VerificationItem[] = rawPartnerVerifications
+      .map((verification: any) => {
+        const doc = getApiDoc(verification);
+        const id = getMongoId(doc);
+        const user = getVerificationUser(doc);
+        const type = getVerificationType(doc);
+        const status = getVerificationStatus(doc);
+
+        return {
+          id,
+          kind: "partner" as const,
+          data: doc,
+          user,
+          type,
+          status,
+        };
+      })
+      .filter((item) => {
+        if (!item.id) return false;
+
+        if (
+          groupFilter === "partner" &&
+          partnerTypeFilter !== "all" &&
+          normalizeValue(item.type) !== partnerTypeFilter
+        ) {
+          return false;
+        }
+
+        return matchesStatus(item.status, statusFilter);
+      });
+
+    return [...kycItems, ...partnerItems].sort((a, b) => {
+      const aTime = new Date(getSubmittedAt(a) || 0).getTime();
+      const bTime = new Date(getSubmittedAt(b) || 0).getTime();
+
+      return bTime - aTime;
     });
+  }, [
+    rawKycUsers,
+    rawPartnerVerifications,
+    localKycStatuses,
+    statusFilter,
+    groupFilter,
+    partnerTypeFilter,
+  ]);
 
-  const users = useMemo(() => {
+  const filteredItems = useMemo(() => {
     const normalizedSearch = searchValue.trim().toLowerCase();
 
-    if (!normalizedSearch) return viewUsers;
+    if (!normalizedSearch) return verificationItems;
 
-    return viewUsers.filter((user: any) => {
-      const status = getUserKycStatus(user, localKycStatuses);
+    return verificationItems.filter((item) =>
+      buildSearchText(item).includes(normalizedSearch)
+    );
+  }, [verificationItems, searchValue]);
 
-      const searchText = [
-        getPersonName(user),
-        getUserEmail(user),
-        getUserRole(user),
-        formatStatusLabel(status),
-      ]
-        .join(" ")
-        .toLowerCase();
+  const pendingCount = verificationItems.filter((item) =>
+    isPendingStatus(item.status)
+  ).length;
 
-      return searchText.includes(normalizedSearch);
-    });
-  }, [viewUsers, searchValue, localKycStatuses]);
+  const kycCount = verificationItems.filter(
+    (item) => item.kind === "kyc"
+  ).length;
 
-  const counts = getKycCounts(viewUsers, localKycStatuses);
-  const pendingUsersCount = counts.pending;
+  const partnerCount = verificationItems.filter(
+    (item) => item.kind === "partner"
+  ).length;
+
+  const isLoading =
+    (shouldLoadKyc &&
+      (activeKycQuery.isLoading || activeKycQuery.isFetching)) ||
+    (shouldLoadPartner &&
+      (activePartnerQuery.isLoading || activePartnerQuery.isFetching));
+
+  const isError =
+    (shouldLoadKyc && activeKycQuery.isError) ||
+    (shouldLoadPartner && activePartnerQuery.isError);
+
   const hasActiveFilters =
-    searchValue.trim().length > 0 || filter !== "pending";
+    searchValue.trim().length > 0 ||
+    groupFilter !== "all" ||
+    statusFilter !== "pending" ||
+    partnerTypeFilter !== "all";
 
   function clearFilters() {
     setSearchValue("");
-    setFilter("pending");
+    setGroupFilter("all");
+    setStatusFilter("pending");
+    setPartnerTypeFilter("all");
   }
 
-  async function handleApprove() {
-    if (!approveTarget) return;
+  function refetchQueues() {
+    if (shouldLoadKyc) {
+      activeKycQuery.refetch();
+    }
 
-    const userId = getMongoId(approveTarget);
-
-    try {
-      setProcessingUserId(userId);
-
-      await approveKyc(userId).unwrap();
-
-      setLocalKycStatuses((current) => ({
-        ...current,
-        [userId]: "approved",
-      }));
-
-      setApproveTarget(null);
-      activeQuery.refetch();
-    } finally {
-      setProcessingUserId("");
+    if (shouldLoadPartner) {
+      activePartnerQuery.refetch();
     }
   }
 
-  async function handleReject() {
-    if (!rejectTarget || rejectReason.trim().length < 3) return;
+  function getItemProcessingKey(item: VerificationItem) {
+    return `${item.kind}:${item.id}`;
+  }
 
-    const userId = getMongoId(rejectTarget);
+  function openPartnerDetails(item: VerificationItem) {
+    navigate(`/verifications/${item.id}`);
+  }
+
+  async function handleApproveKyc() {
+    if (!approveKycTarget) return;
+
+    const key = getItemProcessingKey(approveKycTarget);
 
     try {
-      setProcessingUserId(userId);
+      setProcessingKey(key);
+
+      await approveKyc(approveKycTarget.id).unwrap();
+
+      setLocalKycStatuses((current) => ({
+        ...current,
+        [approveKycTarget.id]: "verified",
+      }));
+
+      setApproveKycTarget(null);
+      refetchQueues();
+    } finally {
+      setProcessingKey("");
+    }
+  }
+
+  async function handleRejectKyc() {
+    if (!rejectKycTarget || rejectReason.trim().length < 3) return;
+
+    const key = getItemProcessingKey(rejectKycTarget);
+
+    try {
+      setProcessingKey(key);
 
       await rejectKyc({
-        id: userId,
+        id: rejectKycTarget.id,
         reason: rejectReason.trim(),
       }).unwrap();
 
       setLocalKycStatuses((current) => ({
         ...current,
-        [userId]: "rejected",
+        [rejectKycTarget.id]: "rejected",
       }));
 
-      setRejectTarget(null);
+      setRejectKycTarget(null);
       setRejectReason("");
-      activeQuery.refetch();
+      refetchQueues();
     } finally {
-      setProcessingUserId("");
+      setProcessingKey("");
     }
   }
 
-  const approveTargetId = approveTarget ? getMongoId(approveTarget) : "";
-  const rejectTargetId = rejectTarget ? getMongoId(rejectTarget) : "";
+  const approveKycTargetKey = approveKycTarget
+    ? getItemProcessingKey(approveKycTarget)
+    : "";
+
+  const rejectKycTargetKey = rejectKycTarget
+    ? getItemProcessingKey(rejectKycTarget)
+    : "";
 
   return (
     <div className="min-w-0 space-y-6 overflow-x-hidden">
@@ -461,48 +745,71 @@ function AdminVerificationPage() {
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">
-              Review user KYC submissions, approve verified users, or reject
-              incomplete applications with a clear reason.
+              Review KYC users, realtor license submissions, and wholesaler
+              proof documents from one admin queue.
             </p>
           </div>
 
-          <div className="rounded-3xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-5 py-4">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-              Pending Users
-            </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:min-w-[520px]">
+            <SummaryCard
+              label="Pending"
+              value={pendingCount}
+              description="Waiting review"
+              icon={<ShieldCheck className="h-5 w-5" />}
+            />
 
-            <p className="mt-1 font-serif text-2xl font-black leading-none text-[var(--color-primary)]">
-              {pendingUsersCount}
-            </p>
+            <SummaryCard
+              label="KYC"
+              value={kycCount}
+              description="User identity"
+              icon={<UserCheck className="h-5 w-5" />}
+            />
 
-            <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
-              Waiting for KYC review
-            </p>
+            <SummaryCard
+              label="Partners"
+              value={partnerCount}
+              description="Realtor / wholesaler"
+              icon={<FileText className="h-5 w-5" />}
+            />
           </div>
         </div>
       </section>
 
-      {!activeQuery.isLoading && !activeQuery.isError && viewUsers.length > 0 && (
+      {!isLoading && !isError && (
         <AdminVerificationFilters
           searchValue={searchValue}
-          filter={filter}
-          shownCount={users.length}
-          totalCount={viewUsers.length}
+          groupFilter={groupFilter}
+          statusFilter={statusFilter}
+          partnerTypeFilter={partnerTypeFilter}
+          shownCount={filteredItems.length}
+          totalCount={verificationItems.length}
           hasActiveFilters={hasActiveFilters}
           onSearchChange={setSearchValue}
-          onFilterChange={(value) => {
-            setFilter(value);
+          onGroupFilterChange={(value) => {
+            setGroupFilter(value);
+            setSearchValue("");
+
+            if (value !== "partner") {
+              setPartnerTypeFilter("all");
+            }
+          }}
+          onStatusFilterChange={(value) => {
+            setStatusFilter(value);
+            setSearchValue("");
+          }}
+          onPartnerTypeFilterChange={(value) => {
+            setPartnerTypeFilter(value);
             setSearchValue("");
           }}
           onClear={clearFilters}
         />
       )}
 
-      {activeQuery.isLoading ? (
+      {isLoading ? (
         <div className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
           <Loader label="Loading verification queue..." />
         </div>
-      ) : activeQuery.isError ? (
+      ) : isError ? (
         <div className="rounded-3xl border border-[var(--color-danger)]/15 bg-white p-6 shadow-[var(--shadow-card)]">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -511,14 +818,14 @@ function AdminVerificationPage() {
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">
-                Something went wrong while loading KYC users.
+                Something went wrong while loading verification records.
               </p>
             </div>
 
             <Button
               type="button"
               variant="outline"
-              onClick={() => activeQuery.refetch()}
+              onClick={refetchQueues}
               className="justify-center"
             >
               <RefreshCcw className="h-4 w-4" />
@@ -526,22 +833,20 @@ function AdminVerificationPage() {
             </Button>
           </div>
         </div>
-      ) : users.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <div className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 text-center shadow-[var(--shadow-card)]">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-bg-soft)] text-[var(--color-primary)]">
             <ShieldCheck className="h-5 w-5" aria-hidden="true" />
           </div>
 
           <h2 className="mt-4 text-base font-black text-[var(--color-primary)]">
-            No verification users found
+            No verifications found
           </h2>
 
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--color-text-muted)]">
             {hasActiveFilters
-              ? "No users match your current search or filter selection."
-              : filter === "pending"
-                ? "There are no pending KYC users right now."
-                : "No users were found."}
+              ? "No verification records match your current filters."
+              : "There are no pending verification records right now."}
           </p>
 
           {hasActiveFilters && (
@@ -557,19 +862,18 @@ function AdminVerificationPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 2xl:hidden">
-            {users.map((user: any) => {
-              const userId = getMongoId(user);
-              const status = getUserKycStatus(user, localKycStatuses);
+            {filteredItems.map((item) => {
+              const key = getItemProcessingKey(item);
 
               return (
                 <VerificationCard
-                  key={userId}
-                  user={user}
-                  status={status}
-                  isApproving={isApproving && processingUserId === userId}
-                  isRejecting={isRejecting && processingUserId === userId}
-                  onApprove={setApproveTarget}
-                  onReject={setRejectTarget}
+                  key={key}
+                  item={item}
+                  isApproving={isApprovingKyc && processingKey === key}
+                  isRejecting={isRejectingKyc && processingKey === key}
+                  onApproveKyc={setApproveKycTarget}
+                  onRejectKyc={setRejectKycTarget}
+                  onOpenPartner={openPartnerDetails}
                 />
               );
             })}
@@ -580,16 +884,16 @@ function AdminVerificationPage() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h2 className="text-sm font-black text-[var(--color-primary)]">
-                    Verification Users
+                    Verification Records
                   </h2>
 
                   <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
-                    Review user identity status and take approval action.
+                    Review identity, license, and document verification records.
                   </p>
                 </div>
 
                 <span className="rounded-full bg-[var(--color-bg-soft)] px-3 py-1 text-xs font-black text-[var(--color-text-muted)]">
-                  {users.length} shown
+                  {filteredItems.length} shown
                 </span>
               </div>
             </div>
@@ -597,39 +901,44 @@ function AdminVerificationPage() {
             <table className="w-full table-fixed text-left">
               <thead className="bg-[var(--color-bg-soft)]">
                 <tr>
-                  <th className="w-[34%] px-6 py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                  <th className="w-[27%] px-6 py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
                     User
                   </th>
 
-                  <th className="w-[20%] px-6 py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                    Role
+                  <th className="w-[17%] px-6 py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    Group
                   </th>
 
-                  <th className="w-[22%] px-6 py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                    KYC Status
+                  <th className="w-[17%] px-6 py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    Status
                   </th>
 
-                  <th className="w-[24%] px-6 py-4 text-center text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                  <th className="w-[23%] px-6 py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    Submitted
+                  </th>
+
+                  <th className="w-[16%] px-6 py-4 text-center text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
                     Actions
                   </th>
                 </tr>
               </thead>
 
               <tbody>
-                {users.map((user: any) => {
-                  const userId = getMongoId(user);
-                  const status = getUserKycStatus(user, localKycStatuses);
-                  const canTakeAction = isPendingKyc(status);
+                {filteredItems.map((item) => {
+                  const key = getItemProcessingKey(item);
+                  const user = getApiDoc(item.user);
+                  const isPartner = item.kind === "partner";
+                  const isPending = isPendingStatus(item.status);
 
                   const isThisApproving =
-                    isApproving && processingUserId === userId;
+                    isApprovingKyc && processingKey === key;
 
                   const isThisRejecting =
-                    isRejecting && processingUserId === userId;
+                    isRejectingKyc && processingKey === key;
 
                   return (
                     <tr
-                      key={userId}
+                      key={key}
                       className="border-t border-[var(--color-border-light)] transition-colors duration-200 hover:bg-[var(--color-bg-soft)]/60"
                     >
                       <td className="px-6 py-5">
@@ -638,30 +947,53 @@ function AdminVerificationPage() {
                         </p>
 
                         <p className="mt-1 line-clamp-1 text-xs font-semibold text-[var(--color-text-muted)]">
-                          {getUserEmail(user)}
+                          {getEmail(user)}
                         </p>
-                      </td>
 
-                      <td className="px-6 py-5 text-sm font-bold text-[var(--color-text-main)]">
-                        {formatRoleLabel(getUserRole(user))}
+                        <p className="mt-1 text-xs font-bold text-[var(--color-text-muted)]">
+                          {formatLabel(getRole(user))}
+                        </p>
                       </td>
 
                       <td className="px-6 py-5">
                         <StatusBadge
-                          label={formatStatusLabel(status)}
-                          variant={getStatusVariant(status)}
+                          label={isPartner ? formatLabel(item.type) : "KYC"}
+                          variant={isPartner ? "gold" : "neutral"}
                         />
                       </td>
 
                       <td className="px-6 py-5">
-                        {canTakeAction ? (
+                        <StatusBadge
+                          label={formatLabel(item.status)}
+                          variant={getStatusVariant(item.status) as any}
+                        />
+                      </td>
+
+                      <td className="px-6 py-5 text-sm font-bold text-[var(--color-text-main)]">
+                        {formatDateTime(getSubmittedAt(item))}
+                      </td>
+
+                      <td className="px-6 py-5">
+                        {isPartner ? (
+                          <div className="flex justify-center">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => openPartnerDetails(item)}
+                              className="justify-center px-4 py-2 text-xs"
+                            >
+                              <Eye className="h-4 w-4" />
+                              Details
+                            </Button>
+                          </div>
+                        ) : isPending ? (
                           <div className="flex min-w-[92px] items-center justify-center gap-2">
                             <ActionIconButton
                               label="Approve KYC"
                               variant="success"
                               isLoading={isThisApproving}
                               disabled={isThisApproving || isThisRejecting}
-                              onClick={() => setApproveTarget(user)}
+                              onClick={() => setApproveKycTarget(item)}
                               icon={
                                 <CheckCircle
                                   className="h-4 w-4 shrink-0"
@@ -675,7 +1007,7 @@ function AdminVerificationPage() {
                               variant="danger"
                               isLoading={isThisRejecting}
                               disabled={isThisApproving || isThisRejecting}
-                              onClick={() => setRejectTarget(user)}
+                              onClick={() => setRejectKycTarget(item)}
                               icon={
                                 <XCircle
                                   className="h-4 w-4 shrink-0"
@@ -700,34 +1032,36 @@ function AdminVerificationPage() {
       )}
 
       <ConfirmModal
-        isOpen={Boolean(approveTarget)}
+        isOpen={Boolean(approveKycTarget)}
         variant="success"
         title="Approve KYC?"
-        description={`Are you sure you want to approve KYC for ${approveTarget ? getPersonName(approveTarget) : "this user"
-          }?`}
+        description={`Are you sure you want to approve KYC for ${
+          approveKycTarget ? getPersonName(approveKycTarget.user) : "this user"
+        }?`}
         icon={<CheckCircle className="h-5 w-5" />}
         confirmLabel="Approve KYC"
         loadingLabel="Approving..."
-        isLoading={isApproving && processingUserId === approveTargetId}
-        onCancel={() => setApproveTarget(null)}
-        onConfirm={handleApprove}
+        isLoading={isApprovingKyc && processingKey === approveKycTargetKey}
+        onCancel={() => setApproveKycTarget(null)}
+        onConfirm={handleApproveKyc}
       />
 
       <ConfirmModal
-        isOpen={Boolean(rejectTarget)}
+        isOpen={Boolean(rejectKycTarget)}
         variant="danger"
         title="Reject KYC?"
-        description={`This will mark ${rejectTarget ? getPersonName(rejectTarget) : "this user"
-          }'s KYC as rejected.`}
+        description={`This will mark ${
+          rejectKycTarget ? getPersonName(rejectKycTarget.user) : "this user"
+        }'s KYC as rejected.`}
         icon={<XCircle className="h-5 w-5" />}
         confirmLabel="Reject KYC"
         loadingLabel="Rejecting..."
-        isLoading={isRejecting && processingUserId === rejectTargetId}
+        isLoading={isRejectingKyc && processingKey === rejectKycTargetKey}
         onCancel={() => {
-          setRejectTarget(null);
+          setRejectKycTarget(null);
           setRejectReason("");
         }}
-        onConfirm={handleReject}
+        onConfirm={handleRejectKyc}
       >
         <div>
           <label
