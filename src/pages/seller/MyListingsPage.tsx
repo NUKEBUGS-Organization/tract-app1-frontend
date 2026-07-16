@@ -87,7 +87,8 @@ function getStatus(listing: any) {
 
 function isEditableListing(listing: any) {
   const status = getStatus(listing);
-  return status === "draft" || status === "withdrawn";
+
+  return status === "draft" || status === "withdrawn" || status === "rejected";
 }
 
 function formatStatus(status?: string) {

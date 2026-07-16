@@ -43,20 +43,6 @@ function getListingsFromDashboard(response: any) {
   return [];
 }
 
-// function getBidsFromResponse(response: any) {
-//   const payload = getApiPayload(response);
-
-//   if (Array.isArray(payload?.bids)) return payload.bids;
-//   if (Array.isArray(payload?.data)) return payload.data;
-//   if (Array.isArray(payload)) return payload;
-
-//   return [];
-// }
-
-function getBidFromResponse(response: any) {
-  const payload = getApiPayload(response);
-  return payload?.bid ?? payload;
-}
 
 function getErrorMessage(error: any, fallback: string) {
   const message = error?.data?.message || error?.data?.error || error?.error;
@@ -126,26 +112,89 @@ function getListingLabel(listing: any) {
   return `${address}${state}${zip}`;
 }
 
-function getBidderName(bid: any) {
+function unwrapMongoDoc(value: any): any {
+  if (!value) return null;
+
+  if (value?._doc) {
+    return {
+      ...value._doc,
+      _id: value._doc._id ?? value._id,
+      id: value._doc.id ?? value._doc._id ?? value._id ?? value.id,
+    };
+  }
+
+  return value;
+}
+
+function getBidFromResponse(response: any) {
+  const payload = getApiPayload(response);
+
+  const bid =
+    payload?.bid ??
+    payload?.data?.bid ??
+    payload?.data ??
+    payload;
+
+  return unwrapMongoDoc(bid);
+}
+
+function getBidder(bid: any) {
+  const cleanBid = unwrapMongoDoc(bid);
+
   return (
-    bid?.bidder_id?.full_name ||
-    bid?.bidder_id?.email ||
-    bid?.bidder_name ||
-    "Unknown Bidder"
+    cleanBid?.bidder_id ||
+    cleanBid?.bidder ||
+    cleanBid?.buyer_id ||
+    cleanBid?.user ||
+    null
   );
+}
+
+function getBidderName(bid: any) {
+  const cleanBid = unwrapMongoDoc(bid);
+  const bidder = getBidder(cleanBid);
+
+  if (bidder && typeof bidder === "object") {
+    return (
+      bidder.full_name ||
+      bidder.name ||
+      bidder.email ||
+      cleanBid?.bidder_name ||
+      "Unknown Bidder"
+    );
+  }
+
+  return cleanBid?.bidder_name || cleanBid?.bidder_email || "Unknown Bidder";
 }
 
 function getBidderRole(bid: any) {
-  return bid?.bidder_id?.role || "-";
+  const cleanBid = unwrapMongoDoc(bid);
+  const bidder = getBidder(cleanBid);
+
+  if (bidder && typeof bidder === "object") {
+    return bidder.role || "-";
+  }
+
+  return cleanBid?.bidder_role || "-";
 }
 
 function getReliabilityScore(bid: any) {
-  return Number(
-    bid?.bidder_id?.reliability_score ||
-    bid?.bidder_id?.professional_score ||
-    0
-  );
+  const cleanBid = unwrapMongoDoc(bid);
+  const bidder = getBidder(cleanBid);
+
+  if (bidder && typeof bidder === "object") {
+    return Number(
+      bidder.reliability_score ||
+        bidder.professional_score ||
+        cleanBid?.reliability_score ||
+        cleanBid?.professional_score ||
+        0
+    );
+  }
+
+  return Number(cleanBid?.reliability_score || cleanBid?.professional_score || 0);
 }
+
 
 function getBidId(bid: any) {
   return bid?._id || bid?.id;

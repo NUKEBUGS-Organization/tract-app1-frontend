@@ -13,6 +13,17 @@ type RoomMessagesQuery = PaginationQuery & {
   roomId: string;
 };
 
+type ScoreEventsQuery = PaginationQuery & {
+  user_id?: string;
+  deal_id?: string;
+  event_type?: string;
+};
+
+type AdminVerificationsQuery = PaginationQuery & {
+  type?: "realtor" | "wholesaler";
+  status?: "pending" | "approved" | "rejected";
+};
+
 function isNumericKeyObject(value: any) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
@@ -49,14 +60,10 @@ function normalizeMongoRecord(item: any): any {
 function normalizeAdminPayload(payload: any): any {
   if (!payload) return payload;
 
-  // Backend sometimes returns object-shaped list:
-  // { "0": {...}, "1": {...} }
   if (isNumericKeyObject(payload)) {
     return numericKeyObjectToArray(payload).map(normalizeMongoRecord);
   }
 
-  // Paginated response:
-  // { data: [...], pagination: {...} }
   if (Array.isArray(payload?.data)) {
     return {
       ...payload,
@@ -64,8 +71,6 @@ function normalizeAdminPayload(payload: any): any {
     };
   }
 
-  // Nested object-shaped list:
-  // { data: { "0": {...}, "1": {...} } }
   if (isNumericKeyObject(payload?.data)) {
     return {
       ...payload,
@@ -73,12 +78,10 @@ function normalizeAdminPayload(payload: any): any {
     };
   }
 
-  // Direct array response
   if (Array.isArray(payload)) {
     return payload.map(normalizeMongoRecord);
   }
 
-  // Single record
   return normalizeMongoRecord(payload);
 }
 
@@ -145,6 +148,72 @@ export const adminService = baseApi.injectEndpoints({
       invalidatesTags: ["Admin", "User"],
     }),
 
+    // ================= SCORES =================
+    getAdminUserScore: builder.query<any, string>({
+      query: (id) => ({
+        url: `users/${id}/score`,
+        method: "GET",
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin", "User"],
+    }),
+
+    getAdminScoreEvents: builder.query<any, ScoreEventsQuery | void>({
+      query: (params) => ({
+        url: "admin/scores",
+        method: "GET",
+        params: params ?? undefined,
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin"],
+    }),
+
+    getAdminScoreRules: builder.query<any, void>({
+      query: () => ({
+        url: "admin/score-rules",
+        method: "GET",
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin"],
+    }),
+
+    applyAdminScorePenalty: builder.mutation<
+      any,
+      {
+        user_id: string;
+        event_type: string;
+        deal_id?: string;
+        note?: string;
+        delta?: number;
+      }
+    >({
+      query: (body) => ({
+        url: "scores/penalty",
+        method: "POST",
+        body,
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "User"],
+    }),
+
+    resetAdminUserScore: builder.mutation<
+      any,
+      {
+        userId: string;
+        note?: string;
+      }
+    >({
+      query: ({ userId, note }) => ({
+        url: `admin/scores/${userId}/reset`,
+        method: "POST",
+        body: {
+          ...(note ? { note } : {}),
+        },
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "User"],
+    }),
+
     // ================= KYC =================
     getPendingKycUsers: builder.query<any, void>({
       query: () => ({
@@ -174,93 +243,143 @@ export const adminService = baseApi.injectEndpoints({
       invalidatesTags: ["Admin", "User"],
     }),
 
-   // ================= LISTINGS =================
-getAdminListings: builder.query<any, PaginationQuery | void>({
+    // ================= PARTNER VERIFICATIONS =================
+   
+getAdminVerifications: builder.query<any, AdminVerificationsQuery | void>({
   query: (params) => ({
-    url: "admin/listings",
+    url: "admin/verifications",
     method: "GET",
     params: params ?? undefined,
   }),
   transformResponse: unwrapAdminResponse,
-  providesTags: ["Admin", "Property"],
+  providesTags: ["Admin", "User"],
 }),
 
-getPendingAdminListings: builder.query<any, PaginationQuery | void>({
+getPendingAdminVerifications: builder.query<any, PaginationQuery | void>({
   query: (params) => ({
-    url: "admin/listings/pending",
+    url: "admin/verifications/pending",
     method: "GET",
     params: params ?? undefined,
   }),
   transformResponse: unwrapAdminResponse,
-  providesTags: ["Admin", "Property"],
+  providesTags: ["Admin", "User"],
 }),
 
-getAdminListing: builder.query<any, string>({
+getAdminVerification: builder.query<any, string>({
   query: (id) => ({
-    url: `admin/listings/${id}`,
+    url: `admin/verifications/${id}`,
     method: "GET",
   }),
   transformResponse: unwrapAdminResponse,
-  providesTags: ["Admin", "Property"],
+  providesTags: ["Admin", "User"],
 }),
 
-approveAdminListing: builder.mutation<any, string>({
+approveAdminVerification: builder.mutation<any, string>({
   query: (id) => ({
-    url: `admin/listings/${id}/approve`,
+    url: `admin/verifications/${id}/approve`,
     method: "POST",
   }),
   transformResponse: unwrapAdminResponse,
-  invalidatesTags: ["Admin", "Property"],
+  invalidatesTags: ["Admin", "User"],
 }),
 
-rejectAdminListing: builder.mutation<any, { id: string; reason: string }>({
+rejectAdminVerification: builder.mutation<any, { id: string; reason: string }>({
   query: ({ id, reason }) => ({
-    url: `admin/listings/${id}/reject`,
+    url: `admin/verifications/${id}/reject`,
     method: "POST",
     body: { reason },
   }),
   transformResponse: unwrapAdminResponse,
-  invalidatesTags: ["Admin", "Property"],
+  invalidatesTags: ["Admin", "User"],
 }),
 
-deleteAdminListing: builder.mutation<any, string>({
-  query: (id) => ({
-    url: `admin/listings/${id}`,
-    method: "DELETE",
-  }),
-  transformResponse: unwrapAdminResponse,
-  invalidatesTags: ["Admin", "Property"],
-}),
+    // ================= LISTINGS =================
+    getAdminListings: builder.query<any, PaginationQuery | void>({
+      query: (params) => ({
+        url: "admin/listings",
+        method: "GET",
+        params: params ?? undefined,
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin", "Property"],
+    }),
 
-updateAdminListing: builder.mutation<any, { id: string; body: any }>({
-  query: ({ id, body }) => ({
-    url: `admin/listings/${id}`,
-    method: "PATCH",
-    body,
-  }),
-  transformResponse: unwrapAdminResponse,
-  invalidatesTags: ["Admin", "Property"],
-}),
+    getPendingAdminListings: builder.query<any, PaginationQuery | void>({
+      query: (params) => ({
+        url: "admin/listings/pending",
+        method: "GET",
+        params: params ?? undefined,
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin", "Property"],
+    }),
 
-updateAdminListingStatus: builder.mutation<
-  any,
-  {
-    id: string;
-    status: string;
-    reason?: string;
-  }
->({
-  query: ({ id, status, reason }) => ({
-    url: `admin/listings/${id}/status`,
-    method: "PATCH",
-    body: {
-      status,
-      ...(reason ? { reason } : {}),
-    },
-  }),
-  transformResponse: unwrapAdminResponse,
-  invalidatesTags: ["Admin", "Property"],
-}),
+    getAdminListing: builder.query<any, string>({
+      query: (id) => ({
+        url: `admin/listings/${id}`,
+        method: "GET",
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin", "Property"],
+    }),
+
+    approveAdminListing: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `admin/listings/${id}/approve`,
+        method: "POST",
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "Property", "Notification" as any],
+    }),
+
+    rejectAdminListing: builder.mutation<any, { id: string; reason: string }>({
+      query: ({ id, reason }) => ({
+        url: `admin/listings/${id}/reject`,
+        method: "POST",
+        body: { reason },
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "Property", "Notification" as any],
+    }),
+
+    deleteAdminListing: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `admin/listings/${id}`,
+        method: "DELETE",
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "Property"],
+    }),
+
+    updateAdminListing: builder.mutation<any, { id: string; body: any }>({
+      query: ({ id, body }) => ({
+        url: `admin/listings/${id}`,
+        method: "PATCH",
+        body,
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "Property"],
+    }),
+
+    updateAdminListingStatus: builder.mutation<
+      any,
+      {
+        id: string;
+        status: string;
+        reason?: string;
+      }
+    >({
+      query: ({ id, status, reason }) => ({
+        url: `admin/listings/${id}/status`,
+        method: "PATCH",
+        body: {
+          status,
+          ...(reason ? { reason } : {}),
+        },
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "Property"],
+    }),
 
     // ================= BIDS =================
     getAdminBids: builder.query<any, PaginationQuery | void>({
@@ -372,9 +491,21 @@ export const {
   useBanAdminUserMutation,
   useUnbanAdminUserMutation,
 
+  useGetAdminUserScoreQuery,
+  useGetAdminScoreEventsQuery,
+  useGetAdminScoreRulesQuery,
+  useApplyAdminScorePenaltyMutation,
+  useResetAdminUserScoreMutation,
+
   useGetPendingKycUsersQuery,
   useApproveKycUserMutation,
   useRejectKycUserMutation,
+
+ useGetAdminVerificationsQuery,
+useGetPendingAdminVerificationsQuery,
+useGetAdminVerificationQuery,
+useApproveAdminVerificationMutation,
+useRejectAdminVerificationMutation,
 
   useGetAdminListingsQuery,
   useGetPendingAdminListingsQuery,

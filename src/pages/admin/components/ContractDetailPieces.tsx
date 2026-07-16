@@ -474,7 +474,7 @@ export function ContractImageViewer({
           </h3>
 
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--color-text-muted)]">
-            The backend did not return a PDF URL or page images for this
+            No PDF URL or page images for this
             contract yet.
           </p>
         </div>

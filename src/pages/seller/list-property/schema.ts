@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { MAX_IMAGE_SIZE, MAX_IMAGES, MIN_IMAGES } from "./constants";
+import { MAX_IMAGE_SIZE, MAX_IMAGES, MIN_IMAGES, STATES } from "./constants";
 
 const currentYear = new Date().getFullYear();
 
 const propertyTypes = ["sfh", "multi_family", "land"];
-const states = ["NY", "NJ"];
+const states = STATES.map((state) => state.code);
 const conditions = ["excellent", "good", "fair", "poor"];
 
 const requiredText = (message: string) =>
