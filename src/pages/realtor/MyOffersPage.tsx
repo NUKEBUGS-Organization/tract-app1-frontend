@@ -494,10 +494,10 @@ export default function RealtorMyOffersPage() {
   const allOffers = rawOffers;
 
   const activeOffers = allOffers.filter((b) =>
-    ["active", "selected", "backup"].includes(getOfferStatus(b)),
+    ["active", "selected"].includes(getOfferStatus(b)),
   );
   const pastOffers = allOffers.filter((b) =>
-    ["rejected", "deleted"].includes(getOfferStatus(b)),
+    ["backup", "rejected", "deleted"].includes(getOfferStatus(b)),
   );
 
   return (

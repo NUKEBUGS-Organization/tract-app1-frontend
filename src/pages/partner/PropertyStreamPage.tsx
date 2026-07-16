@@ -261,12 +261,13 @@ function PropertyCard({
           >
             <MapPin className="h-3 w-3 shrink-0" />
             <span className="truncate">
-              {[
+              {/* {[
                 listing?.address || listing?.street_address || listing?.city,
                 listing?.state_code,
               ]
                 .filter(Boolean)
-                .join(", ") || "Location Hidden"}
+                .join(", ") || "Location Hidden"} */}
+              {listing?.state_code || "Location Hidden"}
             </span>
           </div>
         </div>

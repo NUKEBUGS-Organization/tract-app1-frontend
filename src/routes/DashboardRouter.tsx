@@ -29,7 +29,7 @@ const sellerNav = [
 
 const partnerNav = [
   { label: "Dashboard", path: "/dashboard" },
-  { label: "Property Stream", path: "/properties" },
+  { label: "Marketplace", path: "/properties" },
   { label: "My Bids", path: "/my-bids" },
   { label: "Contracts", path: "/my-contracts" },
   { label: "Deal Tracker", path: "/deals" },
@@ -38,7 +38,7 @@ const partnerNav = [
 
 const realtorNav = [
   { label: "Dashboard", path: "/dashboard" },
-  { label: "Property Stream", path: "/properties" },
+  { label: "Marketplace", path: "/properties" },
   { label: "My Offers", path: "/my-bids" },
   { label: "Contracts", path: "/contracts" },
   { label: "Deal Tracker", path: "/deals" },

@@ -47,7 +47,7 @@ function getNavIcon(label: string) {
   if (lowerLabel.includes("chat")) return MessageSquareWarning;
   if (lowerLabel.includes("setting")) return Settings;
   if (lowerLabel.includes("proof")) return FileCheck;
-  if (lowerLabel.includes("property")) return Building2;
+  if (lowerLabel.includes("market")) return Building2;
 
   return ClipboardList;
 }

@@ -25,6 +25,7 @@ import {
 import {
   useGetListingByIdQuery,
   useGetListingDocumentsQuery,
+  useGetMyBidsQuery,
 } from "../../services/listingService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
 import { useAuthContext } from "../../contexts/AuthContext";
@@ -480,8 +481,30 @@ export default function PropertyDetailPage() {
     skip: !propertyId,
   });
 
+  // Fetch user's own bids to determine if the address should be revealed
+  const { data: myBidsData } = useGetMyBidsQuery();
+
   const listing = normalizeListingData(rawData);
   const documents = normalizeDocuments(rawDocs);
+
+  // Address is revealed when:
+  // 1. The user has a "selected" bid on this listing, OR
+  // 2. The listing is already under_contract or closed (deal is locked in)
+  const myBids: any[] = Array.isArray(myBidsData) ? myBidsData :
+    Array.isArray((myBidsData as any)?.data) ? (myBidsData as any).data : [];
+  const listingStatus = String(listing?.status || "").toLowerCase();
+  const addressUnlocked =
+    ["under_contract", "closed", "funded"].includes(listingStatus) ||
+    myBids.some((bid: any) => {
+      const bidListingId =
+        typeof bid?.listing === "object"
+          ? bid.listing?._id || bid.listing?.id
+          : bid?.listing_id || bid?.property_id || bid?.listing;
+      const matchesListing =
+        String(bidListingId || "") === String(propertyId || "");
+      const bidStatus = String(bid?.status || "").toLowerCase();
+      return matchesListing && ["selected", "under_contract", "closed"].includes(bidStatus);
+    });
 
   if (isLoading) {
     return (
@@ -536,8 +559,13 @@ export default function PropertyDetailPage() {
   const capRate = Number(listing?.cap_rate);
   const grossRent = Number(listing?.gross_rent || listing?.monthly_rent);
 
-  const city = listing?.city || "";
   const stateCode = listing?.state_code || "";
+  const fullAddress = [
+    listing?.address || listing?.street_address,
+    listing?.city,
+    stateCode,
+  ].filter(Boolean).join(", ") || stateCode || "Location Hidden";
+  const displayLocation = addressUnlocked ? fullAddress : (stateCode || "Location Hidden");
 
 
   return (
@@ -582,15 +610,18 @@ export default function PropertyDetailPage() {
               {formatPropertyType(listing?.property_type)}
             </h1>
 
-            {(listing?.address || listing?.street_address || city || stateCode) && (
-              <div
-                className={`mt-2 flex items-center gap-1.5 text-sm ${isDark ? "text-white/45" : "text-[var(--color-text-muted)]"
-                  }`}
-              >
-                <MapPin className="h-4 w-4" />
-                {[listing?.address || listing?.street_address || city, stateCode].filter(Boolean).join(", ")}
-              </div>
-            )}
+            <div
+              className={`mt-2 flex items-center gap-1.5 text-sm ${isDark ? "text-white/45" : "text-[var(--color-text-muted)]"
+                }`}
+            >
+              <MapPin className="h-4 w-4" />
+              {displayLocation}
+              {addressUnlocked && (
+                <span className="ml-1 rounded-full bg-[var(--color-secondary)]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]">
+                  Unlocked
+                </span>
+              )}
+            </div>
           </div>
 
           {hoursLeft !== null && (

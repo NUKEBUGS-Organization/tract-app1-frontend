@@ -914,19 +914,46 @@ return (
                       </td>
 
                       <td className="px-5 py-5 text-xs text-[var(--color-text-muted)]">
-                        <p>
-                          Inspection:{" "}
-                          <span className="font-bold text-[var(--color-text-main)]">
-                            {bid?.inspection_period ?? "-"} days
-                          </span>
-                        </p>
+                        {getBidderRole(bid) === "realtor" ? (
+                          <>
+                            <p>
+                              Commission:{" "}
+                              <span className="font-bold text-[var(--color-text-main)]">
+                                {bid?.commission_percentage != null ? `${bid.commission_percentage}%` : "-"}
+                                {bid?.payment_source && ` (${bid.payment_source === "Buyer Pays Commission" ? "Buyer pays" : "Seller pays"})`}
+                              </span>
+                            </p>
 
-                        <p className="mt-1">
-                          Due Diligence:{" "}
-                          <span className="font-bold text-[var(--color-text-main)]">
-                            {bid?.due_diligence_period ?? "-"} days
-                          </span>
-                        </p>
+                            <p className="mt-1">
+                              Closing:{" "}
+                              <span className="font-bold text-[var(--color-text-main)]">
+                                {bid?.closing_timeline_days ?? "-"} days
+                              </span>
+                            </p>
+
+                            {bid?.agency_role && (
+                              <p className="mt-1 text-[10px] italic text-[var(--color-text-muted)]">
+                                {bid.agency_role}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <p>
+                              Inspection:{" "}
+                              <span className="font-bold text-[var(--color-text-main)]">
+                                {bid?.inspection_period ?? "-"} days
+                              </span>
+                            </p>
+
+                            <p className="mt-1">
+                              Due Diligence:{" "}
+                              <span className="font-bold text-[var(--color-text-main)]">
+                                {bid?.due_diligence_period ?? "-"} days
+                              </span>
+                            </p>
+                          </>
+                        )}
                       </td>
 
                       <td className="px-5 py-5">
