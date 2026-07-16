@@ -254,8 +254,10 @@ export default function VerifyPage() {
               TRACT
             </div>
 
-            <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[var(--color-secondary)]">
-              Buy the best skip the Rest
+            <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
+              Buy the best
+              <br />
+              skip the Rest
             </p>
           </div>
         </div>

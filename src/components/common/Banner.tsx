@@ -56,8 +56,10 @@ export default function AuthLeftSide() {
               TRACT
             </div>
 
-            <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)] xl:text-[10px] 2xl:text-xs">
-              Buy the best skip the Rest
+            <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
+              Buy the best
+              <br />
+              skip the Rest
             </p>
           </div>
         </div>
