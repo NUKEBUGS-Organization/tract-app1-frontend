@@ -85,9 +85,11 @@ export default function ResetPasswordPage() {
               TRACT
             </div>
 
-            <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[var(--color-secondary)]">
-              Buy the best skip the Rest
-            </p>
+            <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
+  Buy the best
+  <br />
+  skip the Rest
+</p>
           </div>
         </div>
         <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-secondary)]/15 sm:mb-6 2xl:h-14 2xl:w-14">

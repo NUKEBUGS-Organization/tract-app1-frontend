@@ -13,6 +13,17 @@ type RoomMessagesQuery = PaginationQuery & {
   roomId: string;
 };
 
+type ScoreEventsQuery = PaginationQuery & {
+  user_id?: string;
+  deal_id?: string;
+  event_type?: string;
+};
+
+type AdminVerificationsQuery = PaginationQuery & {
+  type?: "realtor" | "wholesaler";
+  status?: "pending" | "approved" | "rejected";
+};
+
 function isNumericKeyObject(value: any) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
@@ -77,9 +88,9 @@ function normalizeAdminPayload(payload: any): any {
 function unwrapAdminResponse(response: any) {
   const payload =
     response &&
-    typeof response === "object" &&
-    "success" in response &&
-    "data" in response
+      typeof response === "object" &&
+      "success" in response &&
+      "data" in response
       ? response.data
       : response;
 
@@ -137,6 +148,72 @@ export const adminService = baseApi.injectEndpoints({
       invalidatesTags: ["Admin", "User"],
     }),
 
+    // ================= SCORES =================
+    getAdminUserScore: builder.query<any, string>({
+      query: (id) => ({
+        url: `users/${id}/score`,
+        method: "GET",
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin", "User"],
+    }),
+
+    getAdminScoreEvents: builder.query<any, ScoreEventsQuery | void>({
+      query: (params) => ({
+        url: "admin/scores",
+        method: "GET",
+        params: params ?? undefined,
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin"],
+    }),
+
+    getAdminScoreRules: builder.query<any, void>({
+      query: () => ({
+        url: "admin/score-rules",
+        method: "GET",
+      }),
+      transformResponse: unwrapAdminResponse,
+      providesTags: ["Admin"],
+    }),
+
+    applyAdminScorePenalty: builder.mutation<
+      any,
+      {
+        user_id: string;
+        event_type: string;
+        deal_id?: string;
+        note?: string;
+        delta?: number;
+      }
+    >({
+      query: (body) => ({
+        url: "scores/penalty",
+        method: "POST",
+        body,
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "User"],
+    }),
+
+    resetAdminUserScore: builder.mutation<
+      any,
+      {
+        userId: string;
+        note?: string;
+      }
+    >({
+      query: ({ userId, note }) => ({
+        url: `admin/scores/${userId}/reset`,
+        method: "POST",
+        body: {
+          ...(note ? { note } : {}),
+        },
+      }),
+      transformResponse: unwrapAdminResponse,
+      invalidatesTags: ["Admin", "User"],
+    }),
+
     // ================= KYC =================
     getPendingKycUsers: builder.query<any, void>({
       query: () => ({
@@ -165,6 +242,56 @@ export const adminService = baseApi.injectEndpoints({
       transformResponse: unwrapAdminResponse,
       invalidatesTags: ["Admin", "User"],
     }),
+
+    // ================= PARTNER VERIFICATIONS =================
+   
+getAdminVerifications: builder.query<any, AdminVerificationsQuery | void>({
+  query: (params) => ({
+    url: "admin/verifications",
+    method: "GET",
+    params: params ?? undefined,
+  }),
+  transformResponse: unwrapAdminResponse,
+  providesTags: ["Admin", "User"],
+}),
+
+getPendingAdminVerifications: builder.query<any, PaginationQuery | void>({
+  query: (params) => ({
+    url: "admin/verifications/pending",
+    method: "GET",
+    params: params ?? undefined,
+  }),
+  transformResponse: unwrapAdminResponse,
+  providesTags: ["Admin", "User"],
+}),
+
+getAdminVerification: builder.query<any, string>({
+  query: (id) => ({
+    url: `admin/verifications/${id}`,
+    method: "GET",
+  }),
+  transformResponse: unwrapAdminResponse,
+  providesTags: ["Admin", "User"],
+}),
+
+approveAdminVerification: builder.mutation<any, string>({
+  query: (id) => ({
+    url: `admin/verifications/${id}/approve`,
+    method: "POST",
+  }),
+  transformResponse: unwrapAdminResponse,
+  invalidatesTags: ["Admin", "User"],
+}),
+
+rejectAdminVerification: builder.mutation<any, { id: string; reason: string }>({
+  query: ({ id, reason }) => ({
+    url: `admin/verifications/${id}/reject`,
+    method: "POST",
+    body: { reason },
+  }),
+  transformResponse: unwrapAdminResponse,
+  invalidatesTags: ["Admin", "User"],
+}),
 
     // ================= LISTINGS =================
     getAdminListings: builder.query<any, PaginationQuery | void>({
@@ -364,9 +491,21 @@ export const {
   useBanAdminUserMutation,
   useUnbanAdminUserMutation,
 
+  useGetAdminUserScoreQuery,
+  useGetAdminScoreEventsQuery,
+  useGetAdminScoreRulesQuery,
+  useApplyAdminScorePenaltyMutation,
+  useResetAdminUserScoreMutation,
+
   useGetPendingKycUsersQuery,
   useApproveKycUserMutation,
   useRejectKycUserMutation,
+
+ useGetAdminVerificationsQuery,
+useGetPendingAdminVerificationsQuery,
+useGetAdminVerificationQuery,
+useApproveAdminVerificationMutation,
+useRejectAdminVerificationMutation,
 
   useGetAdminListingsQuery,
   useGetPendingAdminListingsQuery,

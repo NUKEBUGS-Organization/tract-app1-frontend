@@ -81,9 +81,11 @@ export default function SignInPage() {
                       TRACT
                     </div>
         
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[var(--color-secondary)]">
-                      Buy the best skip the Rest
-                    </p>
+                   <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
+  Buy the best
+  <br />
+  skip the Rest
+</p>
                   </div>
                 </div>
         <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)] sm:text-3xl xl:text-[32px] 2xl:text-4xl">

@@ -52,6 +52,7 @@ import ChatRoomPage from "../pages/chat/ChatRoomPage";
 import AdminUsersPage from "../pages/admin/AdminUsersPage";
 import AdminUserDetailsPage from "../pages/admin/AdminUserDetailsPage";
 import AdminVerificationPage from "../pages/admin/AdminVerificationPage";
+import AdminVerificationDetailsPage from "../pages/admin/AdminVerificationDetailsPage";
 
 import AdminListingsPage from "../pages/admin/AdminListingsPage";
 import AdminListingDetailsPage from "../pages/admin/AdminListingDetailsPage";
@@ -595,6 +596,15 @@ function AppRoutes() {
             element={
               <RoleRoute allowedRoles={ADMIN_ROLES}>
                 <AdminVerificationPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/verifications/:id"
+            element={
+              <RoleRoute allowedRoles={ADMIN_ROLES}>
+                <AdminVerificationDetailsPage />
               </RoleRoute>
             }
           />

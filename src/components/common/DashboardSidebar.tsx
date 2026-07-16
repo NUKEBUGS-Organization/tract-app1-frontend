@@ -77,9 +77,11 @@ export default function DashboardSidebar({
             TRACT
           </div>
 
-          <p className="mt-0.6 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
-            Buy the best skip the Rest
-          </p>
+          <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
+  Buy the best
+  <br />
+  skip the Rest
+</p>
         </div>
       </div>
 

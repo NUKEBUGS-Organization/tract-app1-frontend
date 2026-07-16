@@ -62,8 +62,10 @@ export default function ForgotPasswordPage() {
               TRACT
             </div>
 
-            <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[var(--color-secondary)]">
-              Buy the best skip the Rest
+            <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
+              Buy the best
+              <br />
+              skip the Rest
             </p>
           </div>
         </div>
@@ -98,8 +100,8 @@ export default function ForgotPasswordPage() {
               type="email"
               placeholder="you@company.com"
               className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-9 pr-3 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 sm:pl-10 2xl:py-4 2xl:pl-12 2xl:text-base ${errors.email
-                  ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
-                  : "border-transparent"
+                ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
+                : "border-transparent"
                 }`}
             />
           </div>

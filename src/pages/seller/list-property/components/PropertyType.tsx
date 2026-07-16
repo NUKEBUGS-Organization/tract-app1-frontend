@@ -1,7 +1,15 @@
 import { MapPin } from "lucide-react";
 import { PROPERTY_TYPES, STATES } from "../constants";
 import type { FormState } from "../types";
-import { ErrorText, Inp, Lbl, inputCls, inputErrorCls, inputNormalCls } from "./FormPrimitives";
+import {
+  ErrorText,
+  Inp,
+  Lbl,
+  inputCls,
+  inputErrorCls,
+  inputNormalCls,
+} from "./FormPrimitives";
+import AddressAutocomplete from "./AddressAutocomplete";
 
 interface StepProps {
   form: FormState;
@@ -107,12 +115,14 @@ export default function Step1PropertyType({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Lbl label="Street Address" hint="Example: 123 Main St, Newark" />
+            <Lbl
+              label="Street Address"
+              hint="Start typing and select a real address to auto-fill property data"
+            />
 
-            <Inp
-              value={form.address}
-              onChange={(value) => set("address", value)}
-              placeholder="123 Main St, Newark"
+            <AddressAutocomplete
+              form={form}
+              set={set}
               error={fieldErrors.address}
             />
           </div>

@@ -680,7 +680,7 @@ export default function DealTrackerPage() {
         description: isSigned
           ? activeDeal
             ? `Both parties signed. Deal created with ID: ${activeDealId}.`
-            : "Both parties signed. Waiting for deal record to load from backend."
+            : "Both parties signed. Waiting for deal record to load."
           : "This becomes complete when both seller and buyer have signed.",
         done: isSigned,
         current: Boolean(contract && sellerSigned && buyerSigned && !isSigned),
@@ -705,7 +705,7 @@ export default function DealTrackerPage() {
                 marketLaunchDeadline
               )}.`
             : isSigned
-              ? "Deal is signed, but deadline is not loaded yet. Refresh after backend creates deal."
+              ? "Deal is signed, but deadline is not loaded yet. Refresh after deal is created."
               : "This starts after both parties sign and the deal is created.",
         done: hasProofUploaded,
         current: Boolean(
@@ -1055,7 +1055,7 @@ export default function DealTrackerPage() {
                   selectedBid?.bid_price
                 )} · Net: ${formatMoney(selectedBid?.net_to_seller)}`
                 : contract
-                  ? "Contract loaded from backend."
+                  ? "Contract loaded."
                   : "Select a primary bid before creating a contract."}
             </p>
           </div>
