@@ -982,7 +982,7 @@ return (
                             Details
                           </button>
 
-                          {!isSelected && (
+                          {!isSelected && !selectedPrimaryBid && (
                             <button
                               type="button"
                               onClick={() =>
@@ -996,7 +996,7 @@ return (
                             </button>
                           )}
 
-                          {!isSelected && (
+                          {!isSelected && !selectedPrimaryBid && (
                             <>
                               <button
                                 type="button"
