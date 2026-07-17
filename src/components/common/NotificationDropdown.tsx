@@ -87,19 +87,19 @@ function getIdFromActionUrl(actionUrl: string, segment: string) {
   return match?.[1] || "";
 }
 
-function getQueryParamFromActionUrl(actionUrl: string, key: string) {
-  if (!actionUrl || typeof actionUrl !== "string") return "";
+// function getQueryParamFromActionUrl(actionUrl: string, key: string) {
+//   if (!actionUrl || typeof actionUrl !== "string") return "";
 
-  try {
-    const url = actionUrl.startsWith("http")
-      ? new URL(actionUrl)
-      : new URL(actionUrl, window.location.origin);
+//   try {
+//     const url = actionUrl.startsWith("http")
+//       ? new URL(actionUrl)
+//       : new URL(actionUrl, window.location.origin);
 
-    return url.searchParams.get(key) || "";
-  } catch {
-    return "";
-  }
-}
+//     return url.searchParams.get(key) || "";
+//   } catch {
+//     return "";
+//   }
+// }
 
 function getDealIdFromActionUrl(actionUrl?: string | null) {
   if (!actionUrl) return "";
@@ -135,27 +135,27 @@ function getNotificationChatRoomId(notification: NotificationItem) {
   );
 }
 
-function buildSellerDealTrackerUrl({
-  listingId,
-  contractId,
-}: {
-  listingId?: string;
-  contractId?: string;
-}) {
-  const params = new URLSearchParams();
+// function buildSellerDealTrackerUrl({
+//   listingId,
+//   contractId,
+// }: {
+//   listingId?: string;
+//   contractId?: string;
+// }) {
+//   const params = new URLSearchParams();
 
-  if (listingId) {
-    params.set("listingId", listingId);
-  }
+//   if (listingId) {
+//     params.set("listingId", listingId);
+//   }
 
-  if (contractId) {
-    params.set("contractId", contractId);
-  }
+//   if (contractId) {
+//     params.set("contractId", contractId);
+//   }
 
-  const queryString = params.toString();
+//   const queryString = params.toString();
 
-  return queryString ? `/deals?${queryString}` : "/deals";
-}
+//   return queryString ? `/deals?${queryString}` : "/deals";
+// }
 
 function getNotificationTarget(notification: NotificationItem, userRole?: string) {
   const type = String(notification?.type || "").toLowerCase();
