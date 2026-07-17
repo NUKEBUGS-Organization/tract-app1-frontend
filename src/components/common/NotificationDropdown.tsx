@@ -62,18 +62,32 @@ function getMetadataId(metadata: Record<string, any>, keys: string[]) {
 function getIdFromActionUrl(actionUrl: string, segment: string) {
   if (!actionUrl) return "";
 
-  const match = actionUrl.match(new RegExp(`/${segment}/([^/]+)`));
+  const match = actionUrl.match(new RegExp(`/${segment}/([^/?#]+)`));
 
   return match?.[1] || "";
+}
+
+function getQueryParamFromActionUrl(actionUrl: string, key: string) {
+  if (!actionUrl || typeof actionUrl !== "string") return "";
+
+  try {
+    const url = actionUrl.startsWith("http")
+      ? new URL(actionUrl)
+      : new URL(actionUrl, window.location.origin);
+
+    return url.searchParams.get(key) || "";
+  } catch {
+    return "";
+  }
 }
 
 function getDealIdFromActionUrl(actionUrl?: string | null) {
   if (!actionUrl) return "";
 
-  const dealChatMatch = actionUrl.match(/\/deals\/([^/]+)\/chat/);
+  const dealChatMatch = actionUrl.match(/\/deals\/([^/?#]+)\/chat/);
   if (dealChatMatch?.[1]) return dealChatMatch[1];
 
-  const dealMatch = actionUrl.match(/\/deals\/([^/]+)/);
+  const dealMatch = actionUrl.match(/\/deals\/([^/?#]+)/);
   if (dealMatch?.[1]) return dealMatch[1];
 
   return "";
@@ -101,7 +115,32 @@ function getNotificationChatRoomId(notification: NotificationItem) {
   );
 }
 
-function getNotificationTarget(notification: NotificationItem, userRole?: string) {
+function buildSellerDealTrackerUrl({
+  listingId,
+  contractId,
+}: {
+  listingId?: string;
+  contractId?: string;
+}) {
+  const params = new URLSearchParams();
+
+  if (listingId) {
+    params.set("listingId", listingId);
+  }
+
+  if (contractId) {
+    params.set("contractId", contractId);
+  }
+
+  const queryString = params.toString();
+
+  return queryString ? `/deals?${queryString}` : "/deals";
+}
+
+function getNotificationTarget(
+  notification: NotificationItem,
+  userRole?: string
+) {
   const type = String(notification?.type || "").toLowerCase();
   const role = normalizeRole(userRole);
   const metadata = notification?.metadata || {};
@@ -113,20 +152,32 @@ function getNotificationTarget(notification: NotificationItem, userRole?: string
       "listingId",
       "property_id",
       "propertyId",
+      "listing",
+      "property",
     ]) ||
+    getQueryParamFromActionUrl(actionUrl, "listingId") ||
+    getQueryParamFromActionUrl(actionUrl, "listing_id") ||
+    getQueryParamFromActionUrl(actionUrl, "propertyId") ||
+    getQueryParamFromActionUrl(actionUrl, "property_id") ||
     getIdFromActionUrl(actionUrl, "listings") ||
     getIdFromActionUrl(actionUrl, "properties");
 
   const bidId =
-    getMetadataId(metadata, ["bid_id", "bidId"]) ||
+    getMetadataId(metadata, ["bid_id", "bidId", "bid"]) ||
+    getQueryParamFromActionUrl(actionUrl, "bidId") ||
+    getQueryParamFromActionUrl(actionUrl, "bid_id") ||
     getIdFromActionUrl(actionUrl, "bids");
 
   const contractId =
-    getMetadataId(metadata, ["contract_id", "contractId"]) ||
+    getMetadataId(metadata, ["contract_id", "contractId", "contract"]) ||
+    getQueryParamFromActionUrl(actionUrl, "contractId") ||
+    getQueryParamFromActionUrl(actionUrl, "contract_id") ||
     getIdFromActionUrl(actionUrl, "contracts");
 
   const dealId =
-    getMetadataId(metadata, ["deal_id", "dealId"]) ||
+    getMetadataId(metadata, ["deal_id", "dealId", "deal"]) ||
+    getQueryParamFromActionUrl(actionUrl, "dealId") ||
+    getQueryParamFromActionUrl(actionUrl, "deal_id") ||
     getDealIdFromActionUrl(actionUrl);
 
   if (type === "chat_new_message") {
@@ -169,7 +220,10 @@ function getNotificationTarget(notification: NotificationItem, userRole?: string
     }
 
     if (type.includes("deal")) {
-      return dealId ? `/deals/${dealId}` : "/deals";
+      return buildSellerDealTrackerUrl({
+        listingId,
+        contractId,
+      });
     }
 
     return normalizeInternalUrl(actionUrl) || "/dashboard";
@@ -325,7 +379,7 @@ function NotificationDropdown({
       try {
         await markNotificationRead(notificationId).unwrap();
         await refreshAfterAction();
-      } catch (error) {
+      } catch {
         // Do not block navigation if mark-read fails.
       }
     }
@@ -345,7 +399,7 @@ function NotificationDropdown({
     try {
       await markAllNotificationsRead().unwrap();
       await refreshAfterAction();
-    } catch (error) {
+    } catch {
       // Silent fail.
     }
   }
@@ -364,7 +418,7 @@ function NotificationDropdown({
     try {
       await deleteNotification(notificationId).unwrap();
       await refreshAfterAction();
-    } catch (error) {
+    } catch {
       // Silent fail.
     }
   }
