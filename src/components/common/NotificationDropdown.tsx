@@ -34,6 +34,26 @@ function getNotificationId(notification: NotificationItem) {
   return notification?._id || notification?.id || "";
 }
 
+function buildDealTrackerUrl({
+  listingId,
+  dealId,
+  contractId,
+}: {
+  listingId?: string;
+  dealId?: string;
+  contractId?: string;
+}) {
+  const params = new URLSearchParams();
+
+  if (listingId) params.set("listingId", listingId);
+  if (dealId) params.set("dealId", dealId);
+  if (contractId) params.set("contractId", contractId);
+
+  const query = params.toString();
+
+  return query ? `/deals?${query}` : "/deals";
+}
+
 function getId(value: any) {
   if (!value) return "";
 
@@ -137,10 +157,7 @@ function buildSellerDealTrackerUrl({
   return queryString ? `/deals?${queryString}` : "/deals";
 }
 
-function getNotificationTarget(
-  notification: NotificationItem,
-  userRole?: string
-) {
+function getNotificationTarget(notification: NotificationItem, userRole?: string) {
   const type = String(notification?.type || "").toLowerCase();
   const role = normalizeRole(userRole);
   const metadata = notification?.metadata || {};
@@ -152,33 +169,27 @@ function getNotificationTarget(
       "listingId",
       "property_id",
       "propertyId",
-      "listing",
-      "property",
     ]) ||
-    getQueryParamFromActionUrl(actionUrl, "listingId") ||
-    getQueryParamFromActionUrl(actionUrl, "listing_id") ||
-    getQueryParamFromActionUrl(actionUrl, "propertyId") ||
-    getQueryParamFromActionUrl(actionUrl, "property_id") ||
     getIdFromActionUrl(actionUrl, "listings") ||
     getIdFromActionUrl(actionUrl, "properties");
 
   const bidId =
-    getMetadataId(metadata, ["bid_id", "bidId", "bid"]) ||
-    getQueryParamFromActionUrl(actionUrl, "bidId") ||
-    getQueryParamFromActionUrl(actionUrl, "bid_id") ||
+    getMetadataId(metadata, ["bid_id", "bidId"]) ||
     getIdFromActionUrl(actionUrl, "bids");
 
   const contractId =
-    getMetadataId(metadata, ["contract_id", "contractId", "contract"]) ||
-    getQueryParamFromActionUrl(actionUrl, "contractId") ||
-    getQueryParamFromActionUrl(actionUrl, "contract_id") ||
+    getMetadataId(metadata, ["contract_id", "contractId"]) ||
     getIdFromActionUrl(actionUrl, "contracts");
 
   const dealId =
-    getMetadataId(metadata, ["deal_id", "dealId", "deal"]) ||
-    getQueryParamFromActionUrl(actionUrl, "dealId") ||
-    getQueryParamFromActionUrl(actionUrl, "deal_id") ||
+    getMetadataId(metadata, ["deal_id", "dealId"]) ||
     getDealIdFromActionUrl(actionUrl);
+
+  const dealTrackerUrl = buildDealTrackerUrl({
+    listingId,
+    dealId,
+    contractId,
+  });
 
   if (type === "chat_new_message") {
     const roomId = getNotificationChatRoomId(notification);
@@ -216,14 +227,13 @@ function getNotificationTarget(
     }
 
     if (type.includes("contract")) {
-      return "/contracts";
+      return contractId
+        ? buildDealTrackerUrl({ listingId, dealId, contractId })
+        : "/contracts";
     }
 
     if (type.includes("deal")) {
-      return buildSellerDealTrackerUrl({
-        listingId,
-        contractId,
-      });
+      return dealTrackerUrl;
     }
 
     return normalizeInternalUrl(actionUrl) || "/dashboard";
@@ -239,11 +249,13 @@ function getNotificationTarget(
     }
 
     if (type.includes("contract")) {
-      return "/my-contracts";
+      return contractId
+        ? buildDealTrackerUrl({ listingId, dealId, contractId })
+        : "/my-contracts";
     }
 
     if (type.includes("deal")) {
-      return dealId ? `/deals/${dealId}` : "/deals";
+      return dealTrackerUrl;
     }
 
     if (type.includes("listing") && listingId) {

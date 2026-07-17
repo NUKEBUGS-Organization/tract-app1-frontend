@@ -40,6 +40,8 @@ function getListingsFromDashboard(response: any) {
   return Array.isArray(payload?.listings) ? payload.listings : [];
 }
 
+
+
 function getContractFromResponse(response: any) {
   let payload = response?.data?.data ?? response?.data ?? response;
 
@@ -56,6 +58,13 @@ function getContractFromResponse(response: any) {
   }
 
   return payload;
+}
+
+
+function isCancelledStatus(status?: string | null) {
+  const normalized = String(status || "").toLowerCase();
+
+  return normalized === "cancelled" || normalized === "canceled";
 }
 
 function getArrayPayload(value: any) {
@@ -580,12 +589,16 @@ export default function DealTrackerPage() {
   const marketingProofUrl = activeDeal?.marketing_proof_url;
   const marketLaunchProofUrl = activeDeal?.market_launch_proof_url;
   const proceedToClosingAt = activeDeal?.proceed_to_closing_at;
-  const dealStatus = activeDeal?.status;
+ const dealStatus = activeDeal?.status;
+const isDealCancelled = isCancelledStatus(dealStatus);
+const isFlowCancelled = isCancelled || isDealCancelled;
 
-  const hasMarketingTracking = Boolean(marketingDeadline || marketLaunchDeadline);
-  const hasProofUploaded = Boolean(marketingProofUrl || marketLaunchProofUrl);
+const hasMarketingTracking = Boolean(marketingDeadline || marketLaunchDeadline);
+const hasProofUploaded = Boolean(marketingProofUrl || marketLaunchProofUrl);
 
-  const activeDeadline = marketingDeadline || marketLaunchDeadline;
+const activeDeadline = isFlowCancelled
+  ? undefined
+  : marketingDeadline || marketLaunchDeadline;
 
   const activeDeadlineTitle = marketingDeadline
     ? "72-Hour Marketing Clock"
@@ -601,20 +614,24 @@ export default function DealTrackerPage() {
 
   const activeCountdown = getCountdownParts(activeDeadline, now);
 
-  const showMarketingCountdown = Boolean(
-    activeDeal &&
-    activeDeadline &&
-    !hasProofUploaded &&
-    !proceedToClosingAt
-  );
+const showMarketingCountdown = Boolean(
+  activeDeal &&
+  activeDeadline &&
+  !isFlowCancelled &&
+  !hasProofUploaded &&
+  !proceedToClosingAt
+);
 
-  const liveDeadlineValue = hasProofUploaded
+const liveDeadlineValue = isFlowCancelled
+  ? "Cancelled"
+  : hasProofUploaded
     ? "Proof Uploaded"
     : proceedToClosingAt
       ? "Moved To Closing"
       : activeDeadline
         ? activeCountdown.compact
         : "-";
+
   const partnerName = getBidderName(selectedBid, contract);
 
   const dealTitle =
@@ -751,15 +768,17 @@ export default function DealTrackerPage() {
     ]
   );
 
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
+useEffect(() => {
+  if (isFlowCancelled || !showMarketingCountdown) return;
 
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, []);
+  const timer = window.setInterval(() => {
+    setNow(Date.now());
+  }, 1000);
+
+  return () => {
+    window.clearInterval(timer);
+  };
+}, [isFlowCancelled, showMarketingCountdown]);
 
   useEffect(() => {
     if (!activeListingId) return;
@@ -945,12 +964,11 @@ export default function DealTrackerPage() {
         </div>
       )}
 
-      {isCancelled && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-          This contract is cancelled. Deal tracker actions are disabled for this
-          deal.
-        </div>
-      )}
+      {isFlowCancelled && (
+  <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+    This contract/deal is cancelled. Deal tracker timer and actions are disabled.
+  </div>
+)}
 
       {showMarketingCountdown && (
         <MarketingCountdownBanner
@@ -1061,8 +1079,8 @@ export default function DealTrackerPage() {
           </div>
 
           <StatusPill
-            status={activeDeal?.status || contract?.status || "not_started"}
-          />
+  status={isFlowCancelled ? "cancelled" : activeDeal?.status || contract?.status || "not_started"}
+/>
         </div>
 
         <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -1265,14 +1283,14 @@ export default function DealTrackerPage() {
                 </div>
               )}
 
-            {activeDeal?.chat_unlocked && (
-              <Link
-                to="/chat"
-                className="flex w-full items-center justify-center gap-2 bg-[var(--color-primary)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white transition hover:scale-[1.01]"
-              >
-                Open Deal Chat
-              </Link>
-            )}
+          {activeDeal?.chat_unlocked && !isFlowCancelled && (
+  <Link
+    to="/chat"
+    className="flex w-full items-center justify-center gap-2 bg-[var(--color-primary)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white transition hover:scale-[1.01]"
+  >
+    Open Deal Chat
+  </Link>
+)}
 
             {contract && !isCancelled && !isSigned && (
               <button
