@@ -1045,7 +1045,7 @@ return (
                             </button>
                           )}
 
-                          {!isSelected && !selectedPrimaryBid && (
+                          {!isSelected && (
                             <>
                               <button
                                 type="button"

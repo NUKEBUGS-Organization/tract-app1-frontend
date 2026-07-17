@@ -16,6 +16,7 @@ import {
   Loader2,
   RefreshCw,
   ShieldCheck,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import { useGetListingsQuery } from "../../services/listingService";
@@ -23,55 +24,7 @@ import { useGetMyBidsQuery } from "../../services/listingService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
 import { useGetMyDealsQuery } from "../../services/dealService";
 import { useGetMeQuery } from "../../services/userService";
-
-
-const journeySteps = [
-  {
-    id: "kyc",
-    icon: ShieldCheck,
-    label: "Identity Verified",
-    desc: "Complete KYC to unlock full deal access.",
-    done: true,
-    link: "/kyc",
-    linkLabel: "View",
-  },
-  {
-    id: "proof_of_activity",
-    icon: FileText,
-    label: "Upload Proof of Activity",
-    desc: "Provide recent transaction history.",
-    done: false,
-    link: "/proof-of-activity",
-    linkLabel: "Upload",
-  },
-  {
-    id: "stream",
-    icon: Building2,
-    label: "Browse Property Stream",
-    desc: "Review live off-market opportunities.",
-    done: true,
-    link: "/properties",
-    linkLabel: "Browse",
-  },
-  {
-    id: "bid",
-    icon: Gavel,
-    label: "Submit a Bid",
-    desc: "Place your first competitive offer.",
-    done: true,
-    link: "/deals",
-    linkLabel: "My Bids",
-  },
-  {
-    id: "contract",
-    icon: Handshake,
-    label: "Close a Deal",
-    desc: "Sign the contract and close your first deal.",
-    done: false,
-    link: "/deals",
-    linkLabel: "Track Deals",
-  },
-];
+import { useGetProofOfActivityStatusQuery } from "../../services/verificationService";
 
 
 interface StatCardProps {
@@ -150,6 +103,16 @@ export default function PartnerDashboard() {
     (meData as any)?._id ||
     (meData as any)?.id ||
     "";
+  const reliabilityScore: number =
+    (meData as any)?.data?.reliability_score ??
+    (meData as any)?.reliability_score ??
+    100;
+  const scoreTier =
+    reliabilityScore >= 90 ? "Perfect Standing" :
+    reliabilityScore >= 70 ? "Good Standing" :
+    reliabilityScore >= 50 ? "At Risk" :
+    reliabilityScore >= 30 ? "Delayed Access" :
+    "Reinstatement Required";
 
   const {
     data: listingsData,
@@ -195,8 +158,10 @@ export default function PartnerDashboard() {
   } = useGetMyDealsQuery();
   const allDeals: any[] = Array.isArray(dealsData) ? (dealsData as any[]) : [];
 
+  const { data: verificationData, isLoading: isLoadingVerification } = useGetProofOfActivityStatusQuery();
+
   const isLoading =
-    isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals;
+    isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals || isLoadingVerification;
 
   const activeBids = allBids.filter(
     (b) => String(b?.status || "active").toLowerCase() === "active",
@@ -210,6 +175,72 @@ export default function PartnerDashboard() {
       "proceeding_to_closing",
     ].includes(String(d?.status || "").toLowerCase()),
   ).length;
+
+  const totalBids = allBids.length;
+  const wonBids = allBids.filter((b) =>
+    ["selected", "under_contract", "closed", "funded"].includes(
+      String(b?.status || "").toLowerCase()
+    )
+  ).length;
+  const winRate = totalBids > 0 ? Math.round((wonBids / totalBids) * 100) : 0;
+
+  const kycStatusStr = String((meData as any)?.data?.kyc_status || (meData as any)?.kyc_status || "").toLowerCase();
+  const isKycDone = ["verified", "approved"].includes(kycStatusStr);
+
+  const proofStatusStr = String(verificationData?.data?.status || verificationData?.status || "").toLowerCase();
+  const isProofDone = proofStatusStr === "approved";
+
+  const isStreamDone = allListings.length > 0;
+  const isBidDone = allBids.length > 0;
+  const isContractDone = allDeals.length > 0;
+
+  const journeySteps = [
+    {
+      id: "kyc",
+      icon: ShieldCheck,
+      label: "Identity Verified",
+      desc: "Complete KYC to unlock full deal access.",
+      done: isKycDone,
+      link: "/kyc",
+      linkLabel: "View",
+    },
+    {
+      id: "proof_of_activity",
+      icon: FileText,
+      label: "Upload Proof of Activity",
+      desc: "Provide recent transaction history.",
+      done: isProofDone,
+      link: "/proof-of-activity",
+      linkLabel: "Upload",
+    },
+    {
+      id: "stream",
+      icon: Building2,
+      label: "Browse Property Stream",
+      desc: "Review live off-market opportunities.",
+      done: isStreamDone,
+      link: "/properties",
+      linkLabel: "Browse",
+    },
+    {
+      id: "bid",
+      icon: Gavel,
+      label: "Submit a Bid",
+      desc: "Place your first competitive offer.",
+      done: isBidDone,
+      link: "/deals",
+      linkLabel: "My Bids",
+    },
+    {
+      id: "contract",
+      icon: Handshake,
+      label: "Close a Deal",
+      desc: "Sign the contract and close your first deal.",
+      done: isContractDone,
+      link: "/deals",
+      linkLabel: "Track Deals",
+    },
+  ];
 
   const liveStats = [
     {
@@ -231,10 +262,10 @@ export default function PartnerDashboard() {
       icon: Handshake,
     },
     {
-      label: "Partner Score",
-      value: 100,
-      note: "Trusted Buyer status",
-      icon: ShieldCheck,
+      label: "Offer Win Rate",
+      value: `${winRate}%`,
+      note: `${wonBids} of ${totalBids} bids accepted`,
+      icon: TrendingUp,
     },
   ];
 
@@ -397,18 +428,18 @@ export default function PartnerDashboard() {
                       : "text-[var(--color-primary)]"
                       }`}
                   >
-                    100
+                    {reliabilityScore}
                   </p>
                   <span className="flex items-center gap-1 rounded-full border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]">
                     <BadgeCheck className="h-3 w-3" />
-                    Trusted Buyer
+                    {scoreTier}
                   </span>
                 </div>
                 <p
                   className={`mt-1 text-sm font-semibold ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"
                     }`}
                 >
-                  Your Reliability Score · Top 8% of partners
+                  Your Reliability Score
                 </p>
               </div>
             </div>

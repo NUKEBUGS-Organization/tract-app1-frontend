@@ -22,64 +22,8 @@ import {
 import { useGetListingsQuery, useGetMyBidsQuery } from "../../services/listingService";
 import { useGetMyDealsQuery } from "../../services/dealService";
 import { useGetMeQuery } from "../../services/userService";
+import { useGetRealtorVerificationStatusQuery } from "../../services/verificationService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
-
-const journeySteps = [
-  {
-    id: "kyc",
-    icon: ShieldCheck,
-    label: "Identity & KYC Verified",
-    desc: "Complete Jumio ID verification and face-match.",
-    done: true,
-    link: "/kyc",
-    linkLabel: "View",
-  },
-  {
-    id: "license",
-    icon: BadgeCheck,
-    label: "License & Brokerage Verified",
-    desc: "Submit your State License Number, Brokerage Name, Managing Broker, and Office Address for admin review.",
-    done: false,
-    link: "/realtor-verification",
-    linkLabel: "Submit",
-  },
-  {
-    id: "profile",
-    icon: FileText,
-    label: "Professional Profile Setup",
-    desc: "Configure commission, agency role, and payment source.",
-    done: false,
-    link: "/profile",
-    linkLabel: "Setup",
-  },
-  {
-    id: "stream",
-    icon: Building2,
-    label: "Browse Seller Opportunities",
-    desc: "Review live properties seeking licensed representation.",
-    done: true,
-    link: "/properties",
-    linkLabel: "Browse",
-  },
-  {
-    id: "offer",
-    icon: Handshake,
-    label: "Submit Representation Offer",
-    desc: "Place your first offer to represent a seller.",
-    done: true,
-    link: "/my-bids",
-    linkLabel: "My Offers",
-  },
-  {
-    id: "contract",
-    icon: Star,
-    label: "Secure Listing Agreement",
-    desc: "Sign the agreement and launch marketing.",
-    done: false,
-    link: "/deals",
-    linkLabel: "Track Deals",
-  },
-];
 
 const PENALTY_TABLE = [
   { violation: "Slow Response to Seller", penalty: -10, icon: Clock },
@@ -153,6 +97,16 @@ export default function RealtorDashboard() {
   const { data: meData, isLoading: isLoadingMe } = useGetMeQuery();
   const userName =
     (meData as any)?.data?.full_name || (meData as any)?.full_name || "Realtor";
+  const professionalScore: number =
+    (meData as any)?.data?.professional_score ??
+    (meData as any)?.professional_score ??
+    100;
+  const scoreTier =
+    professionalScore >= 90 ? "Perfect Standing" :
+    professionalScore >= 70 ? "Good Standing" :
+    professionalScore >= 50 ? "At Risk" :
+    professionalScore >= 30 ? "Delayed Access" :
+    "Reinstatement Required";
 
   const {
     data: listingsData,
@@ -175,9 +129,15 @@ export default function RealtorDashboard() {
 
   const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
   const allBids: any[] = (() => {
-    const payload = (bidsData as any)?.data ?? bidsData;
-    if (Array.isArray(payload)) return payload as any[];
-    if (Array.isArray((payload as any)?.bids)) return (payload as any).bids;
+    const raw: any = bidsData;
+    const payload = raw?.data ?? raw;
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.bids)) return payload.bids;
+    if (typeof payload === "object" && payload !== null) {
+      return Object.values(payload).filter((item: any) =>
+        Boolean(item && typeof item === "object" && (item._id || item.id))
+      );
+    }
     return [];
   })();
 
@@ -188,7 +148,9 @@ export default function RealtorDashboard() {
   } = useGetMyDealsQuery();
   const allDeals: any[] = Array.isArray(dealsData) ? (dealsData as any[]) : [];
 
-  const isLoading = isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals;
+  const { data: verificationData, isLoading: isLoadingVerification } = useGetRealtorVerificationStatusQuery();
+
+  const isLoading = isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals || isLoadingVerification;
 
   const activeDeals = allDeals.filter((d) =>
     ["active", "backup_activated", "under_review", "proceeding_to_closing"].includes(
@@ -200,8 +162,84 @@ export default function RealtorDashboard() {
     ["active", "selected", "backup"].includes(String(b?.status || "").toLowerCase()),
   ).length;
 
+  const kycStatusStr = String((meData as any)?.data?.kyc_status || (meData as any)?.kyc_status || "").toLowerCase();
+  const isKycDone = ["verified", "approved"].includes(kycStatusStr);
+
+  const licenseStatusStr = String(verificationData?.data?.status || verificationData?.status || "").toLowerCase();
+  const isLicenseDone = licenseStatusStr === "approved";
+
+  const isProfileDone = Boolean((meData as any)?.data?.state_code || (meData as any)?.state_code);
+  const isStreamDone = allListings.length > 0;
+  const isOfferDone = allBids.length > 0;
+  const isContractDone = allDeals.length > 0;
+
+  const journeySteps = [
+    {
+      id: "kyc",
+      icon: ShieldCheck,
+      label: "Identity & KYC Verified",
+      desc: "Complete Jumio ID verification and face-match.",
+      done: isKycDone,
+      link: "/kyc",
+      linkLabel: "View",
+    },
+    {
+      id: "license",
+      icon: BadgeCheck,
+      label: "License & Brokerage Verified",
+      desc: "Submit your State License Number, Brokerage Name, Managing Broker, and Office Address for admin review.",
+      done: isLicenseDone,
+      link: "/realtor-verification",
+      linkLabel: "Submit",
+    },
+    {
+      id: "profile",
+      icon: FileText,
+      label: "Professional Profile Setup",
+      desc: "Configure commission, agency role, and payment source.",
+      done: isProfileDone,
+      link: "/profile",
+      linkLabel: "Setup",
+    },
+    {
+      id: "stream",
+      icon: Building2,
+      label: "Browse Seller Opportunities",
+      desc: "Review live properties seeking licensed representation.",
+      done: isStreamDone,
+      link: "/properties",
+      linkLabel: "Browse",
+    },
+    {
+      id: "offer",
+      icon: Handshake,
+      label: "Submit Representation Offer",
+      desc: "Place your first offer to represent a seller.",
+      done: isOfferDone,
+      link: "/my-bids",
+      linkLabel: "My Offers",
+    },
+    {
+      id: "contract",
+      icon: Star,
+      label: "Secure Listing Agreement",
+      desc: "Sign the agreement and launch marketing.",
+      done: isContractDone,
+      link: "/deals",
+      linkLabel: "Track Deals",
+    },
+  ];
+
   const completedSteps = journeySteps.filter((s) => s.done).length;
   const progressPct = Math.round((completedSteps / journeySteps.length) * 100);
+
+  const totalOffers = allBids.length;
+  const wonOffers = allBids.filter((b) =>
+    ["selected", "under_contract", "closed", "funded"].includes(
+      String(b?.status || "").toLowerCase()
+    )
+  ).length;
+  const winRate = totalOffers > 0 ? Math.round((wonOffers / totalOffers) * 100) : 0;
 
   const liveStats = [
     {
@@ -223,10 +261,10 @@ export default function RealtorDashboard() {
       icon: TrendingUp,
     },
     {
-      label: "Prof. Score",
-      value: 100,
-      note: "Elite Licensed Partner",
-      icon: ShieldCheck,
+      label: "Offer Win Rate",
+      value: `${winRate}%`,
+      note: `${wonOffers} of ${totalOffers} offers accepted`,
+      icon: TrendingUp,
     },
   ];
 
@@ -398,11 +436,11 @@ export default function RealtorDashboard() {
                     isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"
                   }`}
                 >
-                  100
+                  {professionalScore}
                 </p>
                 <span className="flex items-center gap-1 rounded-full border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]">
                   <BadgeCheck className="h-3 w-3" />
-                  Elite Partner
+                  {scoreTier}
                 </span>
               </div>
               <p
@@ -410,7 +448,7 @@ export default function RealtorDashboard() {
                   isDark ? "text-white/50" : "text-[var(--color-text-muted)]"
                 }`}
               >
-                Professional Score · Top 5% of Realtors
+                Your Professional Score
               </p>
             </div>
           </div>
@@ -430,7 +468,7 @@ export default function RealtorDashboard() {
                   isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"
                 }`}
               >
-                100 / 100
+                {professionalScore} / 100
               </span>
             </div>
             <div
@@ -440,14 +478,14 @@ export default function RealtorDashboard() {
             >
               <div
                 className="h-full rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] transition-all duration-700"
-                style={{ width: "100%" }}
+                style={{ width: `${professionalScore}%` }}
               />
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px]">
               {[
                 { label: "48h delay", threshold: "< 50", color: isDark ? "text-white/60" : "text-[var(--color-primary)]" },
-                { label: "Permanent ban", threshold: "< 30", color: "text-[var(--color-danger)]" },
-                { label: "Your score", threshold: "100", color: "text-[var(--color-secondary)]", highlight: true },
+                { label: "Bids Suspended", threshold: "< 30", color: "text-[var(--color-danger)]" },
+                { label: "Your score", threshold: String(professionalScore), color: "text-[var(--color-secondary)]", highlight: true },
               ].map((item) => (
                 <div
                   key={item.label}

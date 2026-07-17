@@ -113,7 +113,7 @@ export const contractService = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: unwrapContract,
-      invalidatesTags: ["Contract", "Deal", "Chat"],
+      invalidatesTags: ["Contract", "Deal", "Chat", "Property", "Bid"],
     }),
 
     getMyContracts: builder.query<any[], void>({

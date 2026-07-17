@@ -659,115 +659,135 @@ export default function ProfilePage() {
         )}
       </section>
 
-      {!isAdmin && (
+      {!isAdmin && (isPartner || isRealtor) && (
         <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <DetailCard
-            label="Reliability Score"
-            value={profile?.reliability_score}
-            icon={Star}
-            info={
-              <div className="space-y-3">
-                <div>
-                  <p className="font-black text-[var(--color-primary)]">
-                    What does this score mean?
-                  </p>
+          {isPartner && (
+            <DetailCard
+              label="Reliability Score"
+              value={profile?.reliability_score}
+              icon={Star}
+              info={
+                <div className="space-y-3">
+                  <div>
+                    <p className="font-black text-[var(--color-primary)]">
+                      What does this score mean?
+                    </p>
 
-                  <p className="mt-1 leading-5 text-[var(--color-text-muted)]">
-                    Reliability Score measures whether a wholesaler or private
-                    partner responds on time, uploads required proof, completes
-                    inspection, and proceeds toward closing.
-                  </p>
-                </div>
-
-                <div>
-                  <p className="font-black text-[var(--color-primary)]">
-                    How is it calculated?
-                  </p>
-
-                  <p className="mt-1 leading-5 text-[var(--color-text-muted)]">
-                    Every partner starts with a score of 100. The score is
-                    reduced when deal responsibilities are not completed.
-                  </p>
-                </div>
-
-                <div className="space-y-1 rounded-lg bg-[var(--color-bg-soft)] p-3">
-                  <div className="flex justify-between gap-4">
-                    <span>Ghosting</span>
-                    <strong className="text-[var(--color-danger)]">-10</strong>
+                    <p className="mt-1 leading-5 text-[var(--color-text-muted)]">
+                      Reliability Score measures whether you respond on time,
+                      upload required proof, complete inspection, and proceed
+                      toward closing.
+                    </p>
                   </div>
 
-                  <div className="flex justify-between gap-4">
-                    <span>Inspection cancellation</span>
-                    <strong className="text-[var(--color-danger)]">-20</strong>
+                  <div>
+                    <p className="font-black text-[var(--color-primary)]">
+                      How is it calculated?
+                    </p>
+
+                    <p className="mt-1 leading-5 text-[var(--color-text-muted)]">
+                      Every partner starts with a score of 100. The score is
+                      reduced when deal responsibilities are not completed.
+                    </p>
                   </div>
 
-                  <div className="flex justify-between gap-4">
-                    <span>Missed deadline</span>
-                    <strong className="text-[var(--color-danger)]">-15</strong>
+                  <div className="space-y-1 rounded-lg bg-[var(--color-bg-soft)] p-3">
+                    <div className="flex justify-between gap-4">
+                      <span>Ghosting</span>
+                      <strong className="text-[var(--color-danger)]">-10</strong>
+                    </div>
+
+                    <div className="flex justify-between gap-4">
+                      <span>Inspection cancellation</span>
+                      <strong className="text-[var(--color-danger)]">-20</strong>
+                    </div>
+
+                    <div className="flex justify-between gap-4">
+                      <span>Missed deadline</span>
+                      <strong className="text-[var(--color-danger)]">-15</strong>
+                    </div>
+
+                    <div className="flex justify-between gap-4">
+                      <span>Failure to proceed to closing</span>
+                      <strong className="text-[var(--color-danger)]">-20</strong>
+                    </div>
                   </div>
 
-                  <div className="flex justify-between gap-4">
-                    <span>Failure to proceed to closing</span>
-                    <strong className="text-[var(--color-danger)]">-20</strong>
-                  </div>
-                </div>
+                  <div className="border-t border-[var(--color-border-light)] pt-3 leading-5 text-[var(--color-text-muted)]">
+                    <p>
+                      <strong className="text-[var(--color-text-main)]">
+                        Below 50:
+                      </strong>{" "}
+                      access to new deals may be delayed for 48 hours.
+                    </p>
 
-                <div className="border-t border-[var(--color-border-light)] pt-3 leading-5 text-[var(--color-text-muted)]">
-                  <p>
-                    <strong className="text-[var(--color-text-main)]">
-                      Below 50:
-                    </strong>{" "}
-                    access to new deals may be delayed for 48 hours.
-                  </p>
-
-                  <p className="mt-1">
-                    <strong className="text-[var(--color-text-main)]">
-                      Below 30:
-                    </strong>{" "}
-                    the account may be banned or require reinstatement.
-                  </p>
-                </div>
-              </div>
-            }
-          />
-
-          <DetailCard
-            label="Professional Score"
-            value={profile?.professional_score}
-            icon={ShieldCheck}
-            info={
-              <div className="space-y-3">
-                <div>
-                  <p className="font-black text-[var(--color-primary)]">
-                    What does this score mean?
-                  </p>
-
-                  <p className="mt-1 leading-5 text-[var(--color-text-muted)]">
-                    Professional Score measures how professionally a partner
-                    behaves during communication, proof submission, inspection,
-                    and closing steps.
-                  </p>
-                </div>
-
-                <div className="space-y-1 rounded-lg bg-[var(--color-bg-soft)] p-3">
-                  <div className="flex justify-between gap-4">
-                    <span>Unprofessional communication</span>
-                    <strong className="text-[var(--color-danger)]">-10</strong>
-                  </div>
-
-                  <div className="flex justify-between gap-4">
-                    <span>Missing required proof</span>
-                    <strong className="text-[var(--color-danger)]">-15</strong>
-                  </div>
-
-                  <div className="flex justify-between gap-4">
-                    <span>Repeated failed follow-up</span>
-                    <strong className="text-[var(--color-danger)]">-20</strong>
+                    <p className="mt-1">
+                      <strong className="text-[var(--color-text-main)]">
+                        Below 30:
+                      </strong>{" "}
+                      the account may be banned or require reinstatement.
+                    </p>
                   </div>
                 </div>
-              </div>
-            }
-          />
+              }
+            />
+          )}
+
+          {isRealtor && (
+            <DetailCard
+              label="Professional Score"
+              value={profile?.professional_score}
+              icon={ShieldCheck}
+              info={
+                <div className="space-y-3">
+                  <div>
+                    <p className="font-black text-[var(--color-primary)]">
+                      What does this score mean?
+                    </p>
+
+                    <p className="mt-1 leading-5 text-[var(--color-text-muted)]">
+                      Professional Score measures how professionally you
+                      communicate, submit required proofs, and complete each
+                      deal milestone.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1 rounded-lg bg-[var(--color-bg-soft)] p-3">
+                    <div className="flex justify-between gap-4">
+                      <span>Slow response to seller</span>
+                      <strong className="text-[var(--color-danger)]">-10</strong>
+                    </div>
+
+                    <div className="flex justify-between gap-4">
+                      <span>Missed 7-day market launch</span>
+                      <strong className="text-[var(--color-danger)]">-15</strong>
+                    </div>
+
+                    <div className="flex justify-between gap-4">
+                      <span>Deal failure due to negligence</span>
+                      <strong className="text-[var(--color-danger)]">-20</strong>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-[var(--color-border-light)] pt-3 leading-5 text-[var(--color-text-muted)]">
+                    <p>
+                      <strong className="text-[var(--color-text-main)]">
+                        Below 50:
+                      </strong>{" "}
+                      access to new listings may be delayed for 48 hours.
+                    </p>
+
+                    <p className="mt-1">
+                      <strong className="text-[var(--color-text-main)]">
+                        Below 30:
+                      </strong>{" "}
+                      the account may be banned or require reinstatement.
+                    </p>
+                  </div>
+                </div>
+              }
+            />
+          )}
         </section>
       )}
 
