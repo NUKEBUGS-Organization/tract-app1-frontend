@@ -292,6 +292,8 @@ export default function SellerDashboard() {
   const completedSteps = journeySteps.filter((step) => step.done).length;
   const progressPct = Math.round((completedSteps / journeySteps.length) * 100);
 
+  const shouldShowSellerJourney = completedSteps < journeySteps.length;
+
   const handlePreviousPage = () => {
     setCurrentPage((page) => Math.max(1, page - 1));
   };
@@ -427,7 +429,7 @@ if (isLoading) {
           icon={DollarSign}
         />
       </section>
-
+{shouldShowSellerJourney && (
       <section className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
@@ -532,6 +534,7 @@ if (isLoading) {
           })}
         </div>
       </section>
+)}
 
       <section className="w-full">
         <div className="w-full">
