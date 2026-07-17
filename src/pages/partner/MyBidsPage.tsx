@@ -231,7 +231,7 @@ function BidCard({
     const bidId = bid?._id || bid?.id;
     const isActionRequired = status === "selected" || status === "backup";
     const bidPrice = bid?.bid_price || bid?.amount;
-    const listingAddress =
+    const rawAddress =
         bid?.listing?.address ||
         bid?.property_id?.address ||
         bid?.property_address ||
@@ -243,6 +243,10 @@ function BidCard({
         bid?.property_id;
     const listingCity = bid?.listing?.city || bid?.property_id?.city;
     const listingState = bid?.listing?.state_code || bid?.property_id?.state_code;
+    const isAddressRevealed = status === "selected";
+    const listingAddress = isAddressRevealed
+        ? rawAddress
+        : listingState || listingCity || "Property";
 
     const backupPosition = bid?.backup_position;
 
@@ -276,15 +280,20 @@ function BidCard({
                             className={`truncate text-sm font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
                                 }`}
                         >
-                            {listingAddress}
+                                {listingAddress}
                         </p>
-                        {listingCity && (
+                        {isAddressRevealed && listingCity && (
                             <p
                                 className={`mt-0.5 text-[11px] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
                                     }`}
                             >
                                 {listingCity}
                                 {listingState ? `, ${listingState}` : ""}
+                            </p>
+                        )}
+                        {!isAddressRevealed && (
+                            <p className={`mt-0.5 text-[11px] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
+                                Address revealed when selected
                             </p>
                         )}
                     </div>
