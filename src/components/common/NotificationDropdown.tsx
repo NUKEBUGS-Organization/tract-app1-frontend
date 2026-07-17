@@ -54,6 +54,36 @@ function buildDealTrackerUrl({
   return query ? `/deals?${query}` : "/deals";
 }
 
+function buildContractsUrl({
+  listingId,
+  contractId,
+}: {
+  listingId?: string;
+  contractId?: string;
+}) {
+  const params = new URLSearchParams();
+
+  if (listingId) params.set("listingId", listingId);
+  if (contractId) params.set("contractId", contractId);
+
+  const query = params.toString();
+
+  return query ? `/contracts?${query}` : "/contracts";
+}
+
+function isPartnerPortalRole(role?: string) {
+  const normalizedRole = normalizeRole(role)?.toString().toLowerCase();
+
+  return (
+    isAllowedRole(normalizedRole, PARTNER_ROLES) ||
+    normalizedRole === "realtor" ||
+    normalizedRole === "wholesaler" ||
+    normalizedRole === "partner" ||
+    normalizedRole === "licensed_partner"
+  );
+}
+
+
 function getId(value: any) {
   if (!value) return "";
 
@@ -138,45 +168,50 @@ function getNotificationChatRoomId(notification: NotificationItem) {
 
 function getNotificationTarget(notification: NotificationItem, userRole?: string) {
   const type = String(notification?.type || "").toLowerCase();
-  const role = normalizeRole(userRole);
+  const role = normalizeRole(userRole)?.toString().toLowerCase();
   const metadata = notification?.metadata || {};
   const actionUrl = getNotificationActionUrl(notification);
 
-const listingId =
-  getMetadataId(metadata, [
-    "listing_id",
-    "listingId",
-    "property_id",
-    "propertyId",
-  ]) ||
-  getQueryParamFromActionUrl(actionUrl, "listingId") ||
-  getQueryParamFromActionUrl(actionUrl, "listing_id") ||
-  getQueryParamFromActionUrl(actionUrl, "propertyId") ||
-  getQueryParamFromActionUrl(actionUrl, "property_id") ||
-  getIdFromActionUrl(actionUrl, "listings") ||
-  getIdFromActionUrl(actionUrl, "properties");
+  const listingId =
+    getMetadataId(metadata, [
+      "listing_id",
+      "listingId",
+      "property_id",
+      "propertyId",
+    ]) ||
+    getQueryParamFromActionUrl(actionUrl, "listingId") ||
+    getQueryParamFromActionUrl(actionUrl, "listing_id") ||
+    getQueryParamFromActionUrl(actionUrl, "propertyId") ||
+    getQueryParamFromActionUrl(actionUrl, "property_id") ||
+    getIdFromActionUrl(actionUrl, "listings") ||
+    getIdFromActionUrl(actionUrl, "properties");
 
-const bidId =
-  getMetadataId(metadata, ["bid_id", "bidId"]) ||
-  getQueryParamFromActionUrl(actionUrl, "bidId") ||
-  getQueryParamFromActionUrl(actionUrl, "bid_id") ||
-  getIdFromActionUrl(actionUrl, "bids");
+  const bidId =
+    getMetadataId(metadata, ["bid_id", "bidId"]) ||
+    getQueryParamFromActionUrl(actionUrl, "bidId") ||
+    getQueryParamFromActionUrl(actionUrl, "bid_id") ||
+    getIdFromActionUrl(actionUrl, "bids");
 
-const contractId =
-  getMetadataId(metadata, ["contract_id", "contractId"]) ||
-  getQueryParamFromActionUrl(actionUrl, "contractId") ||
-  getQueryParamFromActionUrl(actionUrl, "contract_id") ||
-  getIdFromActionUrl(actionUrl, "contracts");
+  const contractId =
+    getMetadataId(metadata, ["contract_id", "contractId"]) ||
+    getQueryParamFromActionUrl(actionUrl, "contractId") ||
+    getQueryParamFromActionUrl(actionUrl, "contract_id") ||
+    getIdFromActionUrl(actionUrl, "contracts");
 
-const dealId =
-  getMetadataId(metadata, ["deal_id", "dealId"]) ||
-  getQueryParamFromActionUrl(actionUrl, "dealId") ||
-  getQueryParamFromActionUrl(actionUrl, "deal_id") ||
-  getDealIdFromActionUrl(actionUrl);
+  const dealId =
+    getMetadataId(metadata, ["deal_id", "dealId"]) ||
+    getQueryParamFromActionUrl(actionUrl, "dealId") ||
+    getQueryParamFromActionUrl(actionUrl, "deal_id") ||
+    getDealIdFromActionUrl(actionUrl);
 
   const dealTrackerUrl = buildDealTrackerUrl({
     listingId,
     dealId,
+    contractId,
+  });
+
+  const contractsUrl = buildContractsUrl({
+    listingId,
     contractId,
   });
 
@@ -226,7 +261,7 @@ const dealId =
     return normalizeInternalUrl(actionUrl) || "/dashboard";
   }
 
-  if (isAllowedRole(role, PARTNER_ROLES)) {
+  if (isPartnerPortalRole(role)) {
     if (
       type === "bid_selected" ||
       type === "bid_rejected" ||
@@ -237,7 +272,7 @@ const dealId =
     }
 
     if (type.includes("contract")) {
-      return "/contracts";
+      return contractsUrl;
     }
 
     if (type.includes("deal")) {
@@ -251,8 +286,28 @@ const dealId =
     return normalizeInternalUrl(actionUrl) || "/dashboard";
   }
 
+  // Safety fallback: never send normal users to /contracts/:id or /deals/:id.
+  // Those routes are causing your blank detail screens.
+  if (
+    type === "bid_selected" ||
+    type === "bid_rejected" ||
+    type === "bid_backup" ||
+    type.includes("bid")
+  ) {
+    return "/my-bids";
+  }
+
+  if (type.includes("contract")) {
+    return contractsUrl;
+  }
+
+  if (type.includes("deal")) {
+    return dealTrackerUrl;
+  }
+
   return normalizeInternalUrl(actionUrl) || "/dashboard";
 }
+
 function formatNotificationTime(value?: string) {
   if (!value) return "";
 
