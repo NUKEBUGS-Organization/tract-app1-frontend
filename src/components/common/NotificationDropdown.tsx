@@ -135,27 +135,37 @@ function getNotificationChatRoomId(notification: NotificationItem) {
   );
 }
 
-function buildSellerDealTrackerUrl({
-  listingId,
-  contractId,
-}: {
-  listingId?: string;
-  contractId?: string;
-}) {
-  const params = new URLSearchParams();
+function isPartnerRole(role?: string) {
+  const normalizedRole = normalizeRole(role);
 
-  if (listingId) {
-    params.set("listingId", listingId);
-  }
-
-  if (contractId) {
-    params.set("contractId", contractId);
-  }
-
-  const queryString = params.toString();
-
-  return queryString ? `/deals?${queryString}` : "/deals";
+  return (
+    normalizedRole === "realtor" ||
+    normalizedRole === "wholesaler" ||
+    isAllowedRole(normalizedRole, PARTNER_ROLES)
+  );
 }
+
+// function buildSellerDealTrackerUrl({
+//   listingId,
+//   contractId,
+// }: {
+//   listingId?: string;
+//   contractId?: string;
+// }) {
+//   const params = new URLSearchParams();
+
+//   if (listingId) {
+//     params.set("listingId", listingId);
+//   }
+
+//   if (contractId) {
+//     params.set("contractId", contractId);
+//   }
+
+//   const queryString = params.toString();
+
+//   return queryString ? `/deals?${queryString}` : "/deals";
+// }
 
 function getNotificationTarget(notification: NotificationItem, userRole?: string) {
   const type = String(notification?.type || "").toLowerCase();
@@ -239,31 +249,38 @@ function getNotificationTarget(notification: NotificationItem, userRole?: string
     return normalizeInternalUrl(actionUrl) || "/dashboard";
   }
 
-  if (isAllowedRole(role, PARTNER_ROLES)) {
-    if (type === "bid_selected") {
-      return "/my-contracts";
-    }
-
-    if (type === "bid_rejected" || type === "bid_backup") {
-      return "/my-bids";
-    }
-
-    if (type.includes("contract")) {
-      return contractId
-        ? buildDealTrackerUrl({ listingId, dealId, contractId })
-        : "/my-contracts";
-    }
-
-    if (type.includes("deal")) {
-      return dealTrackerUrl;
-    }
-
-    if (type.includes("listing") && listingId) {
-      return `/properties/${listingId}`;
-    }
-
-    return normalizeInternalUrl(actionUrl) || "/dashboard";
+if (isPartnerRole(role)) {
+  if (
+    type === "bid_selected" ||
+    type === "bid_rejected" ||
+    type === "bid_backup" ||
+    type.includes("bid")
+  ) {
+    return "/my-bids";
   }
+
+  if (type.includes("contract")) {
+    return "/contracts";
+  }
+
+  if (type.includes("deal")) {
+    return dealTrackerUrl;
+  }
+
+  if (type.includes("chat")) {
+    const roomId = getNotificationChatRoomId(notification);
+
+    if (roomId) return `/chat/${roomId}`;
+
+    return "/chat";
+  }
+
+  if (type.includes("listing") && listingId) {
+    return `/properties/${listingId}`;
+  }
+
+  return normalizeInternalUrl(actionUrl) || "/dashboard";
+}
 
   return normalizeInternalUrl(actionUrl) || "/dashboard";
 }
