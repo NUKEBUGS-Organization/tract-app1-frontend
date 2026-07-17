@@ -242,7 +242,7 @@ function OfferCard({
     bid?.net_to_seller != null ? Number(bid.net_to_seller) : null;
   const paymentSource: string | null = bid?.payment_source ?? null;
 
-  const listingAddress =
+  const rawAddress =
     bid?.listing?.address ||
     bid?.property_id?.address ||
     bid?.property_address ||
@@ -251,6 +251,10 @@ function OfferCard({
     bid?.listing?._id || bid?.property_id?._id || bid?.listing_id || bid?.property_id;
   const listingCity = bid?.listing?.city || bid?.property_id?.city;
   const listingState = bid?.listing?.state_code || bid?.property_id?.state_code;
+  const isAddressRevealed = status === "selected";
+  const listingAddress = isAddressRevealed
+    ? rawAddress
+    : listingState || listingCity || "Property";
   const backupPosition = bid?.backup_position;
   const closingTimeline = bid?.closing_timeline_days;
   const agencyRole = bid?.agency_role;
@@ -285,13 +289,18 @@ function OfferCard({
             >
               {listingAddress}
             </p>
-            {listingCity && (
+            {isAddressRevealed && listingCity && (
               <p
                 className={`mt-0.5 text-[11px] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
                   }`}
               >
                 {listingCity}
                 {listingState ? `, ${listingState}` : ""}
+              </p>
+            )}
+            {!isAddressRevealed && (
+              <p className={`mt-0.5 text-[11px] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"}`}>
+                Address revealed when selected
               </p>
             )}
           </div>
