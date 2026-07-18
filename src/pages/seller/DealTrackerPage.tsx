@@ -909,7 +909,7 @@ useEffect(() => {
   }
 
 
- async function handleCancelContract() {
+async function handleCancelContract() {
   if (!contractId) return;
 
   try {
