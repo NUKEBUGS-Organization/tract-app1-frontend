@@ -682,9 +682,17 @@ export default function RealtorActiveDealsPage() {
 
   const entryStatus = activeEntry?.status || "not_started";
   const statusConfig = getDealStatusConfig(entryStatus);
-  const isCancelled = entryStatus === "cancelled";
-
+  // For pending_contract entries the status is always hardcoded "pending_signature".
+  // We must also check the fetched contract object's own status so that a cancellation
+  // (before either party signs) is correctly reflected in the UI.
   const pendingContractObj = isPendingContract ? contractByBidData : null;
+  const contractCancelled = Boolean(
+    isPendingContract &&
+    (pendingContractObj?.status === "cancelled" ||
+      contractByBidData?.status === "cancelled")
+  );
+  const isCancelled = entryStatus === "cancelled" || contractCancelled;
+
   const contract = isPendingContract ? pendingContractObj : activeEntry?.contractObj || null;
   const contractId = isPendingContract
     ? contract?._id || contract?.id || ""
