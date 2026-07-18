@@ -61,11 +61,11 @@ function getContractFromResponse(response: any) {
 }
 
 
-function isCancelledStatus(status?: string | null) {
-  const normalized = String(status || "").toLowerCase();
+// function isCancelledStatus(status?: string | null) {
+//   const normalized = String(status || "").toLowerCase();
 
-  return normalized === "cancelled" || normalized === "canceled";
-}
+//   return normalized === "cancelled" || normalized === "canceled";
+// }
 
 function getArrayPayload(value: any) {
   const payload = value?.data ?? value;

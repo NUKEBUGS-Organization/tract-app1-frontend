@@ -373,7 +373,12 @@ export default function SubmitBidPage() {
           }`}
       >
         {step === 1 && (
-          <BidDetails form={form} fieldErrors={fieldErrors} set={set} />
+          <BidDetails
+            form={form}
+            fieldErrors={fieldErrors}
+            set={set}
+            askingPrice={listingData?.market_price ? Number(listingData.market_price) : undefined}
+          />
         )}
         {step === 2 && (
           <DueDiligence form={form} fieldErrors={fieldErrors} set={set} />
