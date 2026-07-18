@@ -61,12 +61,6 @@ function getContractFromResponse(response: any) {
 }
 
 
-function isCancelledStatus(status?: string | null) {
-  const normalized = String(status || "").toLowerCase();
-
-  return normalized === "cancelled" || normalized === "canceled";
-}
-
 function getArrayPayload(value: any) {
   const payload = value?.data ?? value;
 
@@ -589,16 +583,28 @@ export default function DealTrackerPage() {
   const marketingProofUrl = activeDeal?.marketing_proof_url;
   const marketLaunchProofUrl = activeDeal?.market_launch_proof_url;
   const proceedToClosingAt = activeDeal?.proceed_to_closing_at;
+<<<<<<< Updated upstream
  const dealStatus = activeDeal?.status;
 const isDealCancelled = isCancelledStatus(dealStatus);
 const isFlowCancelled = isCancelled || isDealCancelled;
+=======
+  const dealStatus = activeDeal?.status;
+  const isDealTerminal = isTerminalDealStatus(dealStatus);
+  const isFlowStopped = isCancelled || isDealTerminal;
+>>>>>>> Stashed changes
 
-const hasMarketingTracking = Boolean(marketingDeadline || marketLaunchDeadline);
-const hasProofUploaded = Boolean(marketingProofUrl || marketLaunchProofUrl);
+  const hasMarketingTracking = Boolean(marketingDeadline || marketLaunchDeadline);
+  const hasProofUploaded = Boolean(marketingProofUrl || marketLaunchProofUrl);
 
+<<<<<<< Updated upstream
 const activeDeadline = isFlowCancelled
   ? undefined
   : marketingDeadline || marketLaunchDeadline;
+=======
+  const activeDeadline = isFlowStopped
+    ? undefined
+    : marketingDeadline || marketLaunchDeadline;
+>>>>>>> Stashed changes
 
   const activeDeadlineTitle = marketingDeadline
     ? "72-Hour Marketing Clock"
@@ -614,6 +620,7 @@ const activeDeadline = isFlowCancelled
 
   const activeCountdown = getCountdownParts(activeDeadline, now);
 
+<<<<<<< Updated upstream
 const showMarketingCountdown = Boolean(
   activeDeal &&
   activeDeadline &&
@@ -631,6 +638,25 @@ const liveDeadlineValue = isFlowCancelled
       : activeDeadline
         ? activeCountdown.compact
         : "-";
+=======
+  const showMarketingCountdown = Boolean(
+    activeDeal &&
+    activeDeadline &&
+    !isFlowStopped &&
+    !hasProofUploaded &&
+    !proceedToClosingAt
+  );
+
+  const liveDeadlineValue = isFlowStopped
+    ? "Cancelled"
+    : hasProofUploaded
+      ? "Proof Uploaded"
+      : proceedToClosingAt
+        ? "Moved To Closing"
+        : activeDeadline
+          ? activeCountdown.compact
+          : "-";
+>>>>>>> Stashed changes
 
   const partnerName = getBidderName(selectedBid, contract);
 
@@ -768,17 +794,29 @@ const liveDeadlineValue = isFlowCancelled
     ]
   );
 
+<<<<<<< Updated upstream
 useEffect(() => {
   if (isFlowCancelled || !showMarketingCountdown) return;
+=======
+  useEffect(() => {
+    if (isFlowStopped || !showMarketingCountdown) return;
+>>>>>>> Stashed changes
 
-  const timer = window.setInterval(() => {
-    setNow(Date.now());
-  }, 1000);
+    const timer = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
 
+<<<<<<< Updated upstream
   return () => {
     window.clearInterval(timer);
   };
 }, [isFlowCancelled, showMarketingCountdown]);
+=======
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [isFlowStopped, showMarketingCountdown]);
+>>>>>>> Stashed changes
 
   useEffect(() => {
     if (!activeListingId) return;
@@ -911,6 +949,15 @@ useEffect(() => {
 
       await refetchContract();
       await refetchDeals();
+<<<<<<< Updated upstream
+=======
+      await refetchDashboard();
+
+      if (activeListingId) {
+        await refetchBids();
+        await refetchContractsByListing();
+      }
+>>>>>>> Stashed changes
     } catch (error: any) {
       setApiError(getErrorMessage(error, "Unable to cancel contract."));
     }
@@ -964,11 +1011,19 @@ useEffect(() => {
         </div>
       )}
 
+<<<<<<< Updated upstream
       {isFlowCancelled && (
   <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
     This contract/deal is cancelled. Deal tracker timer and actions are disabled.
   </div>
 )}
+=======
+      {isFlowStopped && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          This contract/deal is cancelled. Deal tracker timer and actions are disabled.
+        </div>
+      )}
+>>>>>>> Stashed changes
 
       {showMarketingCountdown && (
         <MarketingCountdownBanner
@@ -1079,8 +1134,13 @@ useEffect(() => {
           </div>
 
           <StatusPill
+<<<<<<< Updated upstream
   status={isFlowCancelled ? "cancelled" : activeDeal?.status || contract?.status || "not_started"}
 />
+=======
+            status={isFlowStopped ? "cancelled" : activeDeal?.status || contract?.status || "not_started"}
+          />
+>>>>>>> Stashed changes
         </div>
 
         <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -1283,6 +1343,7 @@ useEffect(() => {
                 </div>
               )}
 
+<<<<<<< Updated upstream
           {activeDeal?.chat_unlocked && !isFlowCancelled && (
   <Link
     to="/chat"
@@ -1291,6 +1352,16 @@ useEffect(() => {
     Open Deal Chat
   </Link>
 )}
+=======
+            {activeDeal?.chat_unlocked && !isFlowStopped && (
+              <Link
+                to="/chat"
+                className="flex w-full items-center justify-center gap-2 bg-[var(--color-primary)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white transition hover:scale-[1.01]"
+              >
+                Open Deal Chat
+              </Link>
+            )}
+>>>>>>> Stashed changes
 
             {contract && !isCancelled && !isSigned && (
               <button
