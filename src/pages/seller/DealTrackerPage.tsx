@@ -110,6 +110,17 @@ function getBidderName(bid: any, contract?: any) {
   );
 }
 
+function isTerminalDealStatus(status?: string | null) {
+  const normalized = String(status || "").toLowerCase();
+
+  return [
+    "cancelled",
+    "canceled",
+    "closed",
+    "backup_activated",
+  ].includes(normalized);
+}
+
 function getDealContractId(deal: any) {
   return getId(deal?.contract_id) || deal?.contract_id || "";
 }
@@ -590,13 +601,13 @@ export default function DealTrackerPage() {
   const marketLaunchProofUrl = activeDeal?.market_launch_proof_url;
   const proceedToClosingAt = activeDeal?.proceed_to_closing_at;
  const dealStatus = activeDeal?.status;
-const isDealCancelled = isCancelledStatus(dealStatus);
-const isFlowCancelled = isCancelled || isDealCancelled;
+const isDealTerminal = isTerminalDealStatus(dealStatus);
+const isFlowStopped = isCancelled || isDealTerminal;
 
 const hasMarketingTracking = Boolean(marketingDeadline || marketLaunchDeadline);
 const hasProofUploaded = Boolean(marketingProofUrl || marketLaunchProofUrl);
 
-const activeDeadline = isFlowCancelled
+const activeDeadline = isFlowStopped
   ? undefined
   : marketingDeadline || marketLaunchDeadline;
 
@@ -617,12 +628,12 @@ const activeDeadline = isFlowCancelled
 const showMarketingCountdown = Boolean(
   activeDeal &&
   activeDeadline &&
-  !isFlowCancelled &&
+  !isFlowStopped &&
   !hasProofUploaded &&
   !proceedToClosingAt
 );
 
-const liveDeadlineValue = isFlowCancelled
+const liveDeadlineValue = isFlowStopped
   ? "Cancelled"
   : hasProofUploaded
     ? "Proof Uploaded"
@@ -769,7 +780,7 @@ const liveDeadlineValue = isFlowCancelled
   );
 
 useEffect(() => {
-  if (isFlowCancelled || !showMarketingCountdown) return;
+  if (isFlowStopped || !showMarketingCountdown) return;
 
   const timer = window.setInterval(() => {
     setNow(Date.now());
@@ -778,7 +789,7 @@ useEffect(() => {
   return () => {
     window.clearInterval(timer);
   };
-}, [isFlowCancelled, showMarketingCountdown]);
+}, [isFlowStopped, showMarketingCountdown]);
 
   useEffect(() => {
     if (!activeListingId) return;
@@ -898,23 +909,29 @@ useEffect(() => {
   }
 
 
-  async function handleCancelContract() {
-    if (!contractId) return;
+ async function handleCancelContract() {
+  if (!contractId) return;
 
-    try {
-      setApiError(null);
+  try {
+    setApiError(null);
 
-      const updatedResponse = await cancelContract(contractId).unwrap();
-      const updated = getContractFromResponse(updatedResponse);
+    const updatedResponse = await cancelContract(contractId).unwrap();
+    const updated = getContractFromResponse(updatedResponse);
 
-      setLocalContract(updated);
+    setLocalContract(updated);
 
-      await refetchContract();
-      await refetchDeals();
-    } catch (error: any) {
-      setApiError(getErrorMessage(error, "Unable to cancel contract."));
+    await refetchContract();
+    await refetchDeals();
+    await refetchDashboard();
+
+    if (activeListingId) {
+      await refetchBids();
+      await refetchContractsByListing();
     }
+  } catch (error: any) {
+    setApiError(getErrorMessage(error, "Unable to cancel contract."));
   }
+}
 
   const showInitialSkeleton =
     isLoadingDashboard ||
@@ -964,7 +981,7 @@ useEffect(() => {
         </div>
       )}
 
-      {isFlowCancelled && (
+      {isFlowStopped && (
   <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
     This contract/deal is cancelled. Deal tracker timer and actions are disabled.
   </div>
@@ -1079,7 +1096,7 @@ useEffect(() => {
           </div>
 
           <StatusPill
-  status={isFlowCancelled ? "cancelled" : activeDeal?.status || contract?.status || "not_started"}
+  status={isFlowStopped ? "cancelled" : activeDeal?.status || contract?.status || "not_started"}
 />
         </div>
 
@@ -1283,7 +1300,7 @@ useEffect(() => {
                 </div>
               )}
 
-          {activeDeal?.chat_unlocked && !isFlowCancelled && (
+          {activeDeal?.chat_unlocked && !isFlowStopped && (
   <Link
     to="/chat"
     className="flex w-full items-center justify-center gap-2 bg-[var(--color-primary)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white transition hover:scale-[1.01]"
