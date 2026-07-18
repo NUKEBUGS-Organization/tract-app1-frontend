@@ -477,6 +477,7 @@ export default function ActiveDealsPage() {
     useCancelDealMutation();
 
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showCancelContractConfirm, setShowCancelContractConfirm] = useState(false);
   const [docuSealError, setDocuSealError] = useState("");
   const [isDocuSealRefreshing, setIsDocuSealRefreshing] = useState(false);
 
@@ -754,14 +755,7 @@ export default function ActiveDealsPage() {
 
   async function handleCancelContract() {
     if (!contractId) return;
-    if (
-      !window.confirm(
-        "Are you sure you want to cancel this contract? This will terminate the deal and notify the seller. This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
-
+    setShowCancelContractConfirm(false);
     try {
       await cancelContractMutation(contractId).unwrap();
       if (isPendingContract) {
@@ -1742,19 +1736,64 @@ export default function ActiveDealsPage() {
               )}
 
               {contractId && !isCancelled && !isSigned && (
-                <button
-                  type="button"
-                  onClick={handleCancelContract}
-                  disabled={isCancellingContract}
-                  className="flex w-full items-center justify-center gap-2 border border-red-500/30 bg-red-500/10 px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-red-500 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isCancellingContract ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                <div className="mt-2">
+                  {!showCancelContractConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowCancelContractConfirm(true)}
+                      className={`flex w-full items-center justify-center gap-2 border px-5 py-3.5 text-[11px] font-black uppercase tracking-[0.2em] transition ${isDark
+                        ? "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/15"
+                        : "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                        }`}
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Cancel Contract
+                    </button>
                   ) : (
-                    <XCircle className="h-4 w-4" />
+                    <div
+                      className={`rounded-xl border p-4 ${isDark
+                        ? "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/8"
+                        : "border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5"
+                        }`}
+                    >
+                      <p
+                        className={`mb-3 text-[12px] font-black leading-5 ${isDark
+                          ? "text-white/80"
+                          : "text-[var(--color-text-main)]"
+                          }`}
+                      >
+                        Are you sure you want to cancel this contract? This will
+                        terminate the deal and notify the seller. This action
+                        cannot be undone.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleCancelContract}
+                          disabled={isCancellingContract}
+                          className="flex flex-1 items-center justify-center gap-2 bg-[var(--color-danger)] px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {isCancellingContract ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <XCircle className="h-3.5 w-3.5" />
+                          )}
+                          Confirm Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowCancelContractConfirm(false)}
+                          className={`flex-1 px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition border ${isDark
+                            ? "border-white/15 text-white/60 hover:bg-white/5"
+                            : "border-[var(--color-border-light)] text-[var(--color-text-muted)] hover:bg-[var(--color-bg-soft)]"
+                            }`}
+                        >
+                          Keep Contract
+                        </button>
+                      </div>
+                    </div>
                   )}
-                  Cancel Contract
-                </button>
+                </div>
               )}
 
               {activeEntry?.chatUnlocked && !isCancelled && entryStatus !== "closed" && (

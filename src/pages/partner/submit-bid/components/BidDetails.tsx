@@ -2,10 +2,20 @@ import { AlertCircle, DollarSign, ShieldAlert } from "lucide-react";
 import type { BidFormState } from "../types";
 import { usePartnerTheme } from "../../../../hooks/usePartnerTheme";
 
+function formatMoney(value: number) {
+  if (!Number.isFinite(value) || value === 0) return "—";
+  return value.toLocaleString(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
 interface BidDetailsProps {
   form: BidFormState;
   fieldErrors: Record<string, string>;
   set: <K extends keyof BidFormState>(key: K, value: BidFormState[K]) => void;
+  askingPrice?: number;
 }
 
 function FieldError({ message }: { message?: string }) {
@@ -22,6 +32,7 @@ export default function BidDetails({
   form,
   fieldErrors,
   set,
+  askingPrice,
 }: BidDetailsProps) {
   const isDark = usePartnerTheme() === "dark";
   const offerNum = Number(form.bid_price);
@@ -47,6 +58,29 @@ export default function BidDetails({
           seller will see alongside your Reliability Score.
         </p>
       </div>
+
+      {/* Seller's asking price — read-only reference banner */}
+      {askingPrice !== undefined && askingPrice > 0 && (
+        <div
+          className={`rounded-xl border px-5 py-4 ${isDark
+              ? "border-[#d4af37]/30 bg-[#d4af37]/10"
+              : "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10"
+            }`}
+        >
+          <p
+            className={`text-[10px] font-black uppercase tracking-wider ${isDark ? "text-[#d4af37]/70" : "text-[var(--color-secondary)]/70"
+              }`}
+          >
+            Seller's Asking Price
+          </p>
+          <p
+            className={`mt-1 text-2xl font-black ${isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]"
+              }`}
+          >
+            {formatMoney(askingPrice)}
+          </p>
+        </div>
+      )}
 
       {/* Bid Price */}
       <div>
