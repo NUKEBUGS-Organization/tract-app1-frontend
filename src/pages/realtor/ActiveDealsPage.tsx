@@ -545,8 +545,10 @@ export default function RealtorActiveDealsPage() {
     refetch: refetchDeals,
     isFetching: isFetchingDeals,
   } = useGetMyDealsQuery();
-  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
+  const { data: bidsData, isLoading: isLoadingBids, refetch: refetchBids } = useGetMyBidsQuery();
   const { data: chatRoomsData = [] } = useGetChatRoomsQuery();
+  const { data: myContractsData, refetch: refetchContractByBid, isFetching: isFetchingContractByBid } =
+    useGetMyContractsQuery();
 
   const allDeals = normalizeArray(dealsData);
   const allBids = normalizeArray(bidsData);
@@ -620,23 +622,31 @@ export default function RealtorActiveDealsPage() {
     }
 
     for (const bid of allBids) {
-      const bidStatus = String(bid?.status || "").toLowerCase();
-      if (bidStatus !== "selected") continue;
+      const bidId = getId(bid);
+      const contractForBid = (myContractsData || []).find((c: any) => {
+        const cBidId = typeof c.bid_id === "object" ? (c.bid_id?._id || c.bid_id?.id) : c.bid_id;
+        return cBidId === bidId;
+      });
+
+      const isSelected = String(bid?.status || "").toLowerCase() === "selected";
+      const isContractCancelled = contractForBid?.status === "cancelled";
+
+      if (!isSelected && !isContractCancelled) continue;
 
       const listing = bid?.listing || bid?.property_id || bid?.listing_id;
       const listingId =
         typeof listing === "object" ? getId(listing) : String(listing || "");
-      if (dealListingIds.has(listingId)) continue;
+      if (dealListingIds.has(listingId) && !isContractCancelled) continue;
 
       entries.push({
-        _entryKey: listingId,
+        _entryKey: isContractCancelled ? `${listingId}-cancelled-${bidId}` : listingId,
         _type: "pending_contract",
         _raw: bid,
         address:
           (typeof listing === "object" ? listing?.address : null) || "Untitled Property",
-        status: "pending_signature",
+        status: isContractCancelled ? "cancelled" : "pending_signature",
         bidPrice: bid?.bid_price ?? null,
-        bidId: getId(bid),
+        bidId: bidId,
         commissionPct: bid?.commission_percentage ?? null,
         agencyRole: bid?.agency_role ?? null,
         closingTimelineDays: bid?.closing_timeline_days ?? null,
@@ -646,7 +656,7 @@ export default function RealtorActiveDealsPage() {
     }
 
     return entries;
-  }, [allDeals, allBids]);
+  }, [allDeals, allBids, myContractsData]);
 
   const _tempActiveEntryKey =
     listingIdFromUrl || (unifiedEntries.length > 0 ? unifiedEntries[0]._entryKey : "");
@@ -666,8 +676,6 @@ export default function RealtorActiveDealsPage() {
   const activeEntry = unifiedEntries.find((e) => e._entryKey === activeEntryKey);
   const isPendingContract = activeEntry?._type === "pending_contract";
 
-  const { data: myContractsData, refetch: refetchContractByBid, isFetching: isFetchingContractByBid } =
-    useGetMyContractsQuery();
 
   const contractByBidData = useMemo(() => {
     if (!myContractsData || !_pendingBidId) return null;
@@ -989,8 +997,7 @@ export default function RealtorActiveDealsPage() {
     if (!contractId) return;
     try {
       await cancelContractMutation(contractId).unwrap();
-      if (isPendingContract) await refetchContractByBid();
-      else await refetchDeals();
+      await Promise.all([refetchBids(), refetchContractByBid(), refetchDeals()]);
       setCancelModal({ open: false, type: "agreement" });
     } catch (err: any) {
       console.error("Error cancelling contract:", err);
@@ -1124,12 +1131,10 @@ export default function RealtorActiveDealsPage() {
             {unifiedEntries.map((entry) => (
               <option key={entry._entryKey} value={entry._entryKey}>
                 {entry.address} (
-                {entry._type === "pending_contract"
-                  ? "Pending Signature"
-                  : entry.status
-                    .split("_")
-                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                    .join(" ")}
+                {entry.status
+                  .split("_")
+                  .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                  .join(" ")}
                 )
               </option>
             ))}
@@ -1143,17 +1148,19 @@ export default function RealtorActiveDealsPage() {
           <StatCard
             title="Contract Status"
             value={
-              contractId
-                ? isSigned
-                  ? "Signed"
-                  : isPending
-                    ? "Pending"
-                    : "Created"
-                : isPendingContract
-                  ? isFetchingContractByBid
-                    ? "Loading..."
+              isCancelled
+                ? "Cancelled"
+                : contractId
+                  ? isSigned
+                    ? "Signed"
+                    : isPending
+                      ? "Pending"
+                      : "Created"
+                  : isPendingContract
+                    ? isFetchingContractByBid
+                      ? "Loading..."
+                      : "Not Created"
                     : "Not Created"
-                  : "Not Created"
             }
             icon={FileText}
             isDark={isDark}
@@ -1462,8 +1469,8 @@ export default function RealtorActiveDealsPage() {
                     {!hasProof && (
                       <label
                         className={`inline-flex w-full cursor-pointer items-center justify-center gap-2 border py-3.5 text-[10px] font-black uppercase tracking-[0.18em] transition hover:scale-[1.01] ${isDark
-                            ? "border-[var(--color-secondary)] bg-[var(--color-secondary)] text-[var(--color-dark-main)] shadow-[var(--shadow-premium)] hover:opacity-90"
-                            : "border-[var(--color-primary)] bg-[var(--color-primary)] text-white hover:opacity-90"
+                          ? "border-[var(--color-secondary)] bg-[var(--color-secondary)] text-[var(--color-dark-main)] shadow-[var(--shadow-premium)] hover:opacity-90"
+                          : "border-[var(--color-primary)] bg-[var(--color-primary)] text-white hover:opacity-90"
                           } ${isUploadingProof ? "pointer-events-none opacity-50" : ""}`}
                       >
                         <Upload className="h-4 w-4" />

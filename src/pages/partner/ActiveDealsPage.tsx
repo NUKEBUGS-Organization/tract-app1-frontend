@@ -448,8 +448,13 @@ export default function ActiveDealsPage() {
     refetch: refetchDeals,
     isFetching: isFetchingDeals,
   } = useGetMyDealsQuery();
-  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
+  const { data: bidsData, isLoading: isLoadingBids, refetch: refetchBids } = useGetMyBidsQuery();
   const { data: chatRoomsData = [] } = useGetChatRoomsQuery();
+  const {
+    data: myContractsData,
+    isFetching: isFetchingContractByBid,
+    refetch: refetchContractByBid,
+  } = useGetMyContractsQuery();
 
   const allDeals = normalizeArray(dealsData);
   const allBids = normalizeArray(bidsData);
@@ -531,35 +536,43 @@ export default function ActiveDealsPage() {
       });
     }
 
-    // 2. Add selected bids that have no matching deal
+    // 2. Add selected bids or bids with cancelled contracts
     for (const bid of allBids) {
-      const bidStatus = String(bid?.status || "").toLowerCase();
-      if (bidStatus !== "selected") continue;
+      const bidId = getId(bid);
+      const contractForBid = (myContractsData || []).find((c: any) => {
+        const cBidId = typeof c.bid_id === "object" ? (c.bid_id?._id || c.bid_id?.id) : c.bid_id;
+        return cBidId === bidId;
+      });
+
+      const isSelected = String(bid?.status || "").toLowerCase() === "selected";
+      const isContractCancelled = contractForBid?.status === "cancelled";
+
+      if (!isSelected && !isContractCancelled) continue;
 
       const listing = bid?.listing || bid?.property_id || bid?.listing_id;
       const listingId =
         typeof listing === "object" ? getId(listing) : String(listing || "");
 
-      if (dealListingIds.has(listingId)) continue;
+      if (dealListingIds.has(listingId) && !isContractCancelled) continue;
 
       entries.push({
-        _entryKey: listingId,
+        _entryKey: isContractCancelled ? `${listingId}-cancelled-${bidId}` : listingId,
         _type: "pending_contract",
         _raw: bid,
         address:
           (typeof listing === "object" ? listing?.address : null) ||
           "Untitled Property",
-        status: "pending_signature",
+        status: isContractCancelled ? "cancelled" : "pending_signature",
         bidPrice: bid?.bid_price,
         marketPrice: typeof listing === "object" ? listing?.market_price : null,
-        bidId: getId(bid),
+        bidId: bidId,
         inspectionPeriod: bid?.inspection_period ?? null,
         dueDiligencePeriod: bid?.due_diligence_period ?? null,
       });
     }
 
     return entries;
-  }, [allDeals, allBids]);
+  }, [allDeals, allBids, myContractsData]);
 
   const _tempActiveEntryKey =
     listingIdFromUrl ||
@@ -588,46 +601,16 @@ export default function ActiveDealsPage() {
 
   const isPendingContract = activeEntry?._type === "pending_contract";
 
-  //Fetch my contracts
-  const {
-    data: myContractsData,
-    isFetching: isFetchingContractByBid,
-    refetch: refetchContractByBid,
-  } = useGetMyContractsQuery();
-
   // Find the contract that matches the pending bid ID
   const contractByBidData = useMemo(() => {
-    console.log("[DEBUG] myContractsData:", myContractsData);
-    console.log("[DEBUG] _pendingBidId:", _pendingBidId);
-
-    if (!myContractsData || !_pendingBidId) {
-      console.log("[DEBUG] Early return: no my contracts or no pendingBidId");
-      return null;
-    }
-
-    myContractsData.forEach((c: any, i: number) => {
-      console.log(`[DEBUG] Contract[${i}]:`, {
-        _id: c._id,
-        bid_id: c.bid_id,
-        status: c.status,
-      });
-    });
-
-    const found =
+    if (!myContractsData || !_pendingBidId) return null;
+    return (
       myContractsData.find((c: any) => {
         const bidId =
-          typeof c.bid_id === "object"
-            ? c.bid_id?._id || c.bid_id?.id
-            : c.bid_id;
-        console.log(
-          `[DEBUG] Comparing bidId: "${bidId}" === "${_pendingBidId}" →`,
-          bidId === _pendingBidId,
-        );
+          typeof c.bid_id === "object" ? c.bid_id?._id || c.bid_id?.id : c.bid_id;
         return bidId === _pendingBidId;
-      }) || null;
-
-    console.log("[DEBUG] contractByBidData (matched):", found);
-    return found;
+      }) || null
+    );
   }, [myContractsData, _pendingBidId]);
 
   // Derive data from active entry
@@ -722,7 +705,7 @@ export default function ActiveDealsPage() {
     if (!activeEntry?.dealId) return;
     try {
       await cancelDealMutation(activeEntry.dealId).unwrap();
-      await refetchDeals();
+      await Promise.all([refetchDeals(), refetchBids(), refetchContractByBid()]);
       setShowCancelConfirm(false);
     } catch (err: any) {
       console.error("Failed to cancel deal:", err);
@@ -758,11 +741,7 @@ export default function ActiveDealsPage() {
     setShowCancelContractConfirm(false);
     try {
       await cancelContractMutation(contractId).unwrap();
-      if (isPendingContract) {
-        await refetchContractByBid();
-      } else {
-        await refetchDeals();
-      }
+      await Promise.all([refetchBids(), refetchContractByBid(), refetchDeals()]);
     } catch (err: any) {
       console.error("Error cancelling contract:", err);
     }
@@ -1134,12 +1113,10 @@ export default function ActiveDealsPage() {
             {unifiedEntries.map((entry) => (
               <option key={entry._entryKey} value={entry._entryKey}>
                 {entry.address} (
-                {entry._type === "pending_contract"
-                  ? "Pending Signature"
-                  : entry.status
-                    .split("_")
-                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                    .join(" ")}
+                {entry.status
+                  .split("_")
+                  .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                  .join(" ")}
                 )
               </option>
             ))}
@@ -1153,17 +1130,19 @@ export default function ActiveDealsPage() {
           <StatCardDark
             title="Contract Status"
             value={
-              contractId
-                ? isSigned
-                  ? "Signed"
-                  : isPending
-                    ? "Pending"
-                    : "Created"
-                : isPendingContract
-                  ? isFetchingContractByBid
-                    ? "Loading..."
+              isCancelled
+                ? "Cancelled"
+                : contractId
+                  ? isSigned
+                    ? "Signed"
+                    : isPending
+                      ? "Pending"
+                      : "Created"
+                  : isPendingContract
+                    ? isFetchingContractByBid
+                      ? "Loading..."
+                      : "Not Created"
                     : "Not Created"
-                  : "Not Created"
             }
             icon={FileText}
             isDark={isDark}
