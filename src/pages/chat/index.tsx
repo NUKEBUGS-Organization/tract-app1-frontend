@@ -232,7 +232,7 @@ export default function ChatRoomsPage() {
                     </p>
 
                     <h2 className="mt-2 truncate font-serif text-2xl font-black text-[var(--color-primary)]">
-                      {otherUser?.full_name || otherUser?.email || "Deal Chat"}
+                      {otherUser?.fullName || otherUser?.full_name || otherUser?.email || "Deal Chat"}
                     </h2>
 
                     <div className="mt-4">

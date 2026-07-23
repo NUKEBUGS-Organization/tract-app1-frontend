@@ -3,7 +3,6 @@ import { Navigate } from "react-router";
 import DashboardLayout from "../layouts/DashboardLayout";
 
 import { useAuthContext } from "../contexts/AuthContext";
-import { tokenStorage } from "../redux/auth/tokenStorage";
 import { getRoleFromToken } from "../redux/auth/jwtUtils";
 import { useThemeMode } from "../hooks/useThemeMode";
 
@@ -70,8 +69,7 @@ const adminNav = [
 export default function DashboardRouter() {
   const { role, accessToken } = useAuthContext();
 
-  const token = accessToken || tokenStorage.getAccessToken();
-  const userRole = normalizeRole(role || getRoleFromToken(token));
+  const userRole = normalizeRole(role || getRoleFromToken(accessToken));
 
   const isPartner = isAllowedRole(userRole, PARTNER_ROLES);
   const isRealtor = isAllowedRole(userRole, REALTOR_ROLES);

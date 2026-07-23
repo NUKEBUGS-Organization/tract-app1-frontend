@@ -81,7 +81,7 @@ export const registerSchema = z
 
     state: z.string().min(1, "State is required"),
 
-    role: z.enum(["seller", "wholesaler", "realtor", "admin"], {
+    role: z.enum(["seller", "wholesaler", "realtor"], {
       message: "Please select a role",
     }),
 

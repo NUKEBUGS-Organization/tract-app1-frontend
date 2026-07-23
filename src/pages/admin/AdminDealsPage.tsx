@@ -61,11 +61,11 @@ function getDealBuyer(deal: any) {
 }
 
 function getDealSellerName(deal: any) {
-  return getDealSeller(deal)?.full_name || "-";
+  return getDealSeller(deal)?.fullName || ?.full_name || "-";
 }
 
 function getDealBuyerName(deal: any) {
-  return getDealBuyer(deal)?.full_name || "-";
+  return getDealBuyer(deal)?.fullName || ?.full_name || "-";
 }
 
 function formatStatusLabel(status: string) {

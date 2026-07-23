@@ -214,9 +214,9 @@ function getListingLabel(listing: any) {
 
 function getBidderName(bid: any) {
   return (
-    bid?.bidder_id?.full_name ||
+    bid?.bidder_id?.fullName || bid?.bidder_id?.full_name ||
     bid?.bidder_id?.email ||
-    bid?.buyer_id?.full_name ||
+    bid?.buyer_id?.fullName || bid?.buyer_id?.full_name ||
     bid?.buyer_id?.email ||
     "Selected Buyer"
   );
@@ -264,7 +264,7 @@ function getPersonName(person: any, fallback: string) {
 
   if (typeof person === "string") return person;
 
-  return person?.full_name || person?.email || fallback;
+  return person?.fullName || person?.full_name || person?.email || fallback;
 }
 
 function isContractCancelled(contract: any) {

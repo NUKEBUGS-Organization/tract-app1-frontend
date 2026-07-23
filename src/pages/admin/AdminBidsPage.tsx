@@ -59,7 +59,7 @@ function formatStatusLabel(status: string) {
 
 function getBidderName(bid: any) {
   return (
-    bid?.bidder_id?.full_name ||
+    bid?.bidder_id?.fullName || bid?.bidder_id?.full_name ||
     
     "-"
   );

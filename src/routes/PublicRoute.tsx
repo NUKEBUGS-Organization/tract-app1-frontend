@@ -1,20 +1,15 @@
 import { Navigate, Outlet } from "react-router";
 
 import { useAuthContext } from "../contexts/AuthContext";
-import { tokenStorage } from "../redux/auth/tokenStorage";
 
 function PublicRoute() {
-  const { accessToken, refreshToken } = useAuthContext();
+  const { accessToken, authReady } = useAuthContext();
 
-  const storedAccessToken = tokenStorage.getAccessToken();
-  const storedRefreshToken = tokenStorage.getRefreshToken();
+  if (!authReady) {
+    return null;
+  }
 
-  const activeAccessToken = accessToken || storedAccessToken;
-  const activeRefreshToken = refreshToken || storedRefreshToken;
-
-  const hasSession = Boolean(activeAccessToken || activeRefreshToken);
-
-  if (hasSession) {
+  if (accessToken) {
     return <Navigate to="/dashboard" replace />;
   }
 

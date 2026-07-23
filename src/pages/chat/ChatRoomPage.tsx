@@ -62,7 +62,7 @@ function getSenderId(message: any) {
 function getSenderName(message: any, currentUserId: string) {
   if (getSenderId(message) === currentUserId) return "You";
 
-  return message?.sender_id?.full_name || message?.sender_id?.email || "User";
+  return message?.sender_id?.fullName || message?.sender_id?.full_name || message?.sender_id?.email || "User";
 }
 
 function formatDateTime(value?: string) {
@@ -429,7 +429,7 @@ export default function ChatRoomPage() {
           <h1 className="mt-3 flex items-center gap-3 font-serif text-3xl font-black text-[var(--color-primary)]">
             <MessageCircle className="h-7 w-7 text-[var(--color-secondary)]" />
             Chat with{" "}
-            {displayOtherUser?.full_name ||
+            {displayOtherUser?.fullName || displayOtherUser?.full_name ||
               displayOtherUser?.email ||
               "Deal Partner"}
           </h1>
@@ -480,7 +480,7 @@ export default function ChatRoomPage() {
               </p>
 
               <p className="mt-1 text-sm font-bold text-[var(--color-text-main)]">
-                {displayOtherUser?.full_name ||
+                {displayOtherUser?.fullName || displayOtherUser?.full_name ||
                   displayOtherUser?.email ||
                   "-"}
               </p>

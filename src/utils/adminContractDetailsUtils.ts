@@ -32,7 +32,7 @@ export function hasReadableValue(value: any) {
 export function getPersonName(person: any) {
   const doc = getDoc(person);
 
-  return doc?.full_name || "-";
+  return doc?.fullName || doc?.full_name || "-";
 }
 
 export function getEmail(person: any) {

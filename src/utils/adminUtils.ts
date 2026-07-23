@@ -84,7 +84,7 @@ export function formatDateTime(value?: string | Date | null) {
 export function getPersonName(user: any) {
   const data = getApiDoc(user);
 
-  return data?.full_name || "-";
+  return data?.fullName || data?.full_name || "-";
 }
 
 export function getListingTitle(listing: any) {

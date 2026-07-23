@@ -8,7 +8,6 @@ import {
 
 import type { RootState } from "../redux/store";
 import { logout, setCredentials } from "../redux/auth/authSlice";
-import { tokenStorage } from "../redux/auth/tokenStorage";
 import { normalizeAuthResponse } from "../redux/auth/authResponse";
 
 const rawBaseQuery = fetchBaseQuery({
@@ -16,9 +15,7 @@ const rawBaseQuery = fetchBaseQuery({
   credentials: "include",
 
   prepareHeaders: (headers, { getState }) => {
-    const accessToken =
-      (getState() as RootState).auth.accessToken ??
-      tokenStorage.getAccessToken();
+    const accessToken = (getState() as RootState).auth.accessToken;
 
     if (accessToken) {
       headers.set("authorization", `Bearer ${accessToken}`);
@@ -45,7 +42,6 @@ function isAuthPublicApi(url: string) {
 }
 
 function forceLogout(api: any) {
-  tokenStorage.clearTokens();
   api.dispatch(logout());
 
   if (window.location.pathname !== "/auth/signin") {
@@ -55,25 +51,14 @@ function forceLogout(api: any) {
 
 let refreshPromise: Promise<boolean> | null = null;
 
-function refreshAuthSession(api: any, extraOptions: any) {
+export function refreshAuthSession(api: any, extraOptions: any = {}) {
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const refreshToken =
-        (api.getState() as RootState).auth.refreshToken ??
-        tokenStorage.getRefreshToken();
-
-      if (!refreshToken) {
-        forceLogout(api);
-        return false;
-      }
-
       const refreshResult = await rawBaseQuery(
         {
           url: "auth/refresh",
           method: "POST",
-          body: {
-            refresh_token: refreshToken,
-          },
+          body: {},
         },
         api,
         extraOptions
@@ -83,19 +68,16 @@ function refreshAuthSession(api: any, extraOptions: any) {
         refreshResult.error?.status === 400 ||
         refreshResult.error?.status === 401
       ) {
-        forceLogout(api);
         return false;
       }
 
       if (!refreshResult.data) {
-        forceLogout(api);
         return false;
       }
 
       const authData = normalizeAuthResponse(refreshResult.data);
 
       if (!authData.accessToken) {
-        forceLogout(api);
         return false;
       }
 
@@ -103,7 +85,6 @@ function refreshAuthSession(api: any, extraOptions: any) {
         setCredentials({
           user: authData.user ?? (api.getState() as RootState).auth.user,
           accessToken: authData.accessToken,
-          refreshToken: authData.refreshToken ?? refreshToken,
         })
       );
 
@@ -132,6 +113,8 @@ const baseQueryWithReAuth: BaseQueryFn<
 
     if (refreshed) {
       result = await rawBaseQuery(args, api, extraOptions);
+    } else {
+      forceLogout(api);
     }
   }
 

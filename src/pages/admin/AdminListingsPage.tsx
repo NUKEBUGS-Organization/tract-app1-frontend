@@ -55,7 +55,7 @@ function getListingTitle(listing: any) {
 }
 
 function getSellerName(listing: any) {
-  return listing?.seller_id?.full_name || "-";
+  return listing?.seller_id?.fullName || listing?.seller_id?.full_name || "-";
 }
 
 function formatStatusLabel(status: string) {

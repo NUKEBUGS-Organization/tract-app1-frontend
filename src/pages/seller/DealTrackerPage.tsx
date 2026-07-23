@@ -102,9 +102,9 @@ function getSelectedBid(bids: any[]) {
 
 function getBidderName(bid: any, contract?: any) {
   return (
-    bid?.bidder_id?.full_name ||
+    bid?.bidder_id?.fullName || bid?.bidder_id?.full_name ||
     bid?.bidder_id?.email ||
-    contract?.buyer_id?.full_name ||
+    contract?.buyer_id?.fullName || contract?.buyer_id?.full_name ||
     contract?.buyer_id?.email ||
     "Selected Partner"
   );

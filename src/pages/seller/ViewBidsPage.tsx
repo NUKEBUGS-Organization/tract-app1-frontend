@@ -156,7 +156,7 @@ function getBidderName(bid: any) {
 
   if (bidder && typeof bidder === "object") {
     return (
-      bidder.full_name ||
+      bidder.fullName || bidder.full_name ||
       bidder.name ||
       bidder.email ||
       cleanBid?.bidder_name ||

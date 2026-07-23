@@ -96,7 +96,7 @@ export default function PartnerDashboard() {
 
   const { data: meData, isLoading: isLoadingMe } = useGetMeQuery();
   const userName =
-    (meData as any)?.data?.full_name || (meData as any)?.full_name || "Partner";
+    (meData as any)?.data?.fullName || ?.data?.full_name || (meData as any)?.fullName || ?.full_name || "Partner";
   const currentUserId =
     (meData as any)?.data?._id ||
     (meData as any)?.data?.id ||
@@ -184,7 +184,7 @@ export default function PartnerDashboard() {
   ).length;
   const winRate = totalBids > 0 ? Math.round((wonBids / totalBids) * 100) : 0;
 
-  const kycStatusStr = String((meData as any)?.data?.kyc_status || (meData as any)?.kyc_status || "").toLowerCase();
+  const kycStatusStr = String((meData as any)?.data?.kycStatus || (meData as any)?.data?.kyc_status || (meData as any)?.kycStatus || (meData as any)?.kyc_status || "").toLowerCase();
   const isKycDone = ["verified", "approved"].includes(kycStatusStr);
 
   const proofStatusStr = String(verificationData?.data?.status || verificationData?.status || "").toLowerCase();

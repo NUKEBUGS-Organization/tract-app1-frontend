@@ -26,7 +26,6 @@ import {
   normalizeRole,
 } from "../constants/roles";
 import { PartnerThemeContext } from "../contexts/PartnerThemeContext";
-import { tokenStorage } from "../redux/auth/tokenStorage";
 
 interface NavItem {
   label: string;
@@ -54,7 +53,7 @@ function getUserName(user: unknown) {
     | undefined;
 
   return (
-    authUser?.full_name ||
+    authUser?.fullName || authUser?.full_name ||
     authUser?.fullName ||
     authUser?.name ||
     authUser?.email ||
@@ -179,9 +178,7 @@ function DashboardLayout({
   const { user, accessToken } = useAuthContext();
   const authUser = user as any;
 
-  const hasAuthSession = Boolean(
-    authUser || accessToken || tokenStorage.getAccessToken()
-  );
+  const hasAuthSession = Boolean(authUser || accessToken);
 
   const { data: profile, refetch: refetchProfile } = useGetMeQuery(undefined, {
     skip: !hasAuthSession,

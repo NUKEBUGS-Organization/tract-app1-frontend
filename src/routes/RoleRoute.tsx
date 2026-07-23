@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { Navigate } from "react-router";
 
 import { useAuthContext } from "../contexts/AuthContext";
-import { tokenStorage } from "../redux/auth/tokenStorage";
 import { getRoleFromToken } from "../redux/auth/jwtUtils";
 
 import {
@@ -36,23 +35,29 @@ export default function RoleRoute({
   children,
   roleContent,
 }: RoleRouteProps) {
-  const { role, accessToken, refreshToken } = useAuthContext();
+  const { role, accessToken, authReady } = useAuthContext();
 
-  const storedAccessToken = tokenStorage.getAccessToken();
-  const storedRefreshToken = tokenStorage.getRefreshToken();
+  if (!authReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-main)]">
+        <div className="rounded-2xl border border-[var(--color-border-light)] bg-white px-6 py-5 text-center shadow-[var(--shadow-card)]">
+          <p className="text-sm font-semibold text-[var(--color-primary)]">
+            Restoring your session...
+          </p>
 
-  const activeAccessToken = accessToken || storedAccessToken;
-  const activeRefreshToken = refreshToken || storedRefreshToken;
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+            Please wait while we verify your access.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  const hasSession = Boolean(activeAccessToken || activeRefreshToken);
-
-  if (!hasSession) {
+  if (!accessToken) {
     return <Navigate to="/auth/signin" replace />;
   }
 
-  const userRole = normalizeRole(
-    role || getRoleFromToken(activeAccessToken)
-  );
+  const userRole = normalizeRole(role || getRoleFromToken(accessToken));
 
   if (!userRole) {
     return (

@@ -414,9 +414,11 @@ export default function ProfilePage() {
   const isPartner = isAllowedRole(role, PARTNER_ROLES);
   const isRealtor = isAllowedRole(role, REALTOR_ROLES);
 
-  const displayName = profile?.full_name || profile?.email || "User";
+  const displayName = profile?.fullName || profile?.fullName || rofile?.full_name || profile?.email || "User";
 
-  const kycStatus = isAdmin ? undefined : profile?.kyc_status || "pending";
+  const kycStatus = isAdmin
+    ? undefined
+    : profile?.kycStatus || profile?.kyc_status || "pending";
 
   const normalizedKycStatus = String(kycStatus || "").toLowerCase();
 
@@ -426,8 +428,8 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!profile) return;
 
-    setFullName(profile?.full_name || "");
-    setStateCode(normalizeStateCode(profile?.state_code));
+    setFullName(profile?.fullName || profile?.fullName || rofile?.full_name || "");
+    setStateCode(normalizeStateCode(profile?.stateCode || profile?.state_code));
     setDob(formatDateForInput(profile?.dob));
   }, [profile]);
 
@@ -438,8 +440,8 @@ export default function ProfilePage() {
   }
 
   function handleCancelEdit() {
-    setFullName(profile?.full_name || "");
-    setStateCode(normalizeStateCode(profile?.state_code));
+    setFullName(profile?.fullName || profile?.fullName || rofile?.full_name || "");
+    setStateCode(normalizeStateCode(profile?.stateCode || profile?.state_code));
     setDob(formatDateForInput(profile?.dob));
 
     setProfileError(null);
@@ -473,8 +475,8 @@ export default function ProfilePage() {
       setProfileSuccess(null);
 
       await updateMe({
-        full_name: trimmedName,
-        state_code: normalizedState,
+        fullName: trimmedName,
+        stateCode: normalizedState,
         dob: dob || undefined,
       }).unwrap();
 
@@ -522,8 +524,8 @@ export default function ProfilePage() {
       setPasswordSuccess(null);
 
       await changePassword({
-        current_password: currentPassword,
-        new_password: newPassword,
+        currentPassword: currentPassword,
+        newPassword: newPassword,
       }).unwrap();
 
       setPasswordSuccess("Password changed successfully.");
@@ -612,7 +614,7 @@ export default function ProfilePage() {
       </section>
 
       <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <DetailCard label="Full Name" value={profile?.full_name} icon={User} />
+        <DetailCard label="Full Name" value={profile?.fullName || profile?.full_name} icon={User} />
 
         <DetailCard label="Email" value={profile?.email} icon={Mail} />
 
@@ -632,7 +634,7 @@ export default function ProfilePage() {
       >
         <DetailCard
           label="State"
-          value={getStateDisplayValue(profile?.state_code)}
+          value={getStateDisplayValue(profile?.stateCode || profile?.state_code)}
           icon={BadgeCheck}
         />
 
@@ -646,7 +648,7 @@ export default function ProfilePage() {
           <>
             <DetailCard
               label="Bank Verified"
-              value={formatBoolean(profile?.bank_verified)}
+              value={formatBoolean(profile?.bankVerified ?? profile?.bank_verified)}
               icon={CheckCircle2}
             />
 

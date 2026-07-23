@@ -208,12 +208,9 @@ export default function VerifyPage() {
       const accessToken =
         responseData?.accessToken || responseData?.access_token || null;
 
-      const refreshToken =
-        responseData?.refreshToken || responseData?.refresh_token || null;
-
       const user = responseData?.user ?? null;
 
-      if (!accessToken || !refreshToken) {
+      if (!accessToken) {
         setApiError("Login tokens were not returned.");
         return;
       }
@@ -221,7 +218,6 @@ export default function VerifyPage() {
       setAuth({
         user,
         accessToken,
-        refreshToken,
       });
 
       navigate("/dashboard", { replace: true });

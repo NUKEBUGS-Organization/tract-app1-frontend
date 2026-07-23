@@ -52,7 +52,7 @@ function hasPersonName(value: any) {
 
   const doc = getDoc(value);
 
-  return Boolean(doc?.full_name );
+  return Boolean(doc?.fullName || doc?.full_name );
 }
 
 function hasPersonEmail(value: any) {
@@ -112,8 +112,8 @@ export function mergePerson(primary: any, fallback: any) {
       fallbackDoc?._id,
 
     full_name:
-      primaryDoc?.full_name ||
-      fallbackDoc?.full_name ,
+      primaryDoc?.fullName || primaryDoc?.full_name ||
+      fallbackDoc?.fullName || fallbackDoc?.full_name ,
     
 
     email: primaryDoc?.email || fallbackDoc?.email,

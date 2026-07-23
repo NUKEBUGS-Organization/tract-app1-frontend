@@ -96,7 +96,7 @@ export default function RealtorDashboard() {
 
   const { data: meData, isLoading: isLoadingMe } = useGetMeQuery();
   const userName =
-    (meData as any)?.data?.full_name || (meData as any)?.full_name || "Realtor";
+    (meData as any)?.data?.fullName || ?.data?.full_name || (meData as any)?.fullName || ?.full_name || "Realtor";
   const professionalScore: number =
     (meData as any)?.data?.professional_score ??
     (meData as any)?.professional_score ??
@@ -162,13 +162,13 @@ export default function RealtorDashboard() {
     ["active", "selected", "backup"].includes(String(b?.status || "").toLowerCase()),
   ).length;
 
-  const kycStatusStr = String((meData as any)?.data?.kyc_status || (meData as any)?.kyc_status || "").toLowerCase();
+  const kycStatusStr = String((meData as any)?.data?.kycStatus || (meData as any)?.data?.kyc_status || (meData as any)?.kycStatus || (meData as any)?.kyc_status || "").toLowerCase();
   const isKycDone = ["verified", "approved"].includes(kycStatusStr);
 
   const licenseStatusStr = String(verificationData?.data?.status || verificationData?.status || "").toLowerCase();
   const isLicenseDone = licenseStatusStr === "approved";
 
-  const isProfileDone = Boolean((meData as any)?.data?.state_code || (meData as any)?.state_code);
+  const isProfileDone = Boolean((meData as any)?.data?.stateCode || (meData as any)?.data?.state_code || (meData as any)?.stateCode || (meData as any)?.state_code);
   const isStreamDone = allListings.length > 0;
   const isOfferDone = allBids.length > 0;
   const isContractDone = allDeals.length > 0;

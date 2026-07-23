@@ -139,7 +139,7 @@ function getSenderEmail(message: AdminFlaggedMessage) {
 function getSenderName(message: AdminFlaggedMessage) {
   const sender = getDoc(message.sender_id);
 
-  return sender?.full_name || sender?.fullName || sender?.name || "-";
+  return sender?.fullName || sender?.full_name || sender?.fullName || sender?.name || "-";
 }
 
 function getMessageText(message: AdminFlaggedMessage) {

@@ -99,12 +99,12 @@ export default function SignUp() {
 
   const onSubmit = async (data: RegisterFormValues) => {
     const payload = {
-      full_name: data.fullName.trim(),
+      fullName: data.fullName.trim(),
       email: data.email.trim().toLowerCase(),
       phone: normalizePhone(data.phone),
       password: data.password,
       role: data.role,
-      state_code: data.state,
+      stateCode: data.state,
       dob: data.dob,
     };
 
