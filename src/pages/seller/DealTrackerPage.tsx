@@ -30,6 +30,7 @@ import {
 import DocuSealSignButton from "./contracts/DocuSealSignButton";
 
 import { useGetMyDealsQuery } from "../../services/dealService";
+import { getEntityId, resolveOwnedListingId } from "../../utils/ids";
 
 function getDashboardPayload(response: any) {
   return response?.data ?? response ?? {};
@@ -78,10 +79,7 @@ function getArrayPayload(value: any) {
 }
 
 function getId(item: any) {
-  if (!item) return "";
-  if (typeof item === "string") return item;
-
-  return item?._id || item?.id || "";
+  return getEntityId(item);
 }
 
 function getListingLabel(listing: any) {
@@ -472,18 +470,18 @@ export default function DealTrackerPage() {
 
   const listings = getListingsFromDashboard(dashboardData);
 
-  const selectedListing =
-    listings.find((listing: any) => getId(listing) === listingIdFromUrl) ||
-    listings.find((listing: any) =>
-      ["under_contract", "live"].includes(String(listing?.status).toLowerCase())
-    ) ||
-    listings[0];
+  const preferredStatuses = listings.filter((listing: any) =>
+    ["under_contract", "live"].includes(String(listing?.status).toLowerCase())
+  );
+  const fallbackPool = preferredStatuses.length > 0 ? preferredStatuses : listings;
 
-  const activeListingId = listingIdFromUrl || getId(selectedListing);
+  const activeListingId =
+    resolveOwnedListingId(listings, listingIdFromUrl) ||
+    resolveOwnedListingId(fallbackPool, "");
 
   const activeListing =
     listings.find((listing: any) => getId(listing) === activeListingId) ||
-    selectedListing;
+    listings[0];
 
   const {
     data: bidsData = [],

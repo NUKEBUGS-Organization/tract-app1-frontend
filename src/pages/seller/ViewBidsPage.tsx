@@ -520,15 +520,19 @@ export default function ViewBidsPage() {
 
   const listings = getListingsFromDashboard(dashboardData);
 
-  const selectedListing =
-    listings.find((listing: any) => listing?._id === listingIdFromUrl) ||
-    listings[0];
+  // Prefer URL id only when it belongs to this seller; otherwise fall back.
+  // Blindly using listingIdFromUrl caused 403s on /bids while UI showed another listing.
+  const ownedFromUrl = listings.find(
+    (listing: any) => String(listing?._id || "") === listingIdFromUrl
+  );
+  const selectedListing = ownedFromUrl || listings[0];
 
-  const activeListingId =
-    listingIdFromUrl || selectedListing?._id || manualListingId || "";
+  const activeListingId = ownedFromUrl
+    ? listingIdFromUrl
+    : String(selectedListing?._id || manualListingId || "");
 
   const activeListing = listings.find(
-    (listing: any) => listing?._id === activeListingId
+    (listing: any) => String(listing?._id || "") === activeListingId
   );
 
   const activeListingLabel = activeListing

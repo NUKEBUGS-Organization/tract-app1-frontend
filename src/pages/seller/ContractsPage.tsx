@@ -28,6 +28,7 @@ import {
   useGetContractByIdQuery,
   useGetContractsByListingQuery,
 } from "../../services/contractService";
+import { getEntityId, resolveOwnedListingId } from "../../utils/ids";
 
 type BadgeVariant =
   | "success"
@@ -231,10 +232,7 @@ function getSelectedBid(bids: any[]) {
 }
 
 function getId(item: any) {
-  if (!item) return "";
-  if (typeof item === "string") return item;
-
-  return item?._id || item?.id || "";
+  return getEntityId(item);
 }
 
 function getContractListingId(contract: any) {
@@ -426,15 +424,11 @@ export default function ContractsPage() {
 
   const listings = getListingsFromDashboard(dashboardCurrentData ?? dashboardData);
 
-  const selectedListing =
-    listings.find((listing: any) => getId(listing) === listingIdFromUrl) ||
-    listings[0];
-
-  const activeListingId = listingIdFromUrl || getId(selectedListing);
+  const activeListingId = resolveOwnedListingId(listings, listingIdFromUrl);
 
   const activeListing =
     listings.find((listing: any) => getId(listing) === activeListingId) ||
-    selectedListing;
+    listings[0];
 
   const {
     currentData: bidsCurrentData,
