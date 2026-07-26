@@ -92,7 +92,7 @@ function getContractSellerName(contract: any) {
   const seller = getContractSeller(contract);
 
   return (
-    seller?.fullName || seller?.full_name ||
+    seller?.fullName ||
     seller?.fullName ||
     seller?.name ||
     "-"
@@ -103,7 +103,7 @@ function getContractBuyerName(contract: any) {
   const buyer = getContractBuyer(contract);
 
   return (
-    buyer?.fullName || buyer?.full_name ||
+    buyer?.fullName ||
     buyer?.fullName ||
     buyer?.name ||
     "-"

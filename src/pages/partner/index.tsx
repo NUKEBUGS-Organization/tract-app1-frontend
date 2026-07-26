@@ -22,6 +22,7 @@ import {
 import { useGetListingsQuery } from "../../services/listingService";
 import { useGetMyBidsQuery } from "../../services/listingService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
+import { useSkipUnlessAuthenticated } from "../../hooks/useSkipUnlessAuthenticated";
 import { useGetMyDealsQuery } from "../../services/dealService";
 import { useGetMeQuery } from "../../services/userService";
 import { useGetProofOfActivityStatusQuery } from "../../services/verificationService";
@@ -93,10 +94,13 @@ const PENALTY_TABLE = [
 export default function PartnerDashboard() {
   const theme = usePartnerTheme();
   const isDark = theme === "dark";
+  const skip = useSkipUnlessAuthenticated();
 
-  const { data: meData, isLoading: isLoadingMe } = useGetMeQuery();
+  const { data: meData, isLoading: isLoadingMe } = useGetMeQuery(undefined, {
+    skip,
+  });
   const userName =
-    (meData as any)?.data?.fullName || ?.data?.full_name || (meData as any)?.fullName || ?.full_name || "Partner";
+    (meData as any)?.data?.fullName || (meData as any)?.fullName || "Partner";
   const currentUserId =
     (meData as any)?.data?._id ||
     (meData as any)?.data?.id ||
@@ -104,8 +108,8 @@ export default function PartnerDashboard() {
     (meData as any)?.id ||
     "";
   const reliabilityScore: number =
-    (meData as any)?.data?.reliability_score ??
-    (meData as any)?.reliability_score ??
+    (meData as any)?.data?.reliabilityScore ??
+    (meData as any)?.reliabilityScore ??
     100;
   const scoreTier =
     reliabilityScore >= 90 ? "Perfect Standing" :
@@ -120,7 +124,7 @@ export default function PartnerDashboard() {
     isLoading: isLoadingListings,
   } = useGetListingsQuery(
     { status: "live" },
-    { refetchOnMountOrArgChange: true },
+    { skip, refetchOnMountOrArgChange: true },
   );
   const allListings: any[] = (() => {
     const payload =
@@ -133,7 +137,10 @@ export default function PartnerDashboard() {
     return [];
   })();
 
-  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
+  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery(
+    undefined,
+    { skip },
+  );
   const allBids: any[] = (() => {
     const raw: any = bidsData;
     const payload = raw?.data ?? raw;
@@ -155,10 +162,11 @@ export default function PartnerDashboard() {
     data: dealsData,
     isLoading: isLoadingDeals,
     refetch: refetchDeals,
-  } = useGetMyDealsQuery();
+  } = useGetMyDealsQuery(undefined, { skip });
   const allDeals: any[] = Array.isArray(dealsData) ? (dealsData as any[]) : [];
 
-  const { data: verificationData, isLoading: isLoadingVerification } = useGetProofOfActivityStatusQuery();
+  const { data: verificationData, isLoading: isLoadingVerification } =
+    useGetProofOfActivityStatusQuery(undefined, { skip });
 
   const isLoading =
     isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals || isLoadingVerification;
@@ -184,7 +192,7 @@ export default function PartnerDashboard() {
   ).length;
   const winRate = totalBids > 0 ? Math.round((wonBids / totalBids) * 100) : 0;
 
-  const kycStatusStr = String((meData as any)?.data?.kycStatus || (meData as any)?.data?.kyc_status || (meData as any)?.kycStatus || (meData as any)?.kyc_status || "").toLowerCase();
+  const kycStatusStr = String((meData as any)?.data?.kycStatus || (meData as any)?.kycStatus || "").toLowerCase();
   const isKycDone = ["verified", "approved"].includes(kycStatusStr);
 
   const proofStatusStr = String(verificationData?.data?.status || verificationData?.status || "").toLowerCase();

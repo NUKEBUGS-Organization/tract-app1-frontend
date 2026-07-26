@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, Outlet, useSearchParams } from "react-router";
 import {
   ChevronDown,
@@ -17,6 +17,7 @@ import {
 import { useAuthContext } from "../contexts/AuthContext";
 import DashboardSidebar from "../components/common/DashboardSidebar";
 import NotificationDropdown from "../components/common/NotificationDropdown";
+import { useSkipUnlessAuthenticated } from "../hooks/useSkipUnlessAuthenticated";
 import { useGetMeQuery } from "../services/userService";
 import { useGetListingsDashboardQuery } from "../services/listingService";
 import {
@@ -44,8 +45,7 @@ interface DashboardLayoutProps {
 function getUserName(user: unknown) {
   const authUser = user as
     | {
-      full_name?: string;
-      fullName?: string;
+          fullName?: string;
       name?: string;
       email?: string;
     }
@@ -53,7 +53,7 @@ function getUserName(user: unknown) {
     | undefined;
 
   return (
-    authUser?.fullName || authUser?.full_name ||
+    authUser?.fullName ||
     authUser?.fullName ||
     authUser?.name ||
     authUser?.email ||
@@ -175,14 +175,13 @@ function DashboardLayout({
   onToggleTheme,
   children,
 }: DashboardLayoutProps) {
-  const { user, accessToken } = useAuthContext();
+  const { user, isAuthenticated, authReady } = useAuthContext();
   const authUser = user as any;
+  const skipUnauthenticated = useSkipUnlessAuthenticated();
+  const hasAuthSession = authReady && isAuthenticated;
 
-  const hasAuthSession = Boolean(authUser || accessToken);
-
-  const { data: profile, refetch: refetchProfile } = useGetMeQuery(undefined, {
-    skip: !hasAuthSession,
-    refetchOnMountOrArgChange: true,
+  const { data: profile } = useGetMeQuery(undefined, {
+    skip: skipUnauthenticated,
   });
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -208,12 +207,6 @@ function DashboardLayout({
     ? profileUser || authUser
     : authUser;
 
-  useEffect(() => {
-    if (hasAuthSession) {
-      refetchProfile();
-    }
-  }, [hasAuthSession, authUser?._id, authUser?.email, refetchProfile]);
-
   const displayName = getUserName(displayUser);
   const initials = getInitials(displayName) || "A";
 
@@ -231,7 +224,7 @@ function DashboardLayout({
 
   const { data: dashboardData, isFetching: isFetchingListings } =
     useGetListingsDashboardQuery(undefined, {
-      skip: !showPropertySearch,
+      skip: skipUnauthenticated || !showPropertySearch,
     });
 
   const listings = getListingsFromResponse(dashboardData);

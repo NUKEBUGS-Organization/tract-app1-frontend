@@ -15,7 +15,7 @@ function AdminControlPanel({
   onBanClick: () => void;
   onUnban: () => void;
 }) {
-  const isBanned = user?.is_banned === true;
+  const isBanned = user?.isBanned === true;
   const banReason = getBanReason(user);
 
   return (

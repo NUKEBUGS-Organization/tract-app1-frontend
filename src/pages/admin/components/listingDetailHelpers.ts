@@ -114,7 +114,7 @@ export function hasCompletePerson(value: any) {
 
   const doc = getDoc(value);
 
-  const hasName = Boolean(doc?.fullName || doc?.full_name);
+  const hasName = Boolean(doc?.fullName);
   const hasEmail = Boolean(doc?.email);
   const hasPhone = Boolean(doc?.phone);
 
@@ -133,7 +133,7 @@ export function mergePerson(primary: any, fallback: any) {
     ...fallbackDoc,
     ...primaryDoc,
     _id: primaryId || fallbackDoc?._id || "",
-    full_name: primaryDoc?.fullName || primaryDoc?.full_name || fallbackDoc?.fullName || fallbackDoc?.full_name,
+    fullName: primaryDoc?.fullName || fallbackDoc?.fullName,
     email: primaryDoc?.email || fallbackDoc?.email,
     phone: primaryDoc?.phone || fallbackDoc?.phone,
     role: primaryDoc?.role || fallbackDoc?.role,

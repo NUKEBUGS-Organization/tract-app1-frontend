@@ -10,15 +10,15 @@ export function normalizeAuthResponse(response: any) {
 
 /** Display helpers — prefer canonical camelCase with legacy snake_case fallback. */
 export function userFullName(user: any): string {
-  return user?.fullName || user?.full_name || "";
+  return user?.fullName || "";
 }
 
 export function userStateCode(user: any): string {
-  return user?.stateCode || user?.state_code || "";
+  return user?.stateCode || "";
 }
 
 export function userKycStatus(user: any): string {
-  return String(user?.kycStatus || user?.kyc_status || "pending").toLowerCase();
+  return String(user?.kycStatus || "pending").toLowerCase();
 }
 
 export function isKycApproved(user: any): boolean {

@@ -17,7 +17,6 @@ export interface AuthUser {
   user_id?: string;
   sub?: string;
   fullName?: string;
-  full_name?: string;
   email?: string;
   phone?: string;
   role?: UserRole;
@@ -66,7 +65,6 @@ const authSlice = createSlice({
           sub: decodedToken.sub,
           email: decodedToken.email,
           fullName: decodedToken.fullName,
-          full_name: decodedToken.fullName || decodedToken.full_name,
           role: decodedToken.role,
         };
       }

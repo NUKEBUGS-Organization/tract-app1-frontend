@@ -1,5 +1,5 @@
 import type { KeyboardEvent, MouseEvent } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import {
   AlertTriangle,
@@ -11,8 +11,8 @@ import {
 
 import {
   useDeleteNotificationMutation,
+  useGetUnreadNotificationCountQuery,
   useLazyGetNotificationsQuery,
-  useLazyGetUnreadNotificationCountQuery,
   useMarkAllNotificationsReadMutation,
   useMarkNotificationReadMutation,
   type NotificationItem,
@@ -351,14 +351,16 @@ function NotificationDropdown({
     },
   ] = useLazyGetNotificationsQuery();
 
-  const [
-    fetchUnreadNotificationCount,
-    {
-      data: unreadNotificationCount = 0,
-      isFetching: isFetchingUnreadCount,
-      error: unreadNotificationError,
-    },
-  ] = useLazyGetUnreadNotificationCountQuery();
+  const {
+    data: unreadNotificationCount = 0,
+    isFetching: isFetchingUnreadCount,
+    error: unreadNotificationError,
+    refetch: refetchUnreadCount,
+  } = useGetUnreadNotificationCountQuery(undefined, {
+    skip: !hasAuthSession,
+    // Poll only while authenticated; interval is 0 when skipped / logged out.
+    pollingInterval: hasAuthSession ? 60_000 : 0,
+  });
 
   const [markNotificationRead] = useMarkNotificationReadMutation();
 
@@ -382,17 +384,11 @@ function NotificationDropdown({
     ? "h-5 w-5 text-[var(--color-secondary)]"
     : "h-5 w-5 text-[var(--color-primary)]";
 
-  useEffect(() => {
-    if (!hasAuthSession) return;
-
-    fetchUnreadNotificationCount();
-  }, [hasAuthSession, fetchUnreadNotificationCount]);
-
   async function loadNotifications() {
     if (!hasAuthSession) return;
 
     await Promise.all([
-      fetchUnreadNotificationCount(),
+      refetchUnreadCount(),
       fetchNotifications({
         page: 1,
         limit: 8,
@@ -412,7 +408,7 @@ function NotificationDropdown({
 
   async function refreshAfterAction() {
     await Promise.all([
-      fetchUnreadNotificationCount(),
+      refetchUnreadCount(),
       fetchNotifications({
         page: 1,
         limit: 8,

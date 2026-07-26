@@ -24,6 +24,7 @@ import { useGetMyDealsQuery } from "../../services/dealService";
 import { useGetMeQuery } from "../../services/userService";
 import { useGetRealtorVerificationStatusQuery } from "../../services/verificationService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
+import { useSkipUnlessAuthenticated } from "../../hooks/useSkipUnlessAuthenticated";
 
 const PENALTY_TABLE = [
   { violation: "Slow Response to Seller", penalty: -10, icon: Clock },
@@ -93,13 +94,16 @@ function StatCard({ label, value, note, icon: Icon, isDark }: StatCardProps) {
 export default function RealtorDashboard() {
   const theme = usePartnerTheme();
   const isDark = theme === "dark";
+  const skip = useSkipUnlessAuthenticated();
 
-  const { data: meData, isLoading: isLoadingMe } = useGetMeQuery();
+  const { data: meData, isLoading: isLoadingMe } = useGetMeQuery(undefined, {
+    skip,
+  });
   const userName =
-    (meData as any)?.data?.fullName || ?.data?.full_name || (meData as any)?.fullName || ?.full_name || "Realtor";
+    (meData as any)?.data?.fullName || (meData as any)?.fullName || "Realtor";
   const professionalScore: number =
-    (meData as any)?.data?.professional_score ??
-    (meData as any)?.professional_score ??
+    (meData as any)?.data?.professionalScore ??
+    (meData as any)?.professionalScore ??
     100;
   const scoreTier =
     professionalScore >= 90 ? "Perfect Standing" :
@@ -114,7 +118,7 @@ export default function RealtorDashboard() {
     isLoading: isLoadingListings,
   } = useGetListingsQuery(
     { status: "live" },
-    { refetchOnMountOrArgChange: true },
+    { skip, refetchOnMountOrArgChange: true },
   );
 
   const allListings: any[] = (() => {
@@ -127,7 +131,10 @@ export default function RealtorDashboard() {
     return [];
   })();
 
-  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
+  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery(
+    undefined,
+    { skip },
+  );
   const allBids: any[] = (() => {
     const raw: any = bidsData;
     const payload = raw?.data ?? raw;
@@ -145,10 +152,11 @@ export default function RealtorDashboard() {
     data: dealsData,
     isLoading: isLoadingDeals,
     refetch: refetchDeals,
-  } = useGetMyDealsQuery();
+  } = useGetMyDealsQuery(undefined, { skip });
   const allDeals: any[] = Array.isArray(dealsData) ? (dealsData as any[]) : [];
 
-  const { data: verificationData, isLoading: isLoadingVerification } = useGetRealtorVerificationStatusQuery();
+  const { data: verificationData, isLoading: isLoadingVerification } =
+    useGetRealtorVerificationStatusQuery(undefined, { skip });
 
   const isLoading = isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals || isLoadingVerification;
 
@@ -162,13 +170,13 @@ export default function RealtorDashboard() {
     ["active", "selected", "backup"].includes(String(b?.status || "").toLowerCase()),
   ).length;
 
-  const kycStatusStr = String((meData as any)?.data?.kycStatus || (meData as any)?.data?.kyc_status || (meData as any)?.kycStatus || (meData as any)?.kyc_status || "").toLowerCase();
+  const kycStatusStr = String((meData as any)?.data?.kycStatus || (meData as any)?.kycStatus || "").toLowerCase();
   const isKycDone = ["verified", "approved"].includes(kycStatusStr);
 
   const licenseStatusStr = String(verificationData?.data?.status || verificationData?.status || "").toLowerCase();
   const isLicenseDone = licenseStatusStr === "approved";
 
-  const isProfileDone = Boolean((meData as any)?.data?.stateCode || (meData as any)?.data?.state_code || (meData as any)?.stateCode || (meData as any)?.state_code);
+  const isProfileDone = Boolean((meData as any)?.data?.stateCode || (meData as any)?.stateCode);
   const isStreamDone = allListings.length > 0;
   const isOfferDone = allBids.length > 0;
   const isContractDone = allDeals.length > 0;

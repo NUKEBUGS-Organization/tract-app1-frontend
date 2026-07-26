@@ -31,7 +31,6 @@ type AdminPerson = {
   _id: string;
   id?: string;
   email?: string;
-  full_name?: string;
   // fullName?: string;
   // name?: string;
 };
@@ -139,7 +138,7 @@ function getSenderEmail(message: AdminFlaggedMessage) {
 function getSenderName(message: AdminFlaggedMessage) {
   const sender = getDoc(message.sender_id);
 
-  return sender?.fullName || sender?.full_name || sender?.fullName || sender?.name || "-";
+  return sender?.fullName || sender?.fullName || sender?.name || "-";
 }
 
 function getMessageText(message: AdminFlaggedMessage) {

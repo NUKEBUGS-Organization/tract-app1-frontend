@@ -14,7 +14,12 @@ import {
 } from "../redux/auth/authSlice";
 import type { AuthUser } from "../redux/auth/authSlice";
 import { useLogoutUserMutation } from "../services/authService";
-import { refreshAuthSession } from "../services/baseApi";
+import {
+  allowAuthRefresh,
+  blockAuthRefresh,
+  baseApi,
+  bootRefreshAuthSession,
+} from "../services/baseApi";
 import { store } from "../redux/store";
 
 interface AuthContextValue {
@@ -46,12 +51,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        const ok = await refreshAuthSession(
+        // Module-level bootRefreshAuthSession guards StrictMode double-invoke.
+        const ok = await bootRefreshAuthSession(
           { getState: store.getState, dispatch: store.dispatch },
           {}
         );
         if (cancelled) return;
+
         if (!ok) {
+          // Local logout only — do NOT POST /auth/logout (would kill SSO siblings).
+          blockAuthRefresh();
+          dispatch(logout());
+          dispatch(baseApi.util.resetApiState());
           dispatch(setAuthReady(true));
           if (
             !window.location.pathname.startsWith("/auth") &&
@@ -62,6 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch {
         if (!cancelled) {
+          blockAuthRefresh();
+          dispatch(logout());
+          dispatch(baseApi.util.resetApiState());
           dispatch(setAuthReady(true));
         }
       }
@@ -70,19 +84,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [dispatch, navigate]);
+    // Boot once on mount — do not re-run when navigate identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
   const setAuth: AuthContextValue["setAuth"] = (payload) => {
+    allowAuthRefresh();
     dispatch(setCredentials(payload));
   };
 
   const logoutAuth = async () => {
     try {
+      // Explicit user logout — server revoke is intentional here.
       await logoutUser().unwrap();
     } catch {
       // Cookie may already be cleared / session expired
     } finally {
+      blockAuthRefresh();
       dispatch(logout());
+      dispatch(baseApi.util.resetApiState());
       navigate("/auth/signin", { replace: true });
     }
   };

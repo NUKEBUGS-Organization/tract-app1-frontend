@@ -1,4 +1,4 @@
-import { baseApi } from "./baseApi";
+import { baseApi, blockAuthRefresh } from "./baseApi";
 import { logout } from "../redux/auth/authSlice";
 
 export const authService = baseApi.injectEndpoints({
@@ -83,7 +83,9 @@ export const authService = baseApi.injectEndpoints({
         try {
           await queryFulfilled;
         } finally {
+          blockAuthRefresh();
           dispatch(logout());
+          dispatch(baseApi.util.resetApiState());
         }
       },
     }),

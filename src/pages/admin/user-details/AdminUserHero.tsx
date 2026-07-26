@@ -23,7 +23,7 @@ function AdminUserHero({ user }: { user: any }) {
   const fullAddress = getFullAddress(user);
   const role = normalizeValue(getRawRole(user));
   const kycStatus = normalizeValue(getKycStatus(user));
-  const isBanned = user?.is_banned === true;
+  const isBanned = user?.isBanned === true;
 
   return (
     <section className="relative overflow-hidden rounded-3xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)] sm:p-6">
