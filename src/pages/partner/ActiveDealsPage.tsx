@@ -682,27 +682,42 @@ export default function ActiveDealsPage() {
   ]);
   const app2DealOpen =
     app2ListingStatus === "under_contract" || app2ListingStatus === "sold";
-  // Title & Escrow opens once Buyer Tract has a deal AND a title rep is assigned
-  // (assigning the rep — not advancing to appraisal — completes this partner step).
+  const app2PastEscrow =
+    app2MidSteps.has(app2CurrentStep) ||
+    app2CurrentStep === "funded_closed" ||
+    app2CurrentStep === "clear_to_close";
+  const app1DealClosed = String(activeEntry?.status || "").toLowerCase() === "closed";
+  // Title & Escrow: Buyer Tract deal is open (title rep assign is operational, not a
+  // blocker for this partner step). Any mid/late App2 step also implies escrow opened.
   const step10Done =
+    app1DealClosed ||
     app2ListingStatus === "sold" ||
-    (app2ListingStatus === "under_contract" && app2TitleRepAssigned);
-  const step10Current =
-    app2ListingStatus === "under_contract" &&
-    !app2TitleRepAssigned &&
-    (app2EarlySteps.has(app2CurrentStep) || !app2CurrentStep);
-  // Clear to Close becomes active when admin/title rep advances into title pipeline
-  // (Appraisal ordered and later).
+    (app2ListingStatus === "under_contract" &&
+      (app2TitleRepAssigned ||
+        app2EarlySteps.has(app2CurrentStep) ||
+        app2PastEscrow ||
+        Boolean(app2CurrentStep)));
+  // Clear to Close / Funded: treat later steps as completing earlier ones
+  const step12Done =
+    app1DealClosed ||
+    app2ListingStatus === "sold" ||
+    app2CurrentStep === "funded_closed";
   const step11Done =
-    app2ListingStatus === "sold" || app2CurrentStep === "clear_to_close";
+    step12Done ||
+    app2CurrentStep === "clear_to_close" ||
+    app2ListingStatus === "sold";
+  const step10Current =
+    Boolean(proceedToClosing) &&
+    !step10Done &&
+    !step11Done &&
+    !step12Done;
   const step11Current =
     app2ListingStatus === "under_contract" &&
-    app2TitleRepAssigned &&
     app2MidSteps.has(app2CurrentStep) &&
-    app2CurrentStep !== "clear_to_close";
-  const step12Done =
-    app2ListingStatus === "sold" || app2CurrentStep === "funded_closed";
+    app2CurrentStep !== "clear_to_close" &&
+    !step12Done;
   const step12Current =
+    !step12Done &&
     app2ListingStatus === "under_contract" &&
     app2CurrentStep === "funded_closed";
 
@@ -1000,22 +1015,26 @@ export default function ActiveDealsPage() {
       {
         title: "Title & Escrow Opened",
         description: step10Done
-          ? app2ListingStatus === "sold"
+          ? step12Done || app2ListingStatus === "sold"
             ? "Title & escrow complete — deal funded on Buyer Tract."
-            : "Title rep assigned · title & escrow open on Buyer Tract."
+            : app2TitleRepAssigned
+              ? "Title rep assigned · title & escrow open on Buyer Tract."
+              : `Buyer Tract deal in progress (${app2CurrentStep.replace(/_/g, " ") || "under contract"}).`
           : app2DealOpen && !app2TitleRepAssigned
-            ? "Buyer Tract deal open — assign a title rep to open title & escrow."
+            ? "Buyer Tract deal open — assign a title rep on Buyer Tract to staff title & escrow."
             : proceedToClosing
               ? "Waiting for Buyer Tract listing / deal to open title & escrow."
               : "Pending confirmation to proceed.",
         done: step10Done,
-        current: step10Current || Boolean(proceedToClosing && !step10Done),
+        current: step10Current,
         locked: !proceedToClosing && !step10Done,
       },
       {
         title: "Clear to Close",
         description: step11Done
-          ? "Title search, documents, and closing cleared on Buyer Tract."
+          ? step12Done
+            ? "Clear to close completed on Buyer Tract."
+            : "Title search, documents, and closing cleared on Buyer Tract."
           : step11Current
             ? `Title rep pipeline active (${app2CurrentStep.replace(/_/g, " ")}). Advance through Appraisal ordered → Clear to close.`
             : step10Done
