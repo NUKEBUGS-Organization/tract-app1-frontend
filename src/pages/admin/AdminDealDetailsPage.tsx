@@ -652,7 +652,6 @@ function AdminDealDetailsPage() {
   }
 
   const dealStatus = getDealStatus(deal);
-  const normalizedDealStatus = normalizeValue(dealStatus);
   const dealAmount = getDealAmount(bid);
   const closedAt = getClosedAt(deal);
 
