@@ -11,6 +11,7 @@ import {
   Loader2,
   RefreshCw,
   ShieldCheck,
+  Store,
 } from "lucide-react";
 
 import { PageSkeleton } from "../../components/common/Skeleton";
@@ -229,6 +230,24 @@ function formatStatus(status?: string) {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+/** App2 listing pipeline label for closed App1 deals (fail-soft: unknown → not an error). */
+function formatApp2ListingStatus(status?: string | null) {
+  switch (String(status || "").toLowerCase()) {
+    case "marketing_pending":
+      return "Marketing (Pending)";
+    case "listed":
+      return "Listed on Buyer Tract";
+    case "under_contract":
+      return "Under Contract";
+    case "sold":
+      return "Sold";
+    case "unknown":
+      return "Status unavailable";
+    default:
+      return "Status unavailable";
+  }
 }
 
 function getErrorMessage(error: any, fallback: string) {
@@ -601,6 +620,10 @@ export default function DealTrackerPage() {
  const dealStatus = activeDeal?.status;
 const isDealTerminal = isTerminalDealStatus(dealStatus);
 const isFlowStopped = isCancelled || isDealTerminal;
+const isDealClosed = String(dealStatus || "").toLowerCase() === "closed";
+const app2ListingStatusLabel = isDealClosed
+  ? formatApp2ListingStatus(activeDeal?.app2Status?.status)
+  : null;
 
 const hasMarketingTracking = Boolean(marketingDeadline || marketLaunchDeadline);
 const hasProofUploaded = Boolean(marketingProofUrl || marketLaunchProofUrl);
@@ -1048,7 +1071,7 @@ async function handleCancelContract() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+      <div className={`grid grid-cols-1 gap-5 md:grid-cols-2 ${isDealClosed ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
         <StatCard
           title="Signatures"
           value={`${sellerSigned ? "Seller ✓" : "Seller -"} / ${buyerSigned ? "Buyer ✓" : "Buyer -"
@@ -1073,6 +1096,14 @@ async function handleCancelContract() {
           value={hasProofUploaded ? "Uploaded" : "Pending"}
           icon={ShieldCheck}
         />
+
+        {isDealClosed && app2ListingStatusLabel ? (
+          <StatCard
+            title="Buyer Tract Status"
+            value={app2ListingStatusLabel}
+            icon={Store}
+          />
+        ) : null}
       </div>
 
       <div className="rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
@@ -1231,6 +1262,24 @@ async function handleCancelContract() {
                 </div>
               </div>
             )}
+
+            {isDealClosed && app2ListingStatusLabel ? (
+              <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                  Buyer Tract Status
+                </p>
+
+                <h3 className="mt-2 font-serif text-xl font-black text-[var(--color-primary)]">
+                  {app2ListingStatusLabel}
+                </h3>
+
+                <p className="mt-3 text-sm leading-6 text-[var(--color-text-muted)]">
+                  {String(activeDeal?.app2Status?.status || "").toLowerCase() === "unknown"
+                    ? "Marketplace status is temporarily unavailable. Check back later."
+                    : "Status of this property after it was listed on Buyer Tract."}
+                </p>
+              </div>
+            ) : null}
 
             {!selectedBid && !contract && (
               <Link
