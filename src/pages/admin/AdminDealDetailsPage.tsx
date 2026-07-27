@@ -203,9 +203,14 @@ function isDealClosed(status: string) {
   return normalized === "closed";
 }
 
-function canCloseDeal(status: string) {
-  const normalized = normalizeValue(status);
-
+function canCloseDeal(deal: any) {
+  const doc = getDoc(deal);
+  // App2 deals share the collection (listingId / currentStep) — not closable via App1 admin.
+  if (doc?.listingId || doc?.currentStep) return false;
+  if (!getId(doc?.listing_id) || !getId(doc?.seller_id) || !getId(doc?.buyer_id)) {
+    return false;
+  }
+  const normalized = normalizeValue(getDealStatus(deal));
   return normalized !== "closed";
 }
 
@@ -732,7 +737,7 @@ function AdminDealDetailsPage() {
               <RecordLink to={`/properties/${propertyId}`} label="Open Listing" />
             )}
 
-            {canCloseDeal(normalizedDealStatus) && (
+            {canCloseDeal(deal) && (
               <Button
                 type="button"
                 variant="primary"

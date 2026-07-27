@@ -77,8 +77,15 @@ function formatStatusLabel(status: string) {
     .join(" ");
 }
 
-function canCloseDeal(status: string) {
-  return normalizeValue(status) !== "closed";
+function canCloseDeal(deal: any) {
+  if (!deal || typeof deal !== "object") return false;
+  // App2 deals share the collection (listingId / currentStep).
+  if (deal.listingId || deal.currentStep) return false;
+  const listingId = deal.listing_id?._id || deal.listing_id?.id || deal.listing_id;
+  const sellerId = deal.seller_id?._id || deal.seller_id?.id || deal.seller_id;
+  const buyerId = deal.buyer_id?._id || deal.buyer_id?.id || deal.buyer_id;
+  if (!listingId || !sellerId || !buyerId) return false;
+  return normalizeValue(getDealStatus(deal)) !== "closed";
 }
 
 function isClosedDeal(deal: any) {
@@ -408,7 +415,7 @@ function AdminDealCard({
           View Details
         </Link>
 
-        {canCloseDeal(status) && (
+        {canCloseDeal(deal) && (
           <Button
             type="button"
             variant="danger"
@@ -497,9 +504,7 @@ function AdminDealsPage() {
 
   const activeCount = allDeals.filter((deal: any) => isActiveDeal(deal)).length;
   const closedCount = allDeals.filter((deal: any) => isClosedDeal(deal)).length;
-  const closableCount = allDeals.filter((deal: any) =>
-    canCloseDeal(getDealStatus(deal))
-  ).length;
+  const closableCount = allDeals.filter((deal: any) => canCloseDeal(deal)).length;
 
   function clearFilters() {
     setFilter("all");
@@ -783,7 +788,7 @@ function AdminDealsPage() {
                         <div className="flex min-w-[92px] items-center justify-center gap-2">
                           <ViewDealButton deal={deal} />
 
-                          {canCloseDeal(status) && (
+                          {canCloseDeal(deal) && (
                             <ActionIconButton
                               label="Close Deal"
                               variant="danger"
