@@ -431,6 +431,14 @@ interface UnifiedEntry {
   bidId?: string;
   inspectionPeriod?: number | null;
   dueDiligencePeriod?: number | null;
+  /** Enriched by App1 getMyDeals from App2 by-app1-deal (when eligible). */
+  app2Status?: {
+    status?: string;
+    currentStep?: string;
+    listingId?: string;
+    dealId?: string;
+    closedAt?: string | null;
+  } | null;
 }
 
 export default function ActiveDealsPage() {
@@ -533,6 +541,7 @@ export default function ActiveDealsPage() {
         chatUnlocked: deal?.chat_unlocked,
         inspectionPeriod: matchingBid?.inspection_period ?? null,
         dueDiligencePeriod: matchingBid?.due_diligence_period ?? null,
+        app2Status: deal?.app2Status ?? null,
       });
     }
 
@@ -653,6 +662,31 @@ export default function ActiveDealsPage() {
   const activeCountdown = getCountdownParts(marketingDeadline, now);
   const proofUrl = activeEntry?.proofUrl;
   const proceedToClosing = Boolean(activeEntry?.proceedToClosingAt);
+  const app2StatusRaw = activeEntry?.app2Status;
+  const app2ListingStatus = String(app2StatusRaw?.status || "").toLowerCase();
+  const app2CurrentStep = String(app2StatusRaw?.currentStep || "").toLowerCase();
+  const app2EarlySteps = new Set([
+    "contract_signed",
+    "emd_deposited",
+    "inspection_period",
+  ]);
+  const app2MidSteps = new Set([
+    "appraisal_ordered",
+    "financing_approved",
+    "title_search_complete",
+    "clear_to_close",
+  ]);
+  const step10Done =
+    app2ListingStatus === "under_contract" || app2ListingStatus === "sold";
+  const step10Current =
+    app2ListingStatus === "under_contract" && app2EarlySteps.has(app2CurrentStep);
+  const step11Done = app2ListingStatus === "sold";
+  const step11Current =
+    app2ListingStatus === "under_contract" && app2MidSteps.has(app2CurrentStep);
+  const step12Done = app2ListingStatus === "sold";
+  const step12Current =
+    app2ListingStatus === "under_contract" &&
+    app2CurrentStep === "funded_closed";
 
   // Due Diligence: uses actual due_diligence_period from the bid (in calendar days)
   const ddDays = activeEntry?.dueDiligencePeriod ?? 10; // fallback to 10 days
@@ -947,27 +981,38 @@ export default function ActiveDealsPage() {
       },
       {
         title: "Title & Escrow Opened",
-        description: proceedToClosing
-          ? "Title Company Assigned · Escrow File Created · Earnest Money Verified"
-          : "Pending confirmation to proceed.",
-        done: false,
-        current: proceedToClosing,
-        locked: !proceedToClosing,
+        description: step10Done
+          ? app2ListingStatus === "sold"
+            ? "Title & escrow complete — deal funded on Buyer Tract."
+            : `Buyer Tract deal in progress (${app2CurrentStep.replace(/_/g, " ") || "under contract"}).`
+          : proceedToClosing
+            ? "Waiting for Buyer Tract listing / deal to open title & escrow."
+            : "Pending confirmation to proceed.",
+        done: step10Done,
+        current: step10Current,
+        locked: !proceedToClosing && !step10Done,
       },
       {
         title: "Clear to Close",
-        description:
-          "Title Search Complete ✓ · Documents Approved ✓ · Closing Scheduled ✓",
-        done: false,
-        current: false,
-        locked: true,
+        description: step11Done
+          ? "Title search, documents, and closing cleared on Buyer Tract."
+          : step11Current
+            ? `Title rep pipeline active (${app2CurrentStep.replace(/_/g, " ")}).`
+            : "Title Search Complete · Documents Approved · Closing Scheduled",
+        done: step11Done,
+        current: step11Current,
+        locked: !step10Done && !step11Current && !step11Done,
       },
       {
         title: "Funded & Closed",
-        description: "Final payout and transfer.",
-        done: false,
-        current: false,
-        locked: true,
+        description: step12Done
+          ? "Final payout and transfer complete on Buyer Tract."
+          : step12Current
+            ? "Funding / closing in progress on Buyer Tract."
+            : "Final payout and transfer.",
+        done: step12Done,
+        current: step12Current,
+        locked: !step11Done && !step12Current && !step12Done,
       },
     ];
 

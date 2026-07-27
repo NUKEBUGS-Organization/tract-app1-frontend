@@ -625,6 +625,11 @@ const dealStatus = activeDeal?.status;
 const isDealTerminal = isTerminalDealStatus(dealStatus);
 const isFlowStopped = isCancelled || isDealTerminal;
 const isDealClosed = String(dealStatus || "").toLowerCase() === "closed";
+const isDealCancelledOrBackup = ["cancelled", "canceled", "backup_activated"].includes(
+  String(dealStatus || "").toLowerCase(),
+);
+/** Red "cancelled" banner — not for successfully closed deals. */
+const showCancelledBanner = isCancelled || isDealCancelledOrBackup;
 const app2ListingStatusLabel = isDealClosed
   ? formatApp2ListingStatus(activeDeal?.app2Status?.status)
   : null;
@@ -1009,7 +1014,7 @@ async function handleCancelContract() {
         </div>
       )}
 
-      {isFlowStopped && (
+      {showCancelledBanner && (
   <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
     This contract/deal is cancelled. Deal tracker timer and actions are disabled.
   </div>
@@ -1132,7 +1137,11 @@ async function handleCancelContract() {
           </div>
 
           <StatusPill
-  status={isFlowStopped ? "cancelled" : activeDeal?.status || contract?.status || "not_started"}
+  status={
+    showCancelledBanner
+      ? "cancelled"
+      : activeDeal?.status || contract?.status || "not_started"
+  }
 />
         </div>
 
