@@ -438,6 +438,7 @@ interface UnifiedEntry {
     listingId?: string;
     dealId?: string;
     closedAt?: string | null;
+    titleRepAssigned?: boolean;
   } | null;
 }
 
@@ -665,25 +666,42 @@ export default function ActiveDealsPage() {
   const app2StatusRaw = activeEntry?.app2Status;
   const app2ListingStatus = String(app2StatusRaw?.status || "").toLowerCase();
   const app2CurrentStep = String(app2StatusRaw?.currentStep || "").toLowerCase();
+  const app2TitleRepAssigned = Boolean(app2StatusRaw?.titleRepAssigned);
+  // Early App2 steps (buyer/wholesaler) — before title-rep pipeline
   const app2EarlySteps = new Set([
     "contract_signed",
     "emd_deposited",
     "inspection_period",
   ]);
+  // Title-rep steps start at appraisal_ordered (App2 advance steps 4–8)
   const app2MidSteps = new Set([
     "appraisal_ordered",
     "financing_approved",
     "title_search_complete",
     "clear_to_close",
   ]);
-  const step10Done =
+  const app2DealOpen =
     app2ListingStatus === "under_contract" || app2ListingStatus === "sold";
+  // Title & Escrow opens once Buyer Tract has a deal AND a title rep is assigned
+  // (assigning the rep — not advancing to appraisal — completes this partner step).
+  const step10Done =
+    app2ListingStatus === "sold" ||
+    (app2ListingStatus === "under_contract" && app2TitleRepAssigned);
   const step10Current =
-    app2ListingStatus === "under_contract" && app2EarlySteps.has(app2CurrentStep);
-  const step11Done = app2ListingStatus === "sold";
+    app2ListingStatus === "under_contract" &&
+    !app2TitleRepAssigned &&
+    (app2EarlySteps.has(app2CurrentStep) || !app2CurrentStep);
+  // Clear to Close becomes active when admin/title rep advances into title pipeline
+  // (Appraisal ordered and later).
+  const step11Done =
+    app2ListingStatus === "sold" || app2CurrentStep === "clear_to_close";
   const step11Current =
-    app2ListingStatus === "under_contract" && app2MidSteps.has(app2CurrentStep);
-  const step12Done = app2ListingStatus === "sold";
+    app2ListingStatus === "under_contract" &&
+    app2TitleRepAssigned &&
+    app2MidSteps.has(app2CurrentStep) &&
+    app2CurrentStep !== "clear_to_close";
+  const step12Done =
+    app2ListingStatus === "sold" || app2CurrentStep === "funded_closed";
   const step12Current =
     app2ListingStatus === "under_contract" &&
     app2CurrentStep === "funded_closed";
@@ -984,12 +1002,14 @@ export default function ActiveDealsPage() {
         description: step10Done
           ? app2ListingStatus === "sold"
             ? "Title & escrow complete — deal funded on Buyer Tract."
-            : `Buyer Tract deal in progress (${app2CurrentStep.replace(/_/g, " ") || "under contract"}).`
-          : proceedToClosing
-            ? "Waiting for Buyer Tract listing / deal to open title & escrow."
-            : "Pending confirmation to proceed.",
+            : "Title rep assigned · title & escrow open on Buyer Tract."
+          : app2DealOpen && !app2TitleRepAssigned
+            ? "Buyer Tract deal open — assign a title rep to open title & escrow."
+            : proceedToClosing
+              ? "Waiting for Buyer Tract listing / deal to open title & escrow."
+              : "Pending confirmation to proceed.",
         done: step10Done,
-        current: step10Current,
+        current: step10Current || Boolean(proceedToClosing && !step10Done),
         locked: !proceedToClosing && !step10Done,
       },
       {
@@ -997,8 +1017,10 @@ export default function ActiveDealsPage() {
         description: step11Done
           ? "Title search, documents, and closing cleared on Buyer Tract."
           : step11Current
-            ? `Title rep pipeline active (${app2CurrentStep.replace(/_/g, " ")}).`
-            : "Title Search Complete · Documents Approved · Closing Scheduled",
+            ? `Title rep pipeline active (${app2CurrentStep.replace(/_/g, " ")}). Advance through Appraisal ordered → Clear to close.`
+            : step10Done
+              ? "Waiting for admin/title rep to advance Buyer Tract to Appraisal ordered."
+              : "Title Search Complete · Documents Approved · Closing Scheduled",
         done: step11Done,
         current: step11Current,
         locked: !step10Done && !step11Current && !step11Done,
