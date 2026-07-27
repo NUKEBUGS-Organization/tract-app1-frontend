@@ -243,6 +243,10 @@ function formatApp2ListingStatus(status?: string | null) {
       return "Under Contract";
     case "sold":
       return "Sold";
+    case "source_deal_fell_through":
+      return "Source deal fell through";
+    case "cancelled":
+      return "Cancelled";
     case "unknown":
       return "Status unavailable";
     default:
@@ -617,13 +621,16 @@ export default function DealTrackerPage() {
   const marketingProofUrl = activeDeal?.marketing_proof_url;
   const marketLaunchProofUrl = activeDeal?.market_launch_proof_url;
   const proceedToClosingAt = activeDeal?.proceed_to_closing_at;
- const dealStatus = activeDeal?.status;
+const dealStatus = activeDeal?.status;
 const isDealTerminal = isTerminalDealStatus(dealStatus);
 const isFlowStopped = isCancelled || isDealTerminal;
 const isDealClosed = String(dealStatus || "").toLowerCase() === "closed";
 const app2ListingStatusLabel = isDealClosed
   ? formatApp2ListingStatus(activeDeal?.app2Status?.status)
   : null;
+const sourceDealFellThrough =
+  String(activeDeal?.app2Status?.status || "").toLowerCase() ===
+  "source_deal_fell_through";
 
 const hasMarketingTracking = Boolean(marketingDeadline || marketLaunchDeadline);
 const hasProofUploaded = Boolean(marketingProofUrl || marketLaunchProofUrl);
@@ -1128,6 +1135,20 @@ async function handleCancelContract() {
   status={isFlowStopped ? "cancelled" : activeDeal?.status || contract?.status || "not_started"}
 />
         </div>
+
+        {sourceDealFellThrough ? (
+          <div className="mx-6 mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span className="mt-0.5 font-black uppercase tracking-wider text-[10px] text-amber-700">
+              Warning
+            </span>
+            <p>
+              An App2 listing is still linked to this deal after it fell through
+              (cancelled or backup activated). The wholesaler may still be
+              marketing this property — follow up before assuming assignment
+              progress.
+            </p>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-4">
