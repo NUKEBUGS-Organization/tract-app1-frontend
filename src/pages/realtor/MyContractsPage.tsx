@@ -175,7 +175,6 @@ function ContractCard({
 
   const contractStatus = String(contract?.status || "pending").toLowerCase();
   const dealStatus = String(deal?.status || "").toLowerCase();
-  const isSigned = contractStatus === "signed";
   const isCancelled = contractStatus === "cancelled" || dealStatus === "cancelled";
 
   const sellerSigned = Boolean(contract?.seller_signed_at);
@@ -294,7 +293,7 @@ function ContractCard({
             </Link>
           )}
 
-          {isSigned && listingId && (
+          {!isCancelled && listingId && !needsRealtorSignature && (
             <Link
               to={`/deals?listingId=${listingId}`}
               className={`flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] ${
@@ -372,8 +371,21 @@ export default function RealtorMyContractsPage() {
       })
     : rawOffers;
 
-  // Only show selected offers (those that progressed to listing agreements)
-  const contractOffers = allOffers.filter((b) => getOfferStatus(b) === "selected");
+  // Build a set of bid IDs that have a contract record (any status).
+  // When a contract is cancelled the backend demotes the bid to REJECTED,
+  // so filtering only on bid.status==='selected' would silently drop
+  // cancelled contracts. We use the contracts list as the source of truth.
+  const bidIdsWithContract = new Set(
+    (contractsData as any[]).map((c: any) => {
+      const cBidId = typeof c.bid_id === "object" ? c.bid_id?._id || c.bid_id?.id : c.bid_id;
+      return String(cBidId || "");
+    }).filter(Boolean)
+  );
+
+  const contractOffers = allOffers.filter((b) => {
+    const bidId = String(b?._id || b?.id || "");
+    return getOfferStatus(b) === "selected" || bidIdsWithContract.has(bidId);
+  });
 
   const offersWithStatus = contractOffers.map((bid) => {
     const config = getContractStatusConfig(bid, contractsData, allDeals);

@@ -566,7 +566,7 @@ export default function ActiveDealsPage() {
       if (dealListingIds.has(listingId) && !isContractCancelled) continue;
 
       entries.push({
-        _entryKey: isContractCancelled ? `${listingId}-cancelled-${bidId}` : listingId,
+        _entryKey: listingId,
         _type: "pending_contract",
         _raw: bid,
         address:
@@ -604,6 +604,18 @@ export default function ActiveDealsPage() {
       setSearchParams({ listingId: activeEntryKey }, { replace: true });
     }
   }, [activeEntryKey, listingIdFromUrl, isLoading, setSearchParams]);
+
+  // After cancellation the refetch may change what entries exist. If the URL
+  // param no longer matches any entry, clear it so the page auto-selects the
+  // first available entry instead of rendering a blank page.
+  useEffect(() => {
+    if (listingIdFromUrl && !isLoading && unifiedEntries.length > 0) {
+      const stillExists = unifiedEntries.some((e) => e._entryKey === listingIdFromUrl);
+      if (!stillExists) {
+        setSearchParams({ listingId: unifiedEntries[0]._entryKey }, { replace: true });
+      }
+    }
+  }, [unifiedEntries, listingIdFromUrl, isLoading, setSearchParams]);
 
   const activeEntry = unifiedEntries.find(
     (e) => e._entryKey === activeEntryKey,

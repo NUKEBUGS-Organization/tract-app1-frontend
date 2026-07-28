@@ -502,8 +502,8 @@ export default function RealtorMyOffersPage() {
   // to be silently dropped due to ObjectId format mismatches.
   const allOffers = rawOffers;
 
-  const activeOffers = allOffers.filter((b) =>
-    ["active", "selected"].includes(getOfferStatus(b)),
+  const activeOffers = allOffers.filter(
+    (b) => getOfferStatus(b) === "active",
   );
   const pastOffers = allOffers.filter((b) =>
     ["backup", "rejected", "deleted"].includes(getOfferStatus(b)),

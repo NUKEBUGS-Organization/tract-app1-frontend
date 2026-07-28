@@ -197,6 +197,7 @@ export default function PartnerDashboard() {
 
   const proofStatusStr = String(verificationData?.data?.status || verificationData?.status || "").toLowerCase();
   const isProofDone = proofStatusStr === "approved";
+  const isProofSubmitted = ["pending", "approved"].includes(proofStatusStr);
 
   const isStreamDone = allListings.length > 0;
   const isBidDone = allBids.length > 0;
@@ -211,6 +212,8 @@ export default function PartnerDashboard() {
       done: isKycDone,
       link: "/kyc",
       linkLabel: "View",
+      isSubmitted: isKycDone,
+      alwaysShowLink: true,
     },
     {
       id: "proof_of_activity",
@@ -219,7 +222,9 @@ export default function PartnerDashboard() {
       desc: "Provide recent transaction history.",
       done: isProofDone,
       link: "/proof-of-activity",
-      linkLabel: "Upload",
+      linkLabel: isProofSubmitted ? "View" : "Upload",
+      isSubmitted: isProofSubmitted,
+      alwaysShowLink: true,
     },
     {
       id: "stream",
@@ -673,7 +678,7 @@ export default function PartnerDashboard() {
                     </p>
                   </div>
 
-                  {(step.done || isNext) && (
+                  {(step.done || isNext || (step as any).isSubmitted || (step as any).alwaysShowLink) && (
                     <Link
                       to={step.link}
                       className="shrink-0 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)] hover:underline"

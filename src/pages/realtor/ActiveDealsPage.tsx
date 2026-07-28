@@ -639,7 +639,7 @@ export default function RealtorActiveDealsPage() {
       if (dealListingIds.has(listingId) && !isContractCancelled) continue;
 
       entries.push({
-        _entryKey: isContractCancelled ? `${listingId}-cancelled-${bidId}` : listingId,
+        _entryKey: listingId,
         _type: "pending_contract",
         _raw: bid,
         address:
@@ -672,6 +672,18 @@ export default function RealtorActiveDealsPage() {
       setSearchParams({ listingId: activeEntryKey }, { replace: true });
     }
   }, [activeEntryKey, listingIdFromUrl, isLoading, setSearchParams]);
+
+  // After cancellation the refetch may change what entries exist. If the URL
+  // param no longer matches any entry, clear it so the page auto-selects the
+  // first available entry instead of rendering a blank page.
+  useEffect(() => {
+    if (listingIdFromUrl && !isLoading && unifiedEntries.length > 0) {
+      const stillExists = unifiedEntries.some((e) => e._entryKey === listingIdFromUrl);
+      if (!stillExists) {
+        setSearchParams({ listingId: unifiedEntries[0]._entryKey }, { replace: true });
+      }
+    }
+  }, [unifiedEntries, listingIdFromUrl, isLoading, setSearchParams]);
 
   const activeEntry = unifiedEntries.find((e) => e._entryKey === activeEntryKey);
   const isPendingContract = activeEntry?._type === "pending_contract";
@@ -997,8 +1009,9 @@ export default function RealtorActiveDealsPage() {
     if (!contractId) return;
     try {
       await cancelContractMutation(contractId).unwrap();
-      await Promise.all([refetchBids(), refetchContractByBid(), refetchDeals()]);
+      // Close the modal immediately — don't wait for slower refetches
       setCancelModal({ open: false, type: "agreement" });
+      await Promise.all([refetchBids(), refetchContractByBid(), refetchDeals()]);
     } catch (err: any) {
       console.error("Error cancelling contract:", err);
     }

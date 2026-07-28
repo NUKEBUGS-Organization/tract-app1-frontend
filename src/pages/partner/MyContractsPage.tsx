@@ -145,10 +145,8 @@ function ContractCard({ bid, contracts, deals, isDark }: { bid: any; contracts: 
     const listingCity = bid?.listing?.city || bid?.property_id?.city;
     const listingState = bid?.listing?.state_code || bid?.property_id?.state_code;
 
-    const contractId = contract?._id || contract?.id;
     const contractStatus = String(contract?.status || "pending").toLowerCase();
     const dealStatus = String(deal?.status || "").toLowerCase();
-    const isSigned = contractStatus === "signed";
     const isCancelled = contractStatus === "cancelled" || dealStatus === "cancelled";
 
     // Buyer needs to sign if seller has signed but buyer hasn't
@@ -221,21 +219,18 @@ function ContractCard({ bid, contracts, deals, isDark }: { bid: any; contracts: 
                     )}
 
                     {/* Needs buyer signature → go to deal tracker to sign */}
-                    {needsBuyerSignature && contractId && (
+                    {needsBuyerSignature && (
                         <Link
                             to={`/deals?listingId=${listingId}`}
-                            className={`flex items-center gap-1.5 border px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] transition ${isDark
-                                ? "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
-                                : "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
-                                }`}
+                            className="flex items-center gap-1.5 border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"
                         >
                             Sign Contract
                             <FileSignature className="h-3.5 w-3.5" />
                         </Link>
                     )}
 
-                    {/* Both signed → go to deal tracker */}
-                    {isSigned && listingId && (
+                    {/* Active contract / deal → go to deal tracker */}
+                    {!isCancelled && listingId && !needsBuyerSignature && (
                         <Link
                             to={`/deals?listingId=${listingId}`}
                             className={`flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] ${isDark ? "hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]" : ""}`}
@@ -289,10 +284,21 @@ export default function MyContractsPage() {
         })
         : rawBids;
 
-    // Only show selected bids (winner bids that become contracts)
-    const contractBids = allBids.filter((b) =>
-        getBidStatus(b) === "selected",
+    // Build a set of bid IDs that have a contract record (any status).
+    // When a contract is cancelled the backend demotes the bid to REJECTED,
+    // so filtering only on bid.status==='selected' would silently drop
+    // cancelled contracts. We use the contracts list as the source of truth.
+    const bidIdsWithContract = new Set(
+        (contractsData as any[]).map((c: any) => {
+            const cBidId = typeof c.bid_id === "object" ? c.bid_id?._id || c.bid_id?.id : c.bid_id;
+            return String(cBidId || "");
+        }).filter(Boolean)
     );
+
+    const contractBids = allBids.filter((b) => {
+        const bidId = String(b?._id || b?.id || "");
+        return getBidStatus(b) === "selected" || bidIdsWithContract.has(bidId);
+    });
 
     const bidsWithStatus = contractBids.map(bid => {
         const config = getContractStatusConfig(bid, contractsData, allDeals);

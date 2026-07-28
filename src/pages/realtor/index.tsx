@@ -181,6 +181,8 @@ export default function RealtorDashboard() {
   const isOfferDone = allBids.length > 0;
   const isContractDone = allDeals.length > 0;
 
+  const isLicenseSubmitted = ["pending", "approved"].includes(licenseStatusStr);
+
   const journeySteps = [
     {
       id: "kyc",
@@ -190,6 +192,8 @@ export default function RealtorDashboard() {
       done: isKycDone,
       link: "/kyc",
       linkLabel: "View",
+      isSubmitted: isKycDone,
+      alwaysShowLink: true,
     },
     {
       id: "license",
@@ -198,7 +202,9 @@ export default function RealtorDashboard() {
       desc: "Submit your State License Number, Brokerage Name, Managing Broker, and Office Address for admin review.",
       done: isLicenseDone,
       link: "/realtor-verification",
-      linkLabel: "Submit",
+      linkLabel: isLicenseSubmitted ? "View" : "Submit",
+      isSubmitted: isLicenseSubmitted,
+      alwaysShowLink: true,
     },
     {
       id: "profile",
@@ -207,7 +213,9 @@ export default function RealtorDashboard() {
       desc: "Configure commission, agency role, and payment source.",
       done: isProfileDone,
       link: "/profile",
-      linkLabel: "Setup",
+      linkLabel: isProfileDone ? "View" : "Setup",
+      isSubmitted: isProfileDone,
+      alwaysShowLink: true,
     },
     {
       id: "stream",
@@ -734,7 +742,7 @@ export default function RealtorDashboard() {
                       {step.desc}
                     </p>
                   </div>
-                  {(step.done || isNext) && (
+                  {(step.done || isNext || (step as any).isSubmitted || (step as any).alwaysShowLink) && (
                     <Link
                       to={step.link}
                       className="shrink-0 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)] hover:underline"
