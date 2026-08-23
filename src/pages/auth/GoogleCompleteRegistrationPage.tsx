@@ -27,13 +27,11 @@ import { allowAuthRefresh } from "../../services/baseApi";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, "");
 
-const GOOGLE_REAUTH_URL = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
-  client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-  redirect_uri: `${API_BASE}/api/v1/auth/google/callback`,
-  response_type: "code",
-  scope: "email profile",
-  prompt: "select_account",
-}).toString()}`;
+// Same hand-off as SignIn/SignUp — let the backend build the real Google
+// authorize URL from its own GOOGLE_CLIENT_ID/GOOGLE_CALLBACK_URL, rather
+// than reconstructing it here with a VITE_GOOGLE_CLIENT_ID that never
+// existed (was being sent to Google as the literal string "undefined").
+const GOOGLE_REAUTH_URL = `${API_BASE}/api/v1/auth/google`;
 
 // ── Form schema ──────────────────────────────────────────────────────────────
 
