@@ -27,6 +27,14 @@ import { allowAuthRefresh } from "../../services/baseApi";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, "");
 
+const GOOGLE_REAUTH_URL = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
+  client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+  redirect_uri: `${API_BASE}/api/v1/auth/google/callback`,
+  response_type: "code",
+  scope: "email profile",
+  prompt: "select_account",
+}).toString()}`;
+
 // ── Form schema ──────────────────────────────────────────────────────────────
 
 const schema = z.object({
@@ -237,7 +245,7 @@ export default function GoogleCompleteRegistrationPage() {
           {/* If expired, offer a retry button */}
           {isExpired && (
             <a
-              href={`${API_BASE}/api/v1/auth/google`}
+              href={GOOGLE_REAUTH_URL}
               className="mt-3 flex items-center gap-2 font-semibold text-[var(--color-danger)] underline"
             >
               <RefreshCw className="h-3.5 w-3.5" />
