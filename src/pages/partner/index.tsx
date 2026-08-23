@@ -36,40 +36,53 @@ interface StatCardProps {
   isDark: boolean;
 }
 function StatCard({ label, value, note, icon: Icon, isDark }: StatCardProps) {
+  const valueStr = String(value);
+  const fontSizeClass =
+    valueStr.length > 14
+      ? "text-lg sm:text-xl lg:text-2xl"
+      : valueStr.length > 10
+      ? "text-xl sm:text-2xl lg:text-3xl"
+      : valueStr.length > 7
+      ? "text-2xl sm:text-3xl lg:text-3xl"
+      : "text-3xl lg:text-4xl";
+
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 ${isDark
+      className={`group relative min-w-0 overflow-hidden rounded-2xl border p-5 sm:p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between ${isDark
         ? "border-white/10 bg-white/[0.06] backdrop-blur shadow-xl hover:border-[var(--color-secondary)]/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] hover:bg-white/[0.12]"
         : "border-[var(--color-border-light)] bg-white hover:shadow-xl"
         }`}
     >
-      <div className="mb-5 flex items-start justify-between">
-        <p
-          className={`max-w-[150px] text-[11px] font-black uppercase tracking-[0.22em] ${isDark ? "text-white/45" : "text-[var(--color-text-muted)]"
+      <div>
+        <div className="mb-4 flex items-start justify-between gap-2">
+          <p
+            className={`max-w-[160px] text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/45" : "text-[var(--color-text-muted)]"
+              }`}
+          >
+            {label}
+          </p>
+
+          <Icon
+            className={`h-5 w-5 shrink-0 ${isDark
+              ? "text-[var(--color-secondary)]"
+              : "text-[var(--color-primary)]"
+              }`}
+          />
+        </div>
+
+        <div
+          className={`font-serif font-black tracking-tight break-words min-w-0 ${fontSizeClass} ${isDark ? "text-white" : "text-[var(--color-primary)]"
             }`}
+          title={valueStr}
         >
-          {label}
-        </p>
-
-        <Icon
-          className={`h-5 w-5 ${isDark
-            ? "text-[var(--color-secondary)]"
-            : "text-[var(--color-primary)]"
-            }`}
-        />
-      </div>
-
-      <div
-        className={`font-serif text-4xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
-          }`}
-      >
-        {value}
+          {value}
+        </div>
       </div>
 
       <p
-        className={`mt-2 text-xs font-semibold ${isDark
+        className={`mt-3 text-xs font-semibold leading-snug break-words min-w-0 ${isDark
           ? "text-[var(--color-secondary)]"
-          : "text-[var(--color-primary)]/70"
+          : "text-[var(--color-primary)]/75"
           }`}
       >
         {note}

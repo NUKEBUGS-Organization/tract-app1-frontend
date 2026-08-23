@@ -31,10 +31,16 @@ import {
 } from "../../redux/auth/authSchemas";
 import tractLogo from "../../assets/tract-logo.png";
 
-const GOOGLE_AUTH_URL = `${import.meta.env.VITE_API_BASE_URL?.replace(
-  /\/api\/v1\/?$/,
-  ""
-)}/api/v1/auth/google`;
+const API_ORIGIN = import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, "");
+const GOOGLE_REDIRECT_URI = `${API_ORIGIN}/api/v1/auth/google/callback`;
+
+const GOOGLE_AUTH_URL = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
+  client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+  redirect_uri: GOOGLE_REDIRECT_URI,
+  response_type: "code",
+  scope: "email profile",
+  prompt: "select_account",
+}).toString()}`;
 
 const allowedStates = [
   { code: "NY", name: "New York" },

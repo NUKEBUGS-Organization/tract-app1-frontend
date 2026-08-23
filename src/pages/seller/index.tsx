@@ -177,23 +177,38 @@ function canWithdrawListing(listing: any) {
 }
 
 function StatCard({ label, value, note, icon: Icon }: StatCardProps) {
-  return (
-    <div className="group relative overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-      <div className="mb-5 flex items-start justify-between">
-        <p className="max-w-[150px] text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-          {label}
-        </p>
+  const valueStr = String(value);
+  const fontSizeClass =
+    valueStr.length > 14
+      ? "text-lg sm:text-xl lg:text-2xl"
+      : valueStr.length > 10
+      ? "text-xl sm:text-2xl lg:text-3xl"
+      : valueStr.length > 7
+      ? "text-2xl sm:text-3xl lg:text-3xl"
+      : "text-3xl lg:text-4xl";
 
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary)]/8">
-          <Icon className="h-5 w-5 text-[var(--color-primary)]" />
+  return (
+    <div className="group relative min-w-0 overflow-hidden rounded-2xl border border-[var(--color-border-light)] bg-white p-5 sm:p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between">
+      <div>
+        <div className="mb-4 flex items-start justify-between gap-2">
+          <p className="max-w-[160px] text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+            {label}
+          </p>
+
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)]/8">
+            <Icon className="h-5 w-5 text-[var(--color-primary)]" />
+          </div>
+        </div>
+
+        <div
+          className={`font-serif font-black tracking-tight text-[var(--color-primary)] break-words min-w-0 ${fontSizeClass}`}
+          title={valueStr}
+        >
+          {value}
         </div>
       </div>
 
-      <div className="font-serif text-4xl font-black text-[var(--color-primary)]">
-        {value}
-      </div>
-
-      <p className="mt-2 text-xs font-semibold text-[var(--color-primary)]/70">
+      <p className="mt-3 text-xs font-semibold leading-snug text-[var(--color-primary)]/75 min-w-0 break-words">
         {note}
       </p>
 
