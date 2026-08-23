@@ -32,15 +32,13 @@ import {
 import tractLogo from "../../assets/tract-logo.png";
 
 const API_ORIGIN = import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, "");
-const GOOGLE_REDIRECT_URI = `${API_ORIGIN}/api/v1/auth/google/callback`;
-
-const GOOGLE_AUTH_URL = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
-  client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-  redirect_uri: GOOGLE_REDIRECT_URI,
-  response_type: "code",
-  scope: "email profile",
-  prompt: "select_account",
-}).toString()}`;
+// The backend owns the Google OAuth client config (GOOGLE_CLIENT_ID /
+// GOOGLE_CALLBACK_URL) and builds the real Google authorize URL itself —
+// this just hands off to it. Building that URL here duplicated the client
+// ID via VITE_GOOGLE_CLIENT_ID, which was never defined in any env file,
+// so it was literally sent to Google as the string "undefined"
+// (Error 401: invalid_client).
+const GOOGLE_AUTH_URL = `${API_ORIGIN}/api/v1/auth/google`;
 
 const allowedStates = [
   { code: "NY", name: "New York" },
