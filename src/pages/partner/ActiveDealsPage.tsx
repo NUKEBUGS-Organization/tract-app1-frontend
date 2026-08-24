@@ -493,6 +493,7 @@ export default function ActiveDealsPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showCancelContractConfirm, setShowCancelContractConfirm] = useState(false);
   const [docuSealError, setDocuSealError] = useState("");
+  const [docuSealSuccess, setDocuSealSuccess] = useState("");
   const [isDocuSealRefreshing, setIsDocuSealRefreshing] = useState(false);
 
   const isLoading = isLoadingDeals || isLoadingBids;
@@ -638,7 +639,7 @@ export default function ActiveDealsPage() {
   // Derive data from active entry
   const entryStatus = activeEntry?.status || "not_started";
   const statusConfig = getDealStatusConfig(entryStatus);
-  const isCancelled = entryStatus === "cancelled";
+  const isCancelled = ["cancelled", "canceled", "backup_activated"].includes(entryStatus);
 
   const pendingContractObj = isPendingContract ? contractByBidData : null;
 
@@ -742,7 +743,7 @@ export default function ActiveDealsPage() {
     : undefined;
   const ddCountdown = getCountdownParts(ddDeadline, now);
   const ddActive = Boolean(proofUrl && !proceedToClosing);
-  const ddDone = proceedToClosing || (ddCountdown?.expired ?? false);
+  const ddDone = proceedToClosing || (Boolean(proofUrl) && (ddCountdown?.expired ?? false));
 
   // Inspection Period: uses actual inspection_period from the bid (in calendar days)
   const inspectionDays = activeEntry?.inspectionPeriod ?? 7; // fallback to 7 days
@@ -806,10 +807,12 @@ export default function ActiveDealsPage() {
     try {
       setIsDocuSealRefreshing(true);
       setDocuSealError("");
+      setDocuSealSuccess("");
       await refetchDeals();
       if (_pendingBidId) {
         await refetchContractByBid();
       }
+      setDocuSealSuccess("Contract refreshed. If signing is not updated yet, wait a few seconds and refresh again.");
     } finally {
       setIsDocuSealRefreshing(false);
     }
@@ -1122,11 +1125,19 @@ export default function ActiveDealsPage() {
 
       {isCancelled && (
         <div className="rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm font-semibold text-[var(--color-danger)]">
-          This contract is cancelled. Deal tracker actions are disabled.
+          {entryStatus === "backup_activated"
+            ? "You missed the 72-hour marketing deadline. A backup partner has been promoted on the seller's behalf. Deal tracker actions are disabled."
+            : "This contract is cancelled. Deal tracker actions are disabled."}
         </div>
       )}
 
-      {/* 72h Marketing Countdown Banner */}
+      {docuSealSuccess && (
+        <div className={`rounded-xl border p-4 text-sm font-semibold ${isDark ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]" : "border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 text-[var(--color-primary)]"}`}>
+          {docuSealSuccess}
+        </div>
+      )}
+
+
       {marketingDeadline && !proofUrl && !isCancelled && (
         <PhaseCountdownBanner
           title="Action Required: 72h Marketing Window"
@@ -1679,9 +1690,18 @@ export default function ActiveDealsPage() {
                     disabled={isDocuSealRefreshing}
                     className="flex w-full items-center justify-center gap-2 bg-[var(--color-danger)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[0_0_20px_rgba(220,38,38,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
                     onError={(msg: string) => setDocuSealError(msg)}
-                    onSigningOpened={() => setDocuSealError("")}
+                    onSigningOpened={() => { setDocuSealError(""); setDocuSealSuccess(""); }}
                     onReturnFromSigning={handleDocuSealReturn}
                   />
+                  {isDocuSealRefreshing && (
+                    <p className={`flex items-center gap-2 text-[11px] font-semibold ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"}`}>
+                      <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Refreshing contract data — please wait...
+                    </p>
+                  )}
                 </div>
               )}
 
