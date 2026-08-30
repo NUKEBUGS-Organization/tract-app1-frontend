@@ -7,7 +7,8 @@ RUN npm ci
 
 COPY . .
 
-ARG VITE_API_BASE_URL
+# Production default: same-origin /api/v1 (nginx proxies to API_UPSTREAM at runtime)
+ARG VITE_API_BASE_URL=/api/v1
 ARG VITE_SOCKET_URL
 ARG VITE_JUMIO_DATA_CENTER
 
@@ -19,9 +20,11 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
