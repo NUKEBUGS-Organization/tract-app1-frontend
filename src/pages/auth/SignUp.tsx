@@ -30,8 +30,9 @@ import {
   type RegisterFormValues,
 } from "../../redux/auth/authSchemas";
 import tractLogo from "../../assets/tract-logo.png";
+import { getApiOrigin } from "../../utils/apiBaseUrl";
 
-const API_ORIGIN = import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, "");
+const API_ORIGIN = getApiOrigin();
 // The backend owns the Google OAuth client config (GOOGLE_CLIENT_ID /
 // GOOGLE_CALLBACK_URL) and builds the real Google authorize URL itself —
 // this just hands off to it. Building that URL here duplicated the client

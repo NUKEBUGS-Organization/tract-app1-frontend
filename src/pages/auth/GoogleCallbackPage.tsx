@@ -8,8 +8,9 @@ import { allowAuthRefresh } from "../../services/baseApi";
 import { store } from "../../redux/store";
 import { setCredentials } from "../../redux/auth/authSlice";
 import { normalizeAuthResponse } from "../../redux/auth/authResponse";
+import { getApiOrigin } from "../../utils/apiBaseUrl";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, "");
+const API_BASE = getApiOrigin();
 
 export default function GoogleCallbackPage() {
   const navigate = useNavigate();

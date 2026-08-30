@@ -24,8 +24,9 @@ import Button from "../../components/common/Button";
 import tractLogo from "../../assets/tract-logo.png";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { allowAuthRefresh } from "../../services/baseApi";
+import { getApiOrigin } from "../../utils/apiBaseUrl";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, "");
+const API_BASE = getApiOrigin();
 
 // Same hand-off as SignIn/SignUp — let the backend build the real Google
 // authorize URL from its own GOOGLE_CLIENT_ID/GOOGLE_CALLBACK_URL, rather

@@ -99,10 +99,11 @@ function normalizeImageUrl(rawUrl: any) {
 
   if (!url) return "";
 
-  const apiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || "").replace(
-    /\/$/,
-    ""
-  );
+  const apiBaseUrl = String(
+    import.meta.env.VITE_API_BASE_URL ||
+      import.meta.env.VITE_API_URL ||
+      "",
+  ).replace(/\/$/, "");
 
   const apiOrigin = apiBaseUrl.replace(/\/api\/v1$/, "");
 

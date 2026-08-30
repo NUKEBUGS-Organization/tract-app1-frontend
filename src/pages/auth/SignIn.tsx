@@ -13,8 +13,9 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { getApiOrigin } from "../../utils/apiBaseUrl";
 
-const API_ORIGIN = import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/v1\/?$/, "");
+const API_ORIGIN = getApiOrigin();
 // The backend owns the Google OAuth client config (GOOGLE_CLIENT_ID /
 // GOOGLE_CALLBACK_URL) and builds the real Google authorize URL itself —
 // this just hands off to it. Building that URL here duplicated the client
