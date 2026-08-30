@@ -534,6 +534,7 @@ export default function RealtorActiveDealsPage() {
   const listingIdFromUrl = searchParams.get("listingId");
   const [now, setNow] = useState(Date.now());
   const [docuSealError, setDocuSealError] = useState("");
+  const [docuSealSuccess, setDocuSealSuccess] = useState("");
   const [isDocuSealRefreshing, setIsDocuSealRefreshing] = useState(false);
   const [cancelModal, setCancelModal] = useState<{ open: boolean; type: "deal" | "agreement" }>(
     { open: false, type: "deal" },
@@ -711,7 +712,7 @@ export default function RealtorActiveDealsPage() {
     (pendingContractObj?.status === "cancelled" ||
       contractByBidData?.status === "cancelled")
   );
-  const isCancelled = entryStatus === "cancelled" || contractCancelled;
+  const isCancelled = ["cancelled", "canceled", "backup_activated"].includes(entryStatus) || contractCancelled;
 
   const contract = isPendingContract ? pendingContractObj : activeEntry?.contractObj || null;
   const contractId = isPendingContract
@@ -973,6 +974,7 @@ export default function RealtorActiveDealsPage() {
     try {
       setIsDocuSealRefreshing(true);
       setDocuSealError("");
+      setDocuSealSuccess("");
 
       // First pass — immediate refetch (may arrive before webhook lands)
       await refetchDeals();
@@ -992,7 +994,8 @@ export default function RealtorActiveDealsPage() {
           }
         }, 3000);
       });
-      // await block end 
+      // await block end
+      setDocuSealSuccess("Agreement refreshed. If signing is not updated yet, wait a few seconds and refresh again.");
     } finally {
       setIsDocuSealRefreshing(false);
     }
@@ -1067,7 +1070,15 @@ export default function RealtorActiveDealsPage() {
       {/* Cancelled banner */}
       {isCancelled && (
         <div className="rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm font-semibold text-[var(--color-danger)]">
-          This listing agreement is cancelled. Deal tracker actions are disabled.
+          {entryStatus === "backup_activated"
+            ? "7-day market launch deadline was missed. A backup partner has been promoted on the seller's behalf.Deal tracker actions are disabled."
+            : "This listing agreement is cancelled. Deal tracker actions are disabled."}
+        </div>
+      )}
+
+      {docuSealSuccess && (
+        <div className={`rounded-xl border p-4 text-sm font-semibold ${isDark ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]" : "border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 text-[var(--color-primary)]"}`}>
+          {docuSealSuccess}
         </div>
       )}
 
@@ -1350,9 +1361,9 @@ export default function RealtorActiveDealsPage() {
 
                 {/* DocuSeal Sign Button */}
                 {contractId && sellerSigned && !buyerSigned && !isCancelled && (
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-2">
                     {docuSealError && (
-                      <p className="mb-2 rounded border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-3 py-2 text-[11px] font-semibold text-[var(--color-danger)]">
+                      <p className="rounded border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 px-3 py-2 text-[11px] font-semibold text-[var(--color-danger)]">
                         {docuSealError}
                       </p>
                     )}
@@ -1363,9 +1374,18 @@ export default function RealtorActiveDealsPage() {
                       disabled={isDocuSealRefreshing}
                       className="flex w-full items-center justify-center gap-2 bg-[var(--color-secondary)] py-3.5 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.01] disabled:pointer-events-none disabled:opacity-50"
                       onError={(msg) => setDocuSealError(msg)}
-                      onSigningOpened={() => setDocuSealError("")}
+                      onSigningOpened={() => { setDocuSealError(""); setDocuSealSuccess(""); }}
                       onReturnFromSigning={handleDocuSealReturn}
                     />
+                    {isDocuSealRefreshing && (
+                      <p className={`flex items-center gap-2 text-[11px] font-semibold ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"}`}>
+                        <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                        Refreshing agreement data — please wait...
+                      </p>
+                    )}
                   </div>
                 )}
 
