@@ -32,6 +32,7 @@ const partnerNav = [
   { label: "My Bids", path: "/my-bids" },
   { label: "Contracts", path: "/my-contracts" },
   { label: "Deal Tracker", path: "/deals" },
+  { label: "Proof of Activity", path: "/proof-of-activity" },
   { label: "Chat", path: "/chat" },
 ];
 
@@ -41,6 +42,7 @@ const realtorNav = [
   { label: "My Offers", path: "/my-bids" },
   { label: "Contracts", path: "/contracts" },
   { label: "Deal Tracker", path: "/deals" },
+  { label: "License Verification", path: "/realtor-verification" },
   { label: "Chat", path: "/chat" },
 ];
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_IMAGE_SIZE, MAX_IMAGES, MIN_IMAGES, STATES } from "./constants";
+import { MAX_IMAGE_SIZE, MAX_IMAGES, STATES } from "./constants";
 
 const currentYear = new Date().getFullYear();
 
@@ -184,7 +184,8 @@ export type FormState = z.infer<typeof listingFormSchema>;
 
 export const imageFilesSchema = z
   .array(z.instanceof(File))
-  .min(MIN_IMAGES, "Please select at least 1 property picture.")
+  // Property pictures are optional at draft time — they can also be added later
+  // from the Document Vault. Only the count ceiling and per-file rules apply.
   .max(MAX_IMAGES, "You can upload a maximum of 10 property pictures.")
   .refine((files) => files.every((file) => file.type.startsWith("image/")), {
     message: "Only image files are allowed for property pictures.",

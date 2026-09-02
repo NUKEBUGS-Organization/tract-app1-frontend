@@ -27,6 +27,7 @@ import {
   useDeleteListingMutation,
   useGetListingsDashboardQuery,
 } from "../../services/listingService";
+import { useGetMeQuery } from "../../services/userService";
 
 import { getPropertyTypeLabel } from "./list-property/constants";
 
@@ -228,8 +229,14 @@ export default function SellerDashboard() {
 
   const { data, isLoading, refetch } =
     useGetListingsDashboardQuery();
+  const { data: meData } = useGetMeQuery();
 
   const [deleteListing] = useDeleteListingMutation();
+
+  const kycStatus = String(
+    (meData as any)?.data?.kyc_status || (meData as any)?.kyc_status || ""
+  ).toLowerCase();
+  const isKycVerified = kycStatus === "verified";
 
   const listings = getListingsFromResponse(data);
   const summary = getSummaryFromResponse(data);
@@ -262,9 +269,9 @@ export default function SellerDashboard() {
       icon: UserCheck,
       label: "Identity Verified",
       desc: "Complete KYC verification before full platform access.",
-      done: true,
+      done: isKycVerified,
       link: "/kyc",
-      linkLabel: "View",
+      linkLabel: isKycVerified ? "View" : "Start",
     },
     {
       id: "listing",
