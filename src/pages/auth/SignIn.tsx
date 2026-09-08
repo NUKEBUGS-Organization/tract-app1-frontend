@@ -155,8 +155,8 @@ export default function SignInPage() {
               type="email"
               placeholder="you@company.com"
               className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-9 pr-3 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 sm:pl-10 2xl:py-4 2xl:pl-12 2xl:text-base ${errors.email
-                  ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
-                  : "border-transparent"
+                ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
+                : "border-transparent"
                 }`}
             />
           </div>
@@ -183,8 +183,8 @@ export default function SignInPage() {
               type={showPassword ? "text" : "password"}
               placeholder="••••••••••••"
               className={`block w-full rounded-[var(--radius-input)] border bg-[var(--color-bg-soft)] py-2.5 pl-9 pr-10 text-sm text-[var(--color-text-main)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-secondary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-secondary)] sm:py-3 sm:pl-10 2xl:py-4 2xl:pl-12 2xl:pr-12 2xl:text-base ${errors.password
-                  ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
-                  : "border-transparent"
+                ? "border-[var(--color-danger)] ring-1 ring-[var(--color-danger)]"
+                : "border-transparent"
                 }`}
             />
 
@@ -276,12 +276,14 @@ export default function SignInPage() {
             <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-xs 2xl:text-sm 2xl:leading-6">
               Your data is protected with industry-leading security and
               compliance standards.{" "}
-              {/* <a
-                href="#"
+              <Link
+                to="/auth/terms"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="font-semibold text-[var(--color-secondary)]"
               >
                 Learn more
-              </a> */}
+              </Link>
             </p>
           </div>
         </div>

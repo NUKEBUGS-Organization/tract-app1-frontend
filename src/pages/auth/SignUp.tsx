@@ -532,7 +532,7 @@ export default function SignUp() {
           )}
         </div>
 
-        {/* 
+
         <div>
           <div className="flex items-start gap-2 pt-2">
             <input
@@ -552,19 +552,15 @@ export default function SignUp() {
               className="text-xs leading-5 text-[var(--color-text-muted)] 2xl:text-sm"
             >
               I agree to the{" "}
-              <a
-                href="#"
+              <Link
+                to="/auth/terms"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="font-medium text-[var(--color-text-main)] hover:underline"
               >
-                Terms of Service
-              </a>{" "}
-              and{" "}
-              <a
-                href="#"
-                className="font-medium text-[var(--color-text-main)] hover:underline"
-              >
-                Privacy Policy
-              </a>
+                Terms of Service & Beta Participation Agreement
+              </Link>{""}
+
             </label>
           </div>
 
@@ -573,7 +569,7 @@ export default function SignUp() {
               {errors.terms.message}
             </p>
           )}
-        </div> */}
+        </div>
 
         <Button
           type="submit"

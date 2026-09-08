@@ -85,11 +85,10 @@ export const registerSchema = z
       message: "Please select a role",
     }),
 
-    //   terms: z
-    // .boolean()
-    // .refine((value) => value === true, "You must agree to the terms"),
+    terms: z
+      .boolean()
+      .refine((value) => value === true, "You must agree to the terms"),
 
-    terms: z.boolean().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
