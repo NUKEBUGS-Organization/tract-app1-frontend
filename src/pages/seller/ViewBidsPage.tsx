@@ -658,7 +658,10 @@ if (showInitialSkeleton) {
 }
 
 return (
-  <div className="space-y-8">
+  <div 
+  data-tour="view-bids-page"
+
+  className="space-y-8">
       {modal && (
         <ConfirmModal
           bid={modal.bid}
@@ -824,7 +827,9 @@ return (
         </section>
       )}
 
-      <section className="rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
+      <section 
+       data-tour="listing-bids-section"
+      className="rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
         <div className="flex flex-col justify-between gap-4 border-b border-[var(--color-border-light)] p-5 lg:flex-row lg:items-center">
           <div>
             <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">

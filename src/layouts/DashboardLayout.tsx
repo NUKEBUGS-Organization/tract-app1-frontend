@@ -14,6 +14,8 @@ import {
   X,
 } from "lucide-react";
 
+import SellerWalkthrough from "../walkthrough/SellerWalkthrough";
+
 import { useAuthContext } from "../contexts/AuthContext";
 import DashboardSidebar from "../components/common/DashboardSidebar";
 import NotificationDropdown from "../components/common/NotificationDropdown";
@@ -661,6 +663,7 @@ function DashboardLayout({
             </nav>
 
             <main className="p-5 lg:p-10">{children ?? <Outlet />}</main>
+            <SellerWalkthrough />
           </div>
         </div>
       </div>
