@@ -481,7 +481,9 @@ export default function MyBidsPage() {
     );
 
     return (
-        <div className="space-y-8">
+        <div 
+          data-tour="partner-my-bids"
+        className="space-y-8">
             <section
                 className={`relative overflow-hidden rounded-2xl p-8 ${isDark
                     ? "bg-transparent border border-white/5"

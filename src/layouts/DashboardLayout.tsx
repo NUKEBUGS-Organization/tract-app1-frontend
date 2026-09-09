@@ -13,7 +13,7 @@ import {
   UserCircle,
   X,
 } from "lucide-react";
-
+import BuyerWalkthrough from "../walkthrough/BuyerWalkthrough";
 import SellerWalkthrough from "../walkthrough/SellerWalkthrough";
 
 import { useAuthContext } from "../contexts/AuthContext";
@@ -664,6 +664,7 @@ function DashboardLayout({
 
             <main className="p-5 lg:p-10">{children ?? <Outlet />}</main>
             <SellerWalkthrough />
+<BuyerWalkthrough />
           </div>
         </div>
       </div>

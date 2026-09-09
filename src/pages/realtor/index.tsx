@@ -315,6 +315,7 @@ export default function RealtorDashboard() {
     <div className="space-y-8">
       {/* Hero Banner */}
       <section
+      data-tour="realtor-dashboard"
         className={`relative overflow-hidden rounded-2xl p-8 ${
           isDark
             ? "bg-transparent border border-white/5"
@@ -425,6 +426,7 @@ export default function RealtorDashboard() {
         <div className="flex flex-col gap-6">
           {/* Professional Score */}
           <section
+          data-tour="realtor-professional-score"
           className={`flex-1 rounded-2xl border p-6 shadow-[var(--shadow-card)] flex flex-col justify-center transition-all duration-200 ${
             isDark
               ? "border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/5 to-transparent hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
