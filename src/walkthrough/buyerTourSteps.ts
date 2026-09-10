@@ -531,6 +531,36 @@ export function getRealtorTourSteps(
 
   steps.push(
     {
+      route: "/realtor-verification",
+
+      element:
+        '[data-tour="realtor-verification-page"]',
+
+      title: "Professional Verification Required",
+
+      description:
+        "Before you can submit representation offers, TRACT requires you to verify your license credentials. You'll need to submit your State License Number and Brokerage details for admin review.",
+
+      side: "bottom",
+      align: "start",
+    },
+
+    {
+      route: "/realtor-verification",
+
+      element:
+        '[data-tour="realtor-verification-page"]',
+
+      title: "Submit Your Credentials",
+
+      description:
+        "Enter your State License Number, Brokerage Name, Managing Broker, and Office Address. Once our admin team verifies your credentials, you will have full access to the seller opportunity stream.",
+
+      side: "bottom",
+      align: "start",
+    },
+
+    {
       route: "/my-bids",
 
       element:
@@ -617,14 +647,14 @@ export function getRealtorTourSteps(
       align: "start",
     },
 
-    {
-      route: "/chat",
+    // {
+    //   route: "/chat",
 
-      title: "Remember Your Contract",
+    //   title: "Remember Your Contract",
 
-      description:
-        "For transactions where you need to use your own professional contract or agreement, make sure it is prepared and provided through the required contract workflow.",
-    },
+    //   description:
+    //     "For transactions where you need to use your own professional contract or agreement, make sure it is prepared and provided through the required contract workflow.",
+    // },
 
     {
       route: "/chat",
