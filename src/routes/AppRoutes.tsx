@@ -19,6 +19,7 @@ import ProfilePage from "../pages/profile";
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
 import SupportPage from "../pages/common/SupportPage";
+import TermsOfService from "../pages/common/TermsOfService";
 
 // Seller pages
 import ListPropertyPage from "../pages/seller/ListPropertyPage";
@@ -122,6 +123,7 @@ function AppRoutes() {
       </Route>
 
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
+      <Route path="/auth/terms" element={<TermsOfService />} />
 
       {/* =====================================================
           PROTECTED APPLICATION ROUTES

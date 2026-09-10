@@ -233,12 +233,14 @@ const onSubmit = async (data: FormData) => {
             <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-xs 2xl:text-sm 2xl:leading-6">
               Your data is protected with industry-leading security and
               compliance standards.{" "}
-              <a
-                href="#"
-                className="font-semibold text-[var(--color-secondary)]"
+              <Link
+                to="/auth/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-[var(--color-secondary)] hover:underline"
               >
                 Learn more
-              </a>
+              </Link>
             </p>
           </div>
         </div>
