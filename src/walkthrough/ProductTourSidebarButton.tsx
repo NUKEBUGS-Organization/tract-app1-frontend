@@ -33,9 +33,9 @@ export default function ProductTourSidebarButton({
   const userRole =
     normalizeRole(
       role ||
-        getRoleFromToken(
-          accessToken
-        )
+      getRoleFromToken(
+        accessToken
+      )
     );
 
   const isSeller =
@@ -98,15 +98,15 @@ export default function ProductTourSidebarButton({
         w-full
         items-center
         justify-center
-        gap-2.5
+        gap-2
         rounded-xl
         border
         border-white/15
         bg-white/[0.06]
         px-4
-        py-3.5
-        text-[10px]
-        font-black
+        py-3
+        text-xs
+        font-bold
         uppercase
         tracking-[0.18em]
         text-white/80

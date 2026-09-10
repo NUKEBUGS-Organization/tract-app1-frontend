@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import BuyerWalkthrough from "../walkthrough/BuyerWalkthrough";
 import SellerWalkthrough from "../walkthrough/SellerWalkthrough";
-import ProductTourSidebarButton from "../walkthrough/ProductTourSidebarButton";
 
 import { useAuthContext } from "../contexts/AuthContext";
 import DashboardSidebar from "../components/common/DashboardSidebar";
@@ -48,7 +47,7 @@ interface DashboardLayoutProps {
 function getUserName(user: unknown) {
   const authUser = user as
     | {
-          fullName?: string;
+      fullName?: string;
       name?: string;
       email?: string;
     }
@@ -310,15 +309,11 @@ function DashboardLayout({
     <PartnerThemeContext.Provider value={mode as "light" | "dark"}>
       <div className={rootBg}>
         <div className="flex min-h-screen">
-         <aside className="relative sticky top-0 hidden h-screen w-[270px] shrink-0 flex-col bg-[var(--color-primary-dark)] pb-24 text-white shadow-2xl lg:flex">
-  <DashboardSidebar
-    navItems={navItems}
-  />
-
-  <div className="absolute bottom-5 left-4 right-4 z-20">
-    <ProductTourSidebarButton />
-  </div>
-</aside>
+          <aside className="sticky top-0 hidden h-screen w-[270px] shrink-0 flex flex-col bg-[var(--color-primary-dark)] text-white shadow-2xl lg:flex">
+            <DashboardSidebar
+              navItems={navItems}
+            />
+          </aside>
 
           {isMobileMenuOpen && (
             <div className="fixed inset-0 z-40 lg:hidden">
@@ -329,24 +324,17 @@ function DashboardLayout({
                 aria-label="Close menu overlay"
               />
 
-             <aside className="relative z-50 flex h-full w-[280px] flex-col bg-[var(--color-primary-dark)] pb-24 text-white shadow-2xl">
-  <DashboardSidebar
-    navItems={navItems}
-    onNavigate={() =>
-      setIsMobileMenuOpen(false)
-    }
-  />
-
-  <div className="absolute bottom-5 left-4 right-4 z-20">
-    <ProductTourSidebarButton
-      onStart={() =>
-        setIsMobileMenuOpen(
-          false
-        )
-      }
-    />
-  </div>
-</aside>
+              <aside className="z-50 flex h-full w-[280px] flex-col bg-[var(--color-primary-dark)] text-white shadow-2xl">
+                <DashboardSidebar
+                  navItems={navItems}
+                  onNavigate={() =>
+                    setIsMobileMenuOpen(false)
+                  }
+                  onTourStart={() =>
+                    setIsMobileMenuOpen(false)
+                  }
+                />
+              </aside>
             </div>
           )}
 
@@ -428,8 +416,8 @@ function DashboardLayout({
                         placeholder="Search properties..."
                         aria-label="Search properties"
                         className={`w-full bg-transparent text-sm outline-none placeholder:text-[var(--color-text-muted)] ${isDark
-                            ? "text-white"
-                            : "text-[var(--color-text-main)]"
+                          ? "text-white"
+                          : "text-[var(--color-text-main)]"
                           }`}
                       />
 
@@ -539,21 +527,21 @@ function DashboardLayout({
                       isDark ? "Switch to light mode" : "Switch to dark mode"
                     }
                     className={`relative flex h-11 w-[88px] items-center rounded-full border transition-all duration-300 ${isDark
-                        ? "border-white/15 bg-white/10 hover:bg-white/15"
-                        : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]"
+                      ? "border-white/15 bg-white/10 hover:bg-white/15"
+                      : "border-[var(--color-border-light)] bg-white hover:border-[var(--color-secondary)]"
                       }`}
                   >
                     <span
                       className={`absolute inset-[3px] rounded-full transition-all duration-300 ${isDark
-                          ? "bg-[var(--color-dark-card)]"
-                          : "bg-[var(--color-bg-soft)]"
+                        ? "bg-[var(--color-dark-card)]"
+                        : "bg-[var(--color-bg-soft)]"
                         }`}
                     />
 
                     <span
                       className={`absolute z-10 flex h-8 w-8 items-center justify-center rounded-full shadow-md transition-all duration-300 ${isDark
-                          ? "left-[5px] bg-[var(--color-primary)] text-[var(--color-secondary)]"
-                          : "left-[49px] bg-[var(--color-secondary)] text-[var(--color-primary-dark)]"
+                        ? "left-[5px] bg-[var(--color-primary)] text-[var(--color-secondary)]"
+                        : "left-[49px] bg-[var(--color-secondary)] text-[var(--color-primary-dark)]"
                         }`}
                     >
                       {isDark ? (
@@ -572,8 +560,8 @@ function DashboardLayout({
 
                     <span
                       className={`absolute left-[12px] z-10 text-[9px] font-black uppercase tracking-widest transition-opacity duration-200 ${isLight
-                          ? "opacity-100 text-[var(--color-text-muted)]"
-                          : "opacity-0"
+                        ? "opacity-100 text-[var(--color-text-muted)]"
+                        : "opacity-0"
                         }`}
                     >
                       Ngt
@@ -682,13 +670,12 @@ function DashboardLayout({
             </nav>
 
             <main className="p-5 lg:p-10">
-  {children ?? <Outlet />}
-</main>
+              {children ?? <Outlet />}
+            </main>
 
-<SellerWalkthrough />
-<BuyerWalkthrough />
             <SellerWalkthrough />
-<BuyerWalkthrough />
+            <BuyerWalkthrough />
+
           </div>
         </div>
       </div>

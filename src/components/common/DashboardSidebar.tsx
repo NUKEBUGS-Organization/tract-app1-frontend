@@ -22,6 +22,7 @@ import {
 import { useAuthContext } from "../../contexts/AuthContext";
 import tractLogoSidebar from "../../assets/tract-logo-sidebar.png";
 import LogoutModal from "./LogoutModal";
+import ProductTourSidebarButton from "../../walkthrough/ProductTourSidebarButton";
 
 interface NavItem {
   label: string;
@@ -31,6 +32,7 @@ interface NavItem {
 interface DashboardSidebarProps {
   navItems: NavItem[];
   onNavigate?: () => void;
+  onTourStart?: () => void;
 }
 
 /* =========================================================
@@ -109,6 +111,7 @@ function getTourId(path: string) {
     "/properties": "nav-marketplace",
     "/my-bids": "nav-my-bids",
     "/my-contracts": "nav-contracts",
+    "/proof-of-activity": "nav-proof-of-activity",
 
     // Shared
     "/contracts": "nav-contracts",
@@ -152,6 +155,7 @@ function isNavActive(currentPath: string, itemPath: string) {
 export default function DashboardSidebar({
   navItems,
   onNavigate,
+  onTourStart,
 }: DashboardSidebarProps) {
   const location = useLocation();
 
@@ -164,7 +168,7 @@ export default function DashboardSidebar({
     location.pathname === "/support";
 
   return (
-    <>
+    <div className="flex h-full flex-col overflow-y-auto scrollbar-none">
       {/* ===================================================
           LOGO
       ==================================================== */}
@@ -225,18 +229,16 @@ export default function DashboardSidebar({
                * data-tour="nav-list-property"
                */
               data-tour={tourId}
-              className={`group flex items-center gap-4 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${
-                active
+              className={`group flex items-center gap-4 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${active
                   ? "bg-[var(--color-primary)] text-[var(--color-secondary)] shadow-lg"
                   : "text-white/40 hover:bg-white/10 hover:text-white"
-              }`}
+                }`}
             >
               <Icon
-                className={`h-5 w-5 ${
-                  active
+                className={`h-5 w-5 ${active
                     ? "text-[var(--color-secondary)]"
                     : "text-white/30 group-hover:text-white"
-                }`}
+                  }`}
               />
 
               <span>{item.label}</span>
@@ -254,11 +256,10 @@ export default function DashboardSidebar({
           to="/support"
           onClick={onNavigate}
           data-tour="nav-support"
-          className={`flex w-full items-center justify-center gap-2 rounded-none border px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] transition ${
-            supportActive
+          className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] transition-all duration-200 ${supportActive
               ? "border-[var(--color-secondary)] bg-[var(--color-secondary)] text-[var(--color-primary-dark)]"
               : "border-[var(--color-secondary)] text-[var(--color-secondary)] hover:bg-[var(--color-secondary)] hover:text-[var(--color-primary-dark)]"
-          }`}
+            }`}
         >
           <LifeBuoy className="h-4 w-4" />
 
@@ -270,12 +271,14 @@ export default function DashboardSidebar({
           onClick={() =>
             setIsLogoutModalOpen(true)
           }
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-white/75 transition hover:bg-[var(--color-danger)] hover:text-white"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-white/80 backdrop-blur transition-all duration-200 hover:border-[var(--color-danger)]/50 hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)]"
         >
           <LogOut className="h-4 w-4" />
 
           Logout
         </button>
+
+        <ProductTourSidebarButton onStart={onTourStart} />
       </div>
 
       {/* ===================================================
@@ -289,6 +292,6 @@ export default function DashboardSidebar({
         }
         onConfirm={logoutAuth}
       />
-    </>
+    </div>
   );
 }

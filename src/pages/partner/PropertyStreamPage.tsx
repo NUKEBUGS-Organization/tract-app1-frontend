@@ -340,12 +340,16 @@ function PropertyCard({
         </div>
 
 
-        <BidCapBar bidCount={bidCount} maxBids={maxBids} isDark={isDark} />
-
+        <div data-tour={walkthroughTarget ? "property-card-bid-cap" : undefined}>
+          <BidCapBar bidCount={bidCount} maxBids={maxBids} isDark={isDark} />
+        </div>
 
         <div className="mt-auto flex gap-2 pt-2">
           <Link
             to={`/properties/${id}`}
+            data-tour={
+              walkthroughTarget ? "property-card-view-details" : undefined
+            }
             className={`flex-1 rounded-xl border py-2.5 text-center text-[10px] font-black uppercase tracking-[0.18em] transition ${isDark
               ? "border-white/10 bg-white/5 text-white/60 hover:border-white/25 hover:text-white"
               : "border-[var(--color-border-light)] bg-white text-[var(--color-text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-[var(--color-bg-soft)]"
@@ -357,6 +361,13 @@ function PropertyCard({
           {isFull ? (
             <div
               title="This property has reached its bid cap"
+              data-tour={
+                walkthroughTarget
+                  ? isRealtor
+                    ? "property-card-offer"
+                    : "property-card-bid"
+                  : undefined
+              }
               className="flex-1 cursor-not-allowed rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/8 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-danger)]/60"
             >
               Cap Reached

@@ -23,6 +23,8 @@ import {
   normalizeRole,
 } from "../constants/roles";
 
+import { useGetListingsQuery } from "../services/listingService";
+
 import {
   BUYER_TOUR_VERSION,
   getBuyerTourSteps,
@@ -113,6 +115,44 @@ export default function BuyerWalkthrough() {
       : null;
 
   /* =====================================================
+     LISTINGS AVAILABILITY FOR MARKETPLACE STEPS
+  ===================================================== */
+
+  const { data: listingsData } = useGetListingsQuery(
+    { status: "live" },
+    { skip: !walkthroughRole || !isAuthenticated }
+  );
+
+  const hasProperties = useMemo(() => {
+    if (!listingsData) {
+      return Boolean(
+        typeof document !== "undefined" &&
+          document.querySelector('[data-tour="property-card"]')
+      );
+    }
+
+    const list = Array.isArray(listingsData)
+      ? listingsData
+      : Array.isArray(listingsData?.data)
+      ? listingsData.data
+      : Array.isArray(listingsData?.listings)
+      ? listingsData.listings
+      : Array.isArray(listingsData?.data?.listings)
+      ? listingsData.data.listings
+      : Array.isArray(listingsData?.data?.data)
+      ? listingsData.data.data
+      : [];
+
+    return (
+      list.length > 0 ||
+      Boolean(
+        typeof document !== "undefined" &&
+          document.querySelector('[data-tour="property-card"]')
+      )
+    );
+  }, [listingsData]);
+
+  /* =====================================================
      ROLE-SPECIFIC STEPS
   ===================================================== */
 
@@ -122,10 +162,12 @@ export default function BuyerWalkthrough() {
     }
 
     return getBuyerTourSteps(
-      walkthroughRole
+      walkthroughRole,
+      hasProperties
     );
   }, [
     walkthroughRole,
+    hasProperties,
   ]);
 
   /* =====================================================
@@ -433,7 +475,7 @@ export default function BuyerWalkthrough() {
                        * to finish rendering.
                        */
                       waitForElement:
-                        5000,
+                        1500,
                     }
                   : {}),
 

@@ -175,8 +175,7 @@ html[data-wholesaler-theme] * {
 
 
 /* Title */
-.tract-driver-popover
-.driver-popover-title {
+.tract-driver-popover .driver-popover-title {
   color: var(--color-primary);
 
   font-family: Georgia, "Times New Roman", serif;
@@ -188,8 +187,7 @@ html[data-wholesaler-theme] * {
 
 
 /* Description */
-.tract-driver-popover
-.driver-popover-description {
+.tract-driver-popover .driver-popover-description {
   margin-top: 9px;
 
   color: var(--color-text-muted);
@@ -202,8 +200,7 @@ html[data-wholesaler-theme] * {
 
 
 /* Progress */
-.tract-driver-popover
-.driver-popover-progress-text {
+.tract-driver-popover .driver-popover-progress-text {
   color: var(--color-text-muted);
 
   font-size: 10px;
@@ -215,24 +212,22 @@ html[data-wholesaler-theme] * {
 
 
 /* Footer */
-.tract-driver-popover
-.driver-popover-footer {
+.tract-driver-popover .driver-popover-footer {
   margin-top: 20px;
 }
 
 
 /* NEXT / FINISH */
-.tract-driver-popover
-.driver-popover-next-btn {
+.tract-driver-popover .driver-popover-next-btn {
   border: none;
 
   border-radius: 0;
 
-  background: var(--color-primary);
+  background: var(--color-primary) !important;
 
   padding: 10px 16px;
 
-  color: #ffffff;
+  color: #ffffff !important;
 
   font-size: 10px;
   font-weight: 900;
@@ -248,16 +243,18 @@ html[data-wholesaler-theme] * {
 }
 
 
-.tract-driver-popover
-.driver-popover-next-btn:hover {
+.tract-driver-popover .driver-popover-next-btn:hover,
+.tract-driver-popover .driver-popover-next-btn:focus,
+.tract-driver-popover .driver-popover-next-btn:active {
+  background: var(--color-primary) !important;
+  color: #ffffff !important;
   transform: translateY(-1px);
   opacity: 0.92;
 }
 
 
 /* BACK */
-.tract-driver-popover
-.driver-popover-prev-btn {
+.tract-driver-popover .driver-popover-prev-btn {
   border: 1px solid var(--color-border-light);
 
   border-radius: 0;
@@ -279,8 +276,7 @@ html[data-wholesaler-theme] * {
 
 
 /* CLOSE X */
-.tract-driver-popover
-.driver-popover-close-btn {
+.tract-driver-popover .driver-popover-close-btn {
   color: var(--color-text-muted);
 
   font-size: 22px;
@@ -288,8 +284,7 @@ html[data-wholesaler-theme] * {
 }
 
 
-.tract-driver-popover
-.driver-popover-close-btn:hover {
+.tract-driver-popover .driver-popover-close-btn:hover {
   color: var(--color-primary);
 }
 
@@ -336,4 +331,17 @@ html[data-wholesaler-theme] * {
   background: rgba(0, 0, 0, 0.04) !important;
 
   color: var(--color-danger) !important;
+}
+
+/* Hide scrollbar cross-browser while keeping scroll functionality */
+.scrollbar-none {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE / Edge */
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+  /* Chrome / Safari */
 }
