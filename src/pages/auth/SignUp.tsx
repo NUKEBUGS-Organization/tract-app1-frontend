@@ -22,6 +22,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 
+import {
+  markRegistrationVerificationPending,
+} from "../../walkthrough/tourStorage";
+
 import AuthLayout from "../../layouts/AuthLayout";
 import Button from "../../components/common/Button";
 import { useRegisterMutation } from "../../services/authService";
@@ -111,14 +115,37 @@ export default function SignUp() {
     try {
       setApiError(null);
 
-      await registerUser(payload).unwrap();
+    await registerUser(payload).unwrap();
 
-      navigate("/auth/verify", {
-        state: {
-          email: data.email.trim().toLowerCase(),
-          purpose: "login",
-        },
-      });
+const normalizedEmail =
+  data.email.trim().toLowerCase();
+
+/*
+ * Registration API succeeded.
+ *
+ * Remember that the upcoming OTP page
+ * belongs to a NEW ACCOUNT registration.
+ */
+markRegistrationVerificationPending(
+  normalizedEmail
+);
+
+navigate("/auth/verify", {
+  state: {
+    email: normalizedEmail,
+
+    /*
+     * Keep this as "login".
+     * Your backend OTP API already expects it.
+     */
+    purpose: "login",
+
+    /*
+     * Frontend-only marker.
+     */
+    source: "signup",
+  },
+});
     } catch (error: any) {
       const message =
         error?.data?.message ||

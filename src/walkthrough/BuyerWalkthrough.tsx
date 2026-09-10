@@ -14,6 +14,7 @@ import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 
 import { useAuthContext } from "../contexts/AuthContext";
+import { getRoleFromToken } from "../redux/auth/jwtUtils";
 
 import {
   PARTNER_ROLES,
@@ -22,13 +23,27 @@ import {
   normalizeRole,
 } from "../constants/roles";
 
-import { getRoleFromToken } from "../redux/auth/jwtUtils";
-
 import {
   BUYER_TOUR_VERSION,
   getBuyerTourSteps,
   type BuyerTourRole,
 } from "./buyerTourSteps";
+
+import {
+  clearManualTourPending,
+  clearProductTourSignupFlag,
+  getTourUserKey,
+  isManualTourPending,
+  isProductTourPendingForUser,
+  markManualTourPending,
+} from "./tourStorage";
+
+import {
+  clearActiveTourDriver,
+  destroyActiveTourDriver,
+  hasActiveTourDriver,
+  setActiveTourDriver,
+} from "./tourDriverManager";
 
 export default function BuyerWalkthrough() {
   const navigate = useNavigate();
@@ -39,31 +54,56 @@ export default function BuyerWalkthrough() {
     role,
     accessToken,
     authReady,
+    isAuthenticated,
   } = useAuthContext();
 
+  /*
+   * Local reference to this walkthrough's
+   * Driver.js instance.
+   */
   const driverRef =
     useRef<ReturnType<typeof driver> | null>(
       null
     );
 
-  /* =======================================================
+  /*
+   * True while Wholesaler/Realtor walkthrough
+   * is intentionally running.
+   *
+   * It stays true while moving between routes.
+   */
+  const tourActiveRef =
+    useRef(false);
+
+  /* =====================================================
      ROLE
-  ======================================================= */
+  ===================================================== */
 
-  const userRole = normalizeRole(
-    role || getRoleFromToken(accessToken)
-  );
+  const userRole =
+    normalizeRole(
+      role ||
+        getRoleFromToken(
+          accessToken
+        )
+    );
 
-  const isPartner = isAllowedRole(
-    userRole,
-    PARTNER_ROLES
-  );
+  const isPartner =
+    isAllowedRole(
+      userRole,
+      PARTNER_ROLES
+    );
 
-  const isRealtor = isAllowedRole(
-    userRole,
-    REALTOR_ROLES
-  );
+  const isRealtor =
+    isAllowedRole(
+      userRole,
+      REALTOR_ROLES
+    );
 
+  /*
+   * Realtor gets Realtor-specific walkthrough.
+   *
+   * Partner / Wholesaler gets Partner walkthrough.
+   */
   const walkthroughRole:
     | BuyerTourRole
     | null = isRealtor
@@ -71,6 +111,10 @@ export default function BuyerWalkthrough() {
     : isPartner
       ? "partner"
       : null;
+
+  /* =====================================================
+     ROLE-SPECIFIC STEPS
+  ===================================================== */
 
   const steps = useMemo(() => {
     if (!walkthroughRole) {
@@ -80,430 +124,984 @@ export default function BuyerWalkthrough() {
     return getBuyerTourSteps(
       walkthroughRole
     );
-  }, [walkthroughRole]);
+  }, [
+    walkthroughRole,
+  ]);
 
-  /* =======================================================
-     USER-SPECIFIC STORAGE
-  ======================================================= */
+  /* =====================================================
+     USER IDENTITY
+  ===================================================== */
 
-  const userKey = useMemo(() => {
-    const currentUser = user as any;
+  const identity = useMemo(() => {
+    const currentUser =
+      user as any;
 
-    return String(
-      currentUser?._id ||
+    return {
+      userId:
+        currentUser?._id ||
         currentUser?.id ||
+        "",
+
+      email:
         currentUser?.email ||
-        walkthroughRole ||
-        "buyer"
-    );
-  }, [user, walkthroughRole]);
+        "",
+    };
+  }, [
+    user,
+  ]);
 
-  const completedKey = useMemo(() => {
-    if (!walkthroughRole) {
-      return "";
-    }
-
-    return `tract:${walkthroughRole}-tour:v${BUYER_TOUR_VERSION}:${userKey}:completed`;
-  }, [walkthroughRole, userKey]);
-
-  const progressKey = useMemo(() => {
-    if (!walkthroughRole) {
-      return "";
-    }
-
-    return `tract:${walkthroughRole}-tour:v${BUYER_TOUR_VERSION}:${userKey}:progress`;
-  }, [walkthroughRole, userKey]);
-
-  /* =======================================================
-     FINISH / SKIP
-  ======================================================= */
-
-  const completeTour = useCallback(() => {
-    if (completedKey) {
-      localStorage.setItem(
-        completedKey,
-        "true"
-      );
-    }
-
-    if (progressKey) {
-      sessionStorage.removeItem(
-        progressKey
-      );
-    }
-
-    if (driverRef.current) {
-      driverRef.current.destroy();
-
-      driverRef.current = null;
-    }
-  }, [completedKey, progressKey]);
-
-  /* =======================================================
-     START TOUR
-  ======================================================= */
-
-  const startTourAt = useCallback(
-    (startIndex: number) => {
-      if (!walkthroughRole) return;
-
-      if (!steps.length) return;
-
-      if (
-        driverRef.current &&
-        driverRef.current.isActive()
-      ) {
-        return;
-      }
-
-      const safeIndex =
-        startIndex >= 0 &&
-        startIndex < steps.length
-          ? startIndex
-          : 0;
-
-      let driverObj:
-        ReturnType<typeof driver>;
-
-      /* ---------------------------------------------------
-         ROUTE CHANGE
-      --------------------------------------------------- */
-
-      function moveToRouteStep(
-        targetIndex: number
-      ) {
-        const targetStep =
-          steps[targetIndex];
-
-        if (!targetStep) return;
-
-        sessionStorage.setItem(
-          progressKey,
-          String(targetIndex)
-        );
-
-        driverObj.destroy();
-
-        driverRef.current = null;
-
-        navigate(targetStep.route);
-      }
-
-      /* ---------------------------------------------------
-         DRIVER STEPS
-      --------------------------------------------------- */
-
-      const driverSteps = steps.map(
-        (tourStep, index) => {
-          const nextStep =
-            steps[index + 1];
-
-          const previousStep =
-            steps[index - 1];
-
-          return {
-            ...(tourStep.element
-              ? {
-                  element:
-                    tourStep.element,
-
-                  waitForElement: 7000,
-                }
-              : {}),
-
-            popover: {
-              title: tourStep.title,
-
-              description:
-                tourStep.description,
-
-              side:
-                tourStep.side ??
-                "bottom",
-
-              align:
-                tourStep.align ??
-                "start",
-
-              onNextClick: () => {
-                if (!nextStep) {
-                  completeTour();
-                  return;
-                }
-
-                if (
-                  nextStep.route ===
-                  tourStep.route
-                ) {
-                  driverObj.moveNext();
-                  return;
-                }
-
-                moveToRouteStep(
-                  index + 1
-                );
-              },
-
-              onPrevClick: () => {
-                if (!previousStep) {
-                  return;
-                }
-
-                if (
-                  previousStep.route ===
-                  tourStep.route
-                ) {
-                  driverObj.movePrevious();
-                  return;
-                }
-
-                moveToRouteStep(
-                  index - 1
-                );
-              },
-            },
-          };
-        }
-      );
-
-      driverObj = driver({
-        steps: driverSteps,
-
-        animate: true,
-
-        duration: 350,
-
-        smoothScroll: true,
-
-        showProgress: true,
-
-        progressText:
-          "{{current}} of {{total}}",
-
-        nextBtnText: "Next →",
-
-        prevBtnText: "← Back",
-
-        doneBtnText: "Finish Tour",
-
-        showButtons: [
-          "previous",
-          "next",
-          "close",
-        ],
-
-        disableActiveInteraction: true,
-
-        allowClose: false,
-
-        overlayOpacity: 0.68,
-
-        stagePadding: 10,
-
-        stageRadius: 14,
-
-        popoverClass:
-          "tract-driver-popover",
-
-        onHighlighted: (
-          _element,
-          _step,
-          options
-        ) => {
-          if (
-            typeof options.index ===
-            "number"
-          ) {
-            sessionStorage.setItem(
-              progressKey,
-              String(options.index)
-            );
-          }
-        },
-
-        onCloseClick: () => {
-          completeTour();
-        },
-
-        onDoneClick: () => {
-          completeTour();
-        },
-      });
-
-      driverRef.current = driverObj;
-
-      driverObj.drive(safeIndex);
-    },
+  /*
+   * Prefer user ID.
+   * Email is fallback.
+   */
+  const userKey = useMemo(
+    () =>
+      getTourUserKey(
+        identity
+      ),
     [
-      walkthroughRole,
-      steps,
-      progressKey,
-      navigate,
-      completeTour,
+      identity,
     ]
   );
 
-  /* =======================================================
-     FIRST-TIME START / RESUME
-  ======================================================= */
+  /* =====================================================
+     STORAGE KEYS
+  ===================================================== */
+
+  /*
+   * Permanent completion key.
+   *
+   * Separate key for:
+   *
+   * partner
+   * realtor
+   *
+   * and separate per user.
+   */
+  const completedKey =
+    useMemo(() => {
+      if (
+        !walkthroughRole ||
+        !userKey
+      ) {
+        return "";
+      }
+
+      return `tract:${walkthroughRole}-tour:v${BUYER_TOUR_VERSION}:${userKey}:completed`;
+    }, [
+      walkthroughRole,
+      userKey,
+    ]);
+
+  /*
+   * Temporary current-step storage.
+   *
+   * Needed when moving:
+   *
+   * Dashboard
+   * → Properties
+   * → My Bids
+   * → Contracts
+   * → Deals
+   * → Chat
+   */
+  const progressKey =
+    useMemo(() => {
+      if (
+        !walkthroughRole ||
+        !userKey
+      ) {
+        return "";
+      }
+
+      return `tract:${walkthroughRole}-tour:v${BUYER_TOUR_VERSION}:${userKey}:progress`;
+    }, [
+      walkthroughRole,
+      userKey,
+    ]);
+
+  /* =====================================================
+     FINISH / SKIP ENTIRE WALKTHROUGH
+  ===================================================== */
+
+  const endTour =
+    useCallback(() => {
+      /*
+       * Finish OR Skip means automatic walkthrough
+       * has now been handled.
+       */
+      if (completedKey) {
+        localStorage.setItem(
+          completedKey,
+          "true"
+        );
+      }
+
+      /*
+       * Clear current-step progress.
+       */
+      if (progressKey) {
+        sessionStorage.removeItem(
+          progressKey
+        );
+      }
+
+      /*
+       * Automatic-signup walkthrough has been consumed.
+       */
+      clearProductTourSignupFlag();
+
+      /*
+       * Manual "Get Walkthrough" request has also
+       * been consumed.
+       */
+      clearManualTourPending();
+
+      tourActiveRef.current =
+        false;
+
+      /*
+       * Destroy any currently registered
+       * Driver instance.
+       *
+       * Prevents duplicate/stuck popovers.
+       */
+      destroyActiveTourDriver();
+
+      driverRef.current =
+        null;
+    }, [
+      completedKey,
+      progressKey,
+    ]);
+
+  /* =====================================================
+     START WALKTHROUGH AT SPECIFIC STEP
+  ===================================================== */
+
+  const startTourAt =
+    useCallback(
+      (
+        startIndex: number
+      ) => {
+        /*
+         * Must be Partner or Realtor.
+         */
+        if (
+          !walkthroughRole
+        ) {
+          return;
+        }
+
+        /*
+         * Need stable authenticated user.
+         */
+        if (!userKey) {
+          return;
+        }
+
+        /*
+         * Need role-specific walkthrough steps.
+         */
+        if (!steps.length) {
+          return;
+        }
+
+        /*
+         * =================================================
+         * GLOBAL DUPLICATE PROTECTION
+         * =================================================
+         *
+         * Prevents two Driver.js walkthroughs
+         * existing simultaneously.
+         */
+        if (
+          hasActiveTourDriver()
+        ) {
+          return;
+        }
+
+        /*
+         * Additional local protection.
+         */
+        if (
+          driverRef.current &&
+          driverRef.current.isActive()
+        ) {
+          return;
+        }
+
+        /*
+         * Protect against invalid stored indexes.
+         */
+        const safeIndex =
+          startIndex >= 0 &&
+          startIndex <
+            steps.length
+            ? startIndex
+            : 0;
+
+        let driverObj:
+          ReturnType<typeof driver>;
+
+        /* =============================================
+           MOVE BETWEEN ROUTES
+        ============================================= */
+
+        const moveToRouteStep =
+          (
+            targetIndex: number
+          ) => {
+            const targetStep =
+              steps[
+                targetIndex
+              ];
+
+            if (!targetStep) {
+              return;
+            }
+
+            /*
+             * Save next/previous step so that after
+             * React Router changes the page,
+             * walkthrough resumes correctly.
+             */
+            sessionStorage.setItem(
+              progressKey,
+              String(
+                targetIndex
+              )
+            );
+
+            /*
+             * Destroy current popup BEFORE navigation.
+             */
+            driverObj.destroy();
+
+            /*
+             * Tell global manager this instance
+             * is no longer active.
+             */
+            clearActiveTourDriver(
+              driverObj
+            );
+
+            driverRef.current =
+              null;
+
+            /*
+             * IMPORTANT:
+             *
+             * Do not make tourActiveRef false.
+             *
+             * The tour is still running;
+             * only the page is changing.
+             */
+            navigate(
+              targetStep.route
+            );
+          };
+
+        /* =============================================
+           BUILD DRIVER STEPS
+        ============================================= */
+
+        const driverSteps =
+          steps.map(
+            (
+              tourStep,
+              index
+            ) => {
+              const nextStep =
+                steps[
+                  index + 1
+                ];
+
+              const previousStep =
+                steps[
+                  index - 1
+                ];
+
+              return {
+                ...(tourStep.element
+                  ? {
+                      element:
+                        tourStep.element,
+
+                      /*
+                       * Wait for React components/data
+                       * to finish rendering.
+                       */
+                      waitForElement:
+                        5000,
+                    }
+                  : {}),
+
+                popover: {
+                  title:
+                    tourStep.title,
+
+                  description:
+                    tourStep.description,
+
+                  side:
+                    tourStep.side ??
+                    "bottom",
+
+                  align:
+                    tourStep.align ??
+                    "start",
+
+                  /* =========================
+                     NEXT
+                  ========================= */
+
+                  onNextClick:
+                    () => {
+                      /*
+                       * Last step.
+                       */
+                      if (
+                        !nextStep
+                      ) {
+                        endTour();
+
+                        return;
+                      }
+
+                      /*
+                       * Same application route.
+                       */
+                      if (
+                        nextStep.route ===
+                        tourStep.route
+                      ) {
+                        driverObj.moveNext();
+
+                        return;
+                      }
+
+                      /*
+                       * Different application route.
+                       */
+                      moveToRouteStep(
+                        index + 1
+                      );
+                    },
+
+                  /* =========================
+                     BACK
+                  ========================= */
+
+                  onPrevClick:
+                    () => {
+                      if (
+                        !previousStep
+                      ) {
+                        return;
+                      }
+
+                      /*
+                       * Same application route.
+                       */
+                      if (
+                        previousStep.route ===
+                        tourStep.route
+                      ) {
+                        driverObj.movePrevious();
+
+                        return;
+                      }
+
+                      /*
+                       * Previous step is on
+                       * another route.
+                       */
+                      moveToRouteStep(
+                        index - 1
+                      );
+                    },
+                },
+              };
+            }
+          );
+
+        /* =============================================
+           CREATE DRIVER INSTANCE
+        ============================================= */
+
+        driverObj = driver({
+          steps:
+            driverSteps,
+
+          animate:
+            true,
+
+          duration:
+            350,
+
+          smoothScroll:
+            true,
+
+          showProgress:
+            true,
+
+          progressText:
+            "{{current}} of {{total}}",
+
+          nextBtnText:
+            "Next →",
+
+          prevBtnText:
+            "← Back",
+
+          doneBtnText:
+            "Finish Tour",
+
+          showButtons: [
+            "previous",
+            "next",
+            "close",
+          ],
+
+          /*
+           * Prevent accidental application actions
+           * while walkthrough is highlighting UI.
+           */
+          disableActiveInteraction:
+            true,
+
+          /*
+           * Missing optional elements shouldn't
+           * break the complete tour.
+           */
+          skipMissingElement:
+            true,
+
+          /*
+           * Closing is handled by endTour().
+           */
+          allowClose:
+            false,
+
+          overlayOpacity:
+            0.68,
+
+          stagePadding:
+            10,
+
+          stageRadius:
+            14,
+
+          popoverClass:
+            "tract-driver-popover",
+
+          /* ===========================================
+             SKIP TOUR BUTTON
+          =========================================== */
+
+          onPopoverRender:
+            (
+              popover
+            ) => {
+              /*
+               * Driver can re-render popovers.
+               *
+               * Prevent duplicated Skip buttons.
+               */
+              const existing =
+                popover.footerButtons.querySelector(
+                  ".tract-tour-skip-btn"
+                );
+
+              if (existing) {
+                return;
+              }
+
+              const skipButton =
+                document.createElement(
+                  "button"
+                );
+
+              skipButton.type =
+                "button";
+
+              skipButton.textContent =
+                "Skip Tour";
+
+              skipButton.className =
+                "driver-popover-footer-btn tract-tour-skip-btn";
+
+              skipButton.addEventListener(
+                "click",
+                () => {
+                  /*
+                   * Skip CURRENT and ALL remaining
+                   * walkthrough steps.
+                   */
+                  endTour();
+                },
+                {
+                  once:
+                    true,
+                }
+              );
+
+              /*
+               * Place Skip before Back/Next.
+               */
+              popover.footerButtons.prepend(
+                skipButton
+              );
+            },
+
+          /* ===========================================
+             SAVE STEP PROGRESS
+          =========================================== */
+
+          onHighlighted:
+            (
+              _element,
+              _step,
+              options
+            ) => {
+              if (
+                typeof options.index ===
+                "number"
+              ) {
+                sessionStorage.setItem(
+                  progressKey,
+                  String(
+                    options.index
+                  )
+                );
+              }
+            },
+
+          /*
+           * X button also skips complete walkthrough.
+           */
+          onCloseClick:
+            () => {
+              endTour();
+            },
+
+          /*
+           * Final button completes walkthrough.
+           */
+          onDoneClick:
+            () => {
+              endTour();
+            },
+        });
+
+        /*
+         * Save locally.
+         */
+        driverRef.current =
+          driverObj;
+
+        /*
+         * Save globally.
+         *
+         * Prevents Seller/Buyer/old Driver
+         * instances from overlapping.
+         */
+        setActiveTourDriver(
+          driverObj
+        );
+
+        tourActiveRef.current =
+          true;
+
+        /*
+         * Start/resume walkthrough.
+         */
+        driverObj.drive(
+          safeIndex
+        );
+      },
+      [
+        walkthroughRole,
+        userKey,
+        steps,
+        progressKey,
+        navigate,
+        endTour,
+      ]
+    );
+
+  /* =====================================================
+     AUTOMATIC WALKTHROUGH
+
+     IMPORTANT:
+
+     Auto-start happens ONLY after NEW SIGNUP.
+
+     Normal SignIn does not create signupPending.
+  ===================================================== */
 
   useEffect(() => {
-    if (!authReady) return;
-
-    if (!walkthroughRole) return;
-
-    if (!steps.length) return;
-
-    if (!completedKey || !progressKey) {
+    /*
+     * Wait until AuthContext has finished.
+     */
+    if (!authReady) {
       return;
     }
 
-    const alreadyCompleted =
+    if (!isAuthenticated) {
+      return;
+    }
+
+    /*
+     * Only Wholesaler/Partner/Realtor.
+     */
+    if (!walkthroughRole) {
+      return;
+    }
+
+    if (!userKey) {
+      return;
+    }
+
+    if (!steps.length) {
+      return;
+    }
+
+    /*
+     * Created only after:
+     *
+     * successful registration
+     *       ↓
+     * successful OTP
+     *       ↓
+     * markProductTourPendingAfterSignup()
+     */
+    const signupPending =
+      isProductTourPendingForUser(
+        identity
+      );
+
+    /*
+     * User explicitly requested walkthrough
+     * using sidebar button.
+     */
+    const manualPending =
+      isManualTourPending(
+        walkthroughRole
+      );
+
+    /*
+     * User already Finished or Skipped
+     * this version previously.
+     */
+    const completed =
       localStorage.getItem(
         completedKey
       ) === "true";
 
-    if (alreadyCompleted) {
-      return;
+    /* =============================================
+       DECIDE WHETHER TOUR SHOULD START
+    ============================================= */
+
+    if (
+      !tourActiveRef.current
+    ) {
+      /*
+       * Nothing requested the walkthrough.
+       *
+       * Normal login ends here.
+       */
+      if (
+        !signupPending &&
+        !manualPending
+      ) {
+        return;
+      }
+
+      /*
+       * completed=true should block only
+       * AUTOMATIC signup walkthrough.
+       *
+       * Manual "Get Walkthrough" must still work.
+       */
+      if (
+        signupPending &&
+        completed &&
+        !manualPending
+      ) {
+        /*
+         * Defensive cleanup in case a stale signup
+         * marker remained in session storage.
+         */
+        clearProductTourSignupFlag();
+
+        return;
+      }
+
+      tourActiveRef.current =
+        true;
     }
+
+    /* =============================================
+       DETERMINE CURRENT STEP
+    ============================================= */
 
     const storedProgress =
       sessionStorage.getItem(
         progressKey
       );
 
-    let stepIndex = 0;
+    let stepIndex =
+      0;
 
-    if (storedProgress !== null) {
+    if (
+      storedProgress !==
+      null
+    ) {
       const parsed =
-        Number(storedProgress);
+        Number(
+          storedProgress
+        );
 
       if (
-        Number.isFinite(parsed) &&
+        Number.isFinite(
+          parsed
+        ) &&
         parsed >= 0 &&
-        parsed < steps.length
+        parsed <
+          steps.length
       ) {
-        stepIndex = parsed;
+        stepIndex =
+          parsed;
       }
+    } else {
+      /*
+       * New walkthrough starts at first step.
+       */
+      sessionStorage.setItem(
+        progressKey,
+        "0"
+      );
     }
 
     const step =
-      steps[stepIndex];
+      steps[
+        stepIndex
+      ];
 
-    if (!step) return;
+    if (!step) {
+      return;
+    }
 
-    /*
-     * Resume on required route.
-     */
+    /* =============================================
+       MULTI-PAGE RESUME
+    ============================================= */
 
     if (
-      storedProgress !== null &&
       location.pathname !==
-        step.route
+      step.route
     ) {
-      navigate(step.route, {
-        replace: true,
-      });
+      /*
+       * Go to route required for current step.
+       */
+      navigate(
+        step.route,
+        {
+          replace:
+            true,
+        }
+      );
 
       return;
     }
 
     /*
-     * Brand-new walkthrough begins only
-     * from dashboard.
+     * Give React enough time to render page
+     * and data-tour target.
      */
-
-    if (
-      storedProgress === null &&
-      location.pathname !==
-        "/dashboard"
-    ) {
-      return;
-    }
-
     const timer =
-      window.setTimeout(() => {
-        startTourAt(stepIndex);
-      }, 500);
+      window.setTimeout(
+        () => {
+          startTourAt(
+            stepIndex
+          );
+        },
+        450
+      );
 
     return () => {
-      window.clearTimeout(timer);
+      window.clearTimeout(
+        timer
+      );
     };
   }, [
     authReady,
+    isAuthenticated,
     walkthroughRole,
+    userKey,
+    identity,
+    steps,
     completedKey,
     progressKey,
     location.pathname,
     navigate,
     startTourAt,
-    steps,
   ]);
 
-  /* =======================================================
-     MANUAL RESTART
+  /* =====================================================
+     MANUAL SIDEBAR "GET WALKTHROUGH"
 
-     Browser console:
+     Event:
+     tract:start-buyer-tour
 
-     window.dispatchEvent(
-       new Event("tract:start-buyer-tour")
-     );
-  ======================================================= */
+     Works for:
+     - Wholesaler / Partner
+     - Realtor
+
+     It works even if completed=true.
+  ===================================================== */
 
   useEffect(() => {
-    function restartTour() {
-      if (!walkthroughRole) {
-        return;
-      }
+    const startManualTour =
+      () => {
+        /*
+         * Only Partner/Realtor.
+         */
+        if (
+          !walkthroughRole
+        ) {
+          return;
+        }
 
-      localStorage.removeItem(
-        completedKey
-      );
+        if (!userKey) {
+          return;
+        }
 
-      sessionStorage.setItem(
-        progressKey,
-        "0"
-      );
+        /*
+         * =================================================
+         * IMPORTANT MANUAL FLAG
+         * =================================================
+         *
+         * Save the manual request in sessionStorage.
+         *
+         * Example:
+         *
+         * User is currently on /deals
+         *
+         * clicks "Get Walkthrough"
+         *
+         *      ↓
+         *
+         * manualPending = "partner"
+         *
+         *      ↓
+         *
+         * navigate("/dashboard")
+         *
+         *      ↓
+         *
+         * component can safely resume even if remounted.
+         */
+        markManualTourPending(
+          walkthroughRole
+        );
 
-      if (driverRef.current) {
-        driverRef.current.destroy();
+        /*
+         * Walkthrough is intentionally running.
+         */
+        tourActiveRef.current =
+          true;
 
-        driverRef.current = null;
-      }
+        /*
+         * Manual replay ALWAYS starts at step 0.
+         */
+        sessionStorage.setItem(
+          progressKey,
+          "0"
+        );
 
-      if (
-        location.pathname !==
-        "/dashboard"
-      ) {
-        navigate("/dashboard");
+        /*
+         * Destroy old popup/Driver before starting.
+         */
+        destroyActiveTourDriver();
 
-        return;
-      }
+        driverRef.current =
+          null;
 
-      window.setTimeout(() => {
-        startTourAt(0);
-      }, 100);
-    }
+        /* =============================================
+           USER IS NOT ON DASHBOARD
+        ============================================= */
+
+        if (
+          location.pathname !==
+          "/dashboard"
+        ) {
+          navigate(
+            "/dashboard"
+          );
+
+          /*
+           * After navigation the main useEffect above
+           * will detect manualPending and begin step 0.
+           */
+          return;
+        }
+
+        /* =============================================
+           USER IS ALREADY ON DASHBOARD
+        ============================================= */
+
+        window.setTimeout(
+          () => {
+            startTourAt(
+              0
+            );
+          },
+          150
+        );
+      };
 
     window.addEventListener(
       "tract:start-buyer-tour",
-      restartTour
+      startManualTour
     );
 
     return () => {
       window.removeEventListener(
         "tract:start-buyer-tour",
-        restartTour
+        startManualTour
       );
     };
   }, [
     walkthroughRole,
-    completedKey,
+    userKey,
     progressKey,
     location.pathname,
     navigate,
     startTourAt,
   ]);
+
+  /* =====================================================
+     CLEANUP
+  ===================================================== */
+
+  useEffect(() => {
+    return () => {
+      /*
+       * DashboardLayout is disappearing.
+       *
+       * Make sure no Driver popup remains stuck.
+       */
+      destroyActiveTourDriver();
+
+      driverRef.current =
+        null;
+
+      tourActiveRef.current =
+        false;
+    };
+  }, []);
 
   return null;
 }

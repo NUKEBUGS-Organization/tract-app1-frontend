@@ -5,7 +5,10 @@ import {
   useRef,
 } from "react";
 
-import { useLocation, useNavigate } from "react-router";
+import {
+  useLocation,
+  useNavigate,
+} from "react-router";
 
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -24,6 +27,22 @@ import {
   sellerTourSteps,
 } from "./sellerTourSteps";
 
+import {
+  clearManualTourPending,
+  clearProductTourSignupFlag,
+  getTourUserKey,
+  isManualTourPending,
+  isProductTourPendingForUser,
+  markManualTourPending,
+} from "./tourStorage";
+
+import {
+  clearActiveTourDriver,
+  destroyActiveTourDriver,
+  hasActiveTourDriver,
+  setActiveTourDriver,
+} from "./tourDriverManager";
+
 export default function SellerWalkthrough() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,10 +52,29 @@ export default function SellerWalkthrough() {
     role,
     accessToken,
     authReady,
+    isAuthenticated,
   } = useAuthContext();
 
+  /*
+   * Local reference to this Seller walkthrough's
+   * Driver.js instance.
+   */
   const driverRef =
     useRef<ReturnType<typeof driver> | null>(null);
+
+  /*
+   * True while the Seller walkthrough is intentionally
+   * running across different React Router pages.
+   *
+   * This can be triggered by:
+   * 1. Automatic walkthrough after signup.
+   * 2. Manual "Get Walkthrough" button.
+   */
+  const tourActiveRef = useRef(false);
+
+  /* =====================================================
+     ROLE
+  ===================================================== */
 
   const userRole = normalizeRole(
     role || getRoleFromToken(accessToken)
@@ -47,57 +85,164 @@ export default function SellerWalkthrough() {
     SELLER_ROLES
   );
 
-  // ---------------------------------------------------------
-  // Build a unique key for each user.
-  // This prevents two accounts on the same browser from
-  // sharing walkthrough completion state.
-  // ---------------------------------------------------------
+  /* =====================================================
+     USER IDENTITY
+  ===================================================== */
 
-  const userKey = useMemo(() => {
+  const identity = useMemo(() => {
     const currentUser = user as any;
 
-    return String(
-      currentUser?._id ||
-      currentUser?.id ||
-      currentUser?.email ||
-      "seller"
-    );
+    return {
+      userId:
+        currentUser?._id ||
+        currentUser?.id ||
+        "",
+
+      email:
+        currentUser?.email ||
+        "",
+    };
   }, [user]);
 
-  const completedKey = useMemo(
-    () =>
-      `tract:seller-tour:v${SELLER_TOUR_VERSION}:${userKey}:completed`,
-    [userKey]
+  /*
+   * Prefer user ID.
+   * Email is used as fallback.
+   */
+  const userKey = useMemo(
+    () => getTourUserKey(identity),
+    [identity]
   );
 
-  const progressKey = useMemo(
-    () =>
-      `tract:seller-tour:v${SELLER_TOUR_VERSION}:${userKey}:progress`,
-    [userKey]
-  );
+  /* =====================================================
+     STORAGE KEYS
+  ===================================================== */
 
-  // ---------------------------------------------------------
-  // Complete / Skip tour
-  // ---------------------------------------------------------
-
-  const completeTour = useCallback(() => {
-    localStorage.setItem(completedKey, "true");
-    sessionStorage.removeItem(progressKey);
-
-    if (driverRef.current) {
-      driverRef.current.destroy();
-      driverRef.current = null;
+  /*
+   * Permanent browser flag:
+   *
+   * Once Seller completes OR skips this version,
+   * automatic walkthrough will not appear again.
+   */
+  const completedKey = useMemo(() => {
+    if (!userKey) {
+      return "";
     }
-  }, [completedKey, progressKey]);
 
-  // ---------------------------------------------------------
-  // Start Driver.js at a particular step
-  // ---------------------------------------------------------
+    return `tract:seller-tour:v${SELLER_TOUR_VERSION}:${userKey}:completed`;
+  }, [
+    userKey,
+  ]);
+
+  /*
+   * Temporary session progress:
+   *
+   * Allows the walkthrough to continue correctly when
+   * React Router changes from one page to another.
+   */
+  const progressKey = useMemo(() => {
+    if (!userKey) {
+      return "";
+    }
+
+    return `tract:seller-tour:v${SELLER_TOUR_VERSION}:${userKey}:progress`;
+  }, [
+    userKey,
+  ]);
+
+  /* =====================================================
+     FINISH / SKIP ENTIRE TOUR
+  ===================================================== */
+
+  const endTour = useCallback(() => {
+    /*
+     * Both Finish and Skip mean that the automatic
+     * walkthrough has been handled.
+     */
+    if (completedKey) {
+      localStorage.setItem(
+        completedKey,
+        "true"
+      );
+    }
+
+    /*
+     * Remove current step progress.
+     */
+    if (progressKey) {
+      sessionStorage.removeItem(
+        progressKey
+      );
+    }
+
+    /*
+     * Consume the special signup-only automatic
+     * walkthrough flag.
+     */
+    clearProductTourSignupFlag();
+
+    /*
+     * Remove manual replay flag if this tour was
+     * launched from "Get Walkthrough".
+     */
+    clearManualTourPending();
+
+    /*
+     * Tour has completely ended.
+     */
+    tourActiveRef.current = false;
+
+    /*
+     * Destroy whichever Driver instance is currently
+     * globally active.
+     *
+     * This prevents old/stuck Driver popovers.
+     */
+    destroyActiveTourDriver();
+
+    driverRef.current = null;
+  }, [
+    completedKey,
+    progressKey,
+  ]);
+
+  /* =====================================================
+     START WALKTHROUGH AT A PARTICULAR STEP
+  ===================================================== */
 
   const startTourAt = useCallback(
-    (startIndex: number) => {
-      if (!isSeller) return;
+    (
+      startIndex: number
+    ) => {
+      /*
+       * Seller controller should do nothing for
+       * Wholesaler/Realtor/Admin.
+       */
+      if (!isSeller) {
+        return;
+      }
 
+      /*
+       * Wait until authenticated user identity exists.
+       */
+      if (!userKey) {
+        return;
+      }
+
+      /*
+       * GLOBAL DUPLICATE PROTECTION
+       *
+       * Prevents two Driver.js instances from rendering
+       * at the same time.
+       */
+      if (
+        hasActiveTourDriver()
+      ) {
+        return;
+      }
+
+      /*
+       * Local duplicate protection as an extra safeguard.
+       */
       if (
         driverRef.current &&
         driverRef.current.isActive()
@@ -105,281 +250,622 @@ export default function SellerWalkthrough() {
         return;
       }
 
+      /*
+       * Protect against invalid stored indexes.
+       */
       const safeIndex =
         startIndex >= 0 &&
-        startIndex < sellerTourSteps.length
+        startIndex <
+          sellerTourSteps.length
           ? startIndex
           : 0;
 
-      let driverObj: ReturnType<typeof driver>;
+      let driverObj:
+        ReturnType<typeof driver>;
 
-      // -----------------------------------------------------
-      // Move to a step that lives on another React route
-      // -----------------------------------------------------
+      /* =================================================
+         MOVE TO A STEP ON ANOTHER ROUTE
+      ================================================= */
 
       const moveToRouteStep = (
         targetIndex: number
       ) => {
         const targetStep =
-          sellerTourSteps[targetIndex];
+          sellerTourSteps[
+            targetIndex
+          ];
 
-        if (!targetStep) return;
+        if (!targetStep) {
+          return;
+        }
 
-        // Remember where the tour must resume.
+        /*
+         * Store the step to resume after navigation.
+         */
         sessionStorage.setItem(
           progressKey,
-          String(targetIndex)
+          String(
+            targetIndex
+          )
         );
 
-        // Destroy current page's Driver instance.
+        /*
+         * IMPORTANT:
+         *
+         * Destroy current Driver BEFORE navigating.
+         * Otherwise an old modal can remain on screen
+         * while the destination page creates another.
+         */
         driverObj.destroy();
-        driverRef.current = null;
 
-        // React Router navigation.
-        navigate(targetStep.route);
+        clearActiveTourDriver(
+          driverObj
+        );
+
+        driverRef.current =
+          null;
+
+        /*
+         * Do NOT set:
+         *
+         * tourActiveRef.current = false
+         *
+         * because the tour isn't finished.
+         * We're only moving to another page.
+         */
+
+        navigate(
+          targetStep.route
+        );
       };
 
-      // -----------------------------------------------------
-      // Build Driver.js steps
-      // -----------------------------------------------------
+      /* =================================================
+         BUILD DRIVER.JS STEPS
+      ================================================= */
 
-      const steps = sellerTourSteps.map(
-        (tourStep, index) => {
-          const nextStep =
-            sellerTourSteps[index + 1];
+      const steps =
+        sellerTourSteps.map(
+          (
+            tourStep,
+            index
+          ) => {
+            const nextStep =
+              sellerTourSteps[
+                index + 1
+              ];
 
-          const previousStep =
-            sellerTourSteps[index - 1];
+            const previousStep =
+              sellerTourSteps[
+                index - 1
+              ];
 
-          return {
-            ...(tourStep.element
-              ? {
-                  element: tourStep.element,
+            return {
+              ...(tourStep.element
+                ? {
+                    element:
+                      tourStep.element,
 
-                  // Some TRACT pages render after RTK Query
-                  // finishes loading.
-                  waitForElement: 7000,
-                }
-              : {}),
+                    /*
+                     * Wait briefly for dynamic React UI.
+                     */
+                    waitForElement:
+                      5000,
+                  }
+                : {}),
 
-            popover: {
-              title: tourStep.title,
-              description:
-                tourStep.description,
+              popover: {
+                title:
+                  tourStep.title,
 
-              side:
-                tourStep.side ?? "bottom",
+                description:
+                  tourStep.description,
 
-              align:
-                tourStep.align ?? "start",
+                side:
+                  tourStep.side ??
+                  "bottom",
 
-              // ---------------------------------------------
-              // NEXT
-              // ---------------------------------------------
+                align:
+                  tourStep.align ??
+                  "start",
 
-              onNextClick: () => {
-                if (!nextStep) {
-                  completeTour();
-                  return;
-                }
+                /* ======================================
+                   NEXT BUTTON
+                ====================================== */
 
-                // Same route:
-                // simply continue Driver.js.
-                if (
-                  nextStep.route ===
-                  tourStep.route
-                ) {
-                  driverObj.moveNext();
-                  return;
-                }
+                onNextClick:
+                  () => {
+                    /*
+                     * No next step means walkthrough
+                     * is complete.
+                     */
+                    if (
+                      !nextStep
+                    ) {
+                      endTour();
 
-                // Different route:
-                // save progress and navigate.
-                moveToRouteStep(index + 1);
+                      return;
+                    }
+
+                    /*
+                     * Same page:
+                     * Driver can simply move forward.
+                     */
+                    if (
+                      nextStep.route ===
+                      tourStep.route
+                    ) {
+                      driverObj.moveNext();
+
+                      return;
+                    }
+
+                    /*
+                     * Different application page.
+                     */
+                    moveToRouteStep(
+                      index + 1
+                    );
+                  },
+
+                /* ======================================
+                   PREVIOUS BUTTON
+                ====================================== */
+
+                onPrevClick:
+                  () => {
+                    if (
+                      !previousStep
+                    ) {
+                      return;
+                    }
+
+                    /*
+                     * Same page.
+                     */
+                    if (
+                      previousStep.route ===
+                      tourStep.route
+                    ) {
+                      driverObj.movePrevious();
+
+                      return;
+                    }
+
+                    /*
+                     * Previous step exists on another
+                     * React Router route.
+                     */
+                    moveToRouteStep(
+                      index - 1
+                    );
+                  },
               },
+            };
+          }
+        );
 
-              // ---------------------------------------------
-              // BACK
-              // ---------------------------------------------
-
-              onPrevClick: () => {
-                if (!previousStep) {
-                  return;
-                }
-
-                if (
-                  previousStep.route ===
-                  tourStep.route
-                ) {
-                  driverObj.movePrevious();
-                  return;
-                }
-
-                moveToRouteStep(index - 1);
-              },
-            },
-          };
-        }
-      );
+      /* =================================================
+         CREATE DRIVER.JS INSTANCE
+      ================================================= */
 
       driverObj = driver({
         steps,
 
-        animate: true,
-        duration: 350,
+        animate:
+          true,
 
-        smoothScroll: true,
+        duration:
+          350,
 
-        showProgress: true,
+        smoothScroll:
+          true,
+
+        showProgress:
+          true,
+
         progressText:
           "{{current}} of {{total}}",
 
-        nextBtnText: "Next →",
-        prevBtnText: "← Back",
-        doneBtnText: "Finish Tour",
+        nextBtnText:
+          "Next →",
 
+        prevBtnText:
+          "← Back",
+
+        doneBtnText:
+          "Finish Tour",
+
+        /*
+         * Driver buttons.
+         *
+         * We additionally add our custom
+         * Skip Tour button below.
+         */
         showButtons: [
           "previous",
           "next",
           "close",
         ],
 
-        // Don't let users accidentally manipulate actual
-        // business actions while learning the interface.
-        disableActiveInteraction: true,
+        /*
+         * Don't allow accidental interaction with
+         * the highlighted application control.
+         */
+        disableActiveInteraction:
+          true,
 
-        // Prevent accidental overlay click closing.
-        allowClose: false,
+        /*
+         * If an optional walkthrough target doesn't
+         * exist, don't crash the entire tour.
+         */
+        skipMissingElement:
+          true,
 
-        overlayOpacity: 0.68,
+        /*
+         * We control closing ourselves so clicking X
+         * is treated as skipping the entire walkthrough.
+         */
+        allowClose:
+          false,
 
-        stagePadding: 10,
-        stageRadius: 14,
+        overlayOpacity:
+          0.68,
+
+        stagePadding:
+          10,
+
+        stageRadius:
+          14,
 
         popoverClass:
           "tract-driver-popover",
 
-        // ---------------------------------------------------
-        // Keep current position stored.
-        // This lets the tour recover from reload/navigation.
-        // ---------------------------------------------------
+        /* =============================================
+           SKIP TOUR BUTTON ON EVERY MODAL
+        ============================================= */
 
-        onHighlighted: (
-          _element,
-          _step,
-          options
-        ) => {
-          if (
-            typeof options.index === "number"
-          ) {
-            sessionStorage.setItem(
-              progressKey,
-              String(options.index)
+        onPopoverRender:
+          (
+            popover
+          ) => {
+            /*
+             * Driver may re-render a popover.
+             * Don't insert duplicate Skip buttons.
+             */
+            const existing =
+              popover.footerButtons.querySelector(
+                ".tract-tour-skip-btn"
+              );
+
+            if (existing) {
+              return;
+            }
+
+            const skipButton =
+              document.createElement(
+                "button"
+              );
+
+            skipButton.type =
+              "button";
+
+            skipButton.textContent =
+              "Skip Tour";
+
+            skipButton.className =
+              "driver-popover-footer-btn tract-tour-skip-btn";
+
+            skipButton.addEventListener(
+              "click",
+              () => {
+                /*
+                 * Ends ALL remaining walkthrough steps.
+                 */
+                endTour();
+              },
+              {
+                once:
+                  true,
+              }
             );
-          }
-        },
 
-        // ---------------------------------------------------
-        // X button = skip tour
-        // ---------------------------------------------------
+            /*
+             * Put Skip Tour before Back / Next.
+             */
+            popover.footerButtons.prepend(
+              skipButton
+            );
+          },
 
-        onCloseClick: () => {
-          completeTour();
-        },
+        /* =============================================
+           SAVE CURRENT STEP
+        ============================================= */
 
-        // ---------------------------------------------------
-        // Final button
-        // ---------------------------------------------------
+        onHighlighted:
+          (
+            _element,
+            _step,
+            options
+          ) => {
+            if (
+              typeof options.index ===
+              "number"
+            ) {
+              sessionStorage.setItem(
+                progressKey,
+                String(
+                  options.index
+                )
+              );
+            }
+          },
 
-        onDoneClick: () => {
-          completeTour();
-        },
+        /*
+         * X button = skip entire walkthrough.
+         */
+        onCloseClick:
+          () => {
+            endTour();
+          },
+
+        /*
+         * Final Finish Tour button.
+         */
+        onDoneClick:
+          () => {
+            endTour();
+          },
       });
 
-      driverRef.current = driverObj;
+      /*
+       * Save local Driver reference.
+       */
+      driverRef.current =
+        driverObj;
 
-      driverObj.drive(safeIndex);
+      /*
+       * Save global Driver reference.
+       *
+       * This is what prevents the duplicate popup
+       * issue you had earlier.
+       */
+      setActiveTourDriver(
+        driverObj
+      );
+
+      /*
+       * Tour is now actively running.
+       */
+      tourActiveRef.current =
+        true;
+
+      /*
+       * Start/resume at requested step.
+       */
+      driverObj.drive(
+        safeIndex
+      );
     },
     [
-      completeTour,
+      endTour,
       isSeller,
       navigate,
       progressKey,
+      userKey,
     ]
   );
 
-  // ---------------------------------------------------------
-  // AUTOMATIC FIRST-TIME START
-  // ---------------------------------------------------------
+  /* =====================================================
+     AUTOMATIC WALKTHROUGH
+
+     IMPORTANT:
+     THIS ONLY STARTS AFTER A NEW REGISTRATION.
+
+     A normal SignIn does NOT create signupPending.
+  ===================================================== */
 
   useEffect(() => {
-    if (!authReady) return;
-    if (!isSeller) return;
-
-    const alreadyCompleted =
-      localStorage.getItem(completedKey) ===
-      "true";
-
-    if (alreadyCompleted) {
+    /*
+     * Authentication hasn't finished loading.
+     */
+    if (!authReady) {
       return;
     }
 
+    /*
+     * Must actually be logged in.
+     */
+    if (!isAuthenticated) {
+      return;
+    }
+
+    /*
+     * This controller is Seller-only.
+     */
+    if (!isSeller) {
+      return;
+    }
+
+    /*
+     * Need a stable user ID/email before storing
+     * walkthrough state.
+     */
+    if (!userKey) {
+      return;
+    }
+
+    /*
+     * Created by Verify.tsx only after successful
+     * NEW ACCOUNT registration + OTP.
+     */
+    const signupPending =
+      isProductTourPendingForUser(
+        identity
+      );
+
+    /*
+     * Created when the user previously finished
+     * or skipped this walkthrough version.
+     */
+    const completed =
+      localStorage.getItem(
+        completedKey
+      ) === "true";
+
+    /*
+     * Created when the user explicitly clicks
+     * "Get Walkthrough" in the sidebar.
+     */
+    const manualPending =
+      isManualTourPending(
+        "seller"
+      );
+
+    /* =================================================
+       DECIDE WHETHER A TOUR SHOULD RUN
+    ================================================= */
+
+    if (
+      !tourActiveRef.current
+    ) {
+      /*
+       * Neither:
+       *
+       * - newly registered
+       * - manually requested
+       *
+       * Therefore do NOTHING.
+       *
+       * This is what prevents normal login from
+       * automatically showing the walkthrough.
+       */
+      if (
+        !signupPending &&
+        !manualPending
+      ) {
+        return;
+      }
+
+      /*
+       * completed=true blocks automatic signup
+       * walkthrough.
+       *
+       * But it does NOT block a manual replay.
+       */
+      if (
+        signupPending &&
+        completed &&
+        !manualPending
+      ) {
+        /*
+         * Remove any stale signup marker.
+         */
+        clearProductTourSignupFlag();
+
+        return;
+      }
+
+      tourActiveRef.current =
+        true;
+    }
+
+    /* =================================================
+       DETERMINE WHICH STEP TO SHOW
+    ================================================= */
+
+    let stepIndex =
+      0;
+
     const storedProgress =
-      sessionStorage.getItem(progressKey);
+      sessionStorage.getItem(
+        progressKey
+      );
 
-    let stepIndex = 0;
-
-    if (storedProgress !== null) {
-      const parsed = Number(storedProgress);
+    if (
+      storedProgress !==
+      null
+    ) {
+      const parsed =
+        Number(
+          storedProgress
+        );
 
       if (
-        Number.isFinite(parsed) &&
+        Number.isFinite(
+          parsed
+        ) &&
         parsed >= 0 &&
-        parsed < sellerTourSteps.length
+        parsed <
+          sellerTourSteps.length
       ) {
-        stepIndex = parsed;
+        stepIndex =
+          parsed;
       }
+    } else {
+      /*
+       * New walkthrough starts from step 0.
+       */
+      sessionStorage.setItem(
+        progressKey,
+        "0"
+      );
     }
 
     const step =
-      sellerTourSteps[stepIndex];
+      sellerTourSteps[
+        stepIndex
+      ];
 
-    if (!step) return;
+    if (!step) {
+      return;
+    }
 
-    // -------------------------------------------------------
-    // If we're resuming a tour and we're on the wrong page,
-    // take the user back to the required route.
-    // -------------------------------------------------------
+    /* =================================================
+       MULTI-PAGE ROUTE RESUME
+    ================================================= */
 
     if (
-      storedProgress !== null &&
-      location.pathname !== step.route
+      location.pathname !==
+      step.route
     ) {
-      navigate(step.route, {
-        replace: true,
-      });
+      /*
+       * Move to the page required by this step.
+       */
+      navigate(
+        step.route,
+        {
+          replace:
+            true,
+        }
+      );
 
       return;
     }
 
-    // Brand-new tour should begin only from dashboard.
-    if (
-      storedProgress === null &&
-      location.pathname !== "/dashboard"
-    ) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      startTourAt(stepIndex);
-    }, 500);
+    /*
+     * Allow React page + data-tour elements to render.
+     */
+    const timer =
+      window.setTimeout(
+        () => {
+          startTourAt(
+            stepIndex
+          );
+        },
+        450
+      );
 
     return () => {
-      window.clearTimeout(timer);
+      window.clearTimeout(
+        timer
+      );
     };
   }, [
     authReady,
+    isAuthenticated,
     isSeller,
+    userKey,
+    identity,
     completedKey,
     progressKey,
     location.pathname,
@@ -387,66 +873,145 @@ export default function SellerWalkthrough() {
     startTourAt,
   ]);
 
-  // ---------------------------------------------------------
-  // DEVELOPMENT / HELP MENU RESTART EVENT
-  //
-  // Run this in browser console:
-  //
-  // window.dispatchEvent(
-  //   new Event("tract:start-seller-tour")
-  // );
-  // ---------------------------------------------------------
+  /* =====================================================
+     MANUAL "GET WALKTHROUGH" SIDEBAR BUTTON
+
+     Event:
+     tract:start-seller-tour
+
+     This MUST work even if:
+     completed = true
+  ===================================================== */
 
   useEffect(() => {
-    const restartTour = () => {
-      if (!isSeller) return;
+    const startManualTour =
+      () => {
+        /*
+         * Correct role only.
+         */
+        if (!isSeller) {
+          return;
+        }
 
-      localStorage.removeItem(
-        completedKey
-      );
+        if (!userKey) {
+          return;
+        }
 
-      sessionStorage.setItem(
-        progressKey,
-        "0"
-      );
+        /*
+         * IMPORTANT:
+         *
+         * Persist manual request in sessionStorage.
+         *
+         * This means if we navigate from:
+         *
+         * /deals
+         *      ↓
+         * /dashboard
+         *
+         * the manual walkthrough request isn't lost.
+         */
+        markManualTourPending(
+          "seller"
+        );
 
-      if (driverRef.current) {
-        driverRef.current.destroy();
-        driverRef.current = null;
-      }
+        /*
+         * Walkthrough is intentionally active.
+         */
+        tourActiveRef.current =
+          true;
 
-      if (
-        location.pathname !== "/dashboard"
-      ) {
-        navigate("/dashboard");
-        return;
-      }
+        /*
+         * Manual replay always begins at step 0.
+         */
+        sessionStorage.setItem(
+          progressKey,
+          "0"
+        );
 
-      window.setTimeout(() => {
-        startTourAt(0);
-      }, 100);
-    };
+        /*
+         * Destroy any old Driver instance before
+         * starting a fresh manual walkthrough.
+         */
+        destroyActiveTourDriver();
+
+        driverRef.current =
+          null;
+
+        /* =============================================
+           NOT CURRENTLY ON DASHBOARD
+        ============================================= */
+
+        if (
+          location.pathname !==
+          "/dashboard"
+        ) {
+          /*
+           * Navigate first.
+           *
+           * The automatic/resume effect above will
+           * notice manualPending after navigation
+           * and start step 0.
+           */
+          navigate(
+            "/dashboard"
+          );
+
+          return;
+        }
+
+        /* =============================================
+           ALREADY ON DASHBOARD
+        ============================================= */
+
+        window.setTimeout(
+          () => {
+            startTourAt(
+              0
+            );
+          },
+          150
+        );
+      };
 
     window.addEventListener(
       "tract:start-seller-tour",
-      restartTour
+      startManualTour
     );
 
     return () => {
       window.removeEventListener(
         "tract:start-seller-tour",
-        restartTour
+        startManualTour
       );
     };
   }, [
-    completedKey,
-    progressKey,
     isSeller,
+    userKey,
+    progressKey,
     location.pathname,
     navigate,
     startTourAt,
   ]);
 
-  // No visible React component.
+  /* =====================================================
+     COMPONENT CLEANUP
+  ===================================================== */
+
+  useEffect(() => {
+    return () => {
+      /*
+       * Don't leave Driver modal/overlay behind when
+       * DashboardLayout disappears.
+       */
+      destroyActiveTourDriver();
+
+      driverRef.current =
+        null;
+
+      tourActiveRef.current =
+        false;
+    };
+  }, []);
+
   return null;
 }

@@ -44,25 +44,29 @@ export default function SignInPage() {
     reValidateMode: "onChange",
   });
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      setLoginStatus(null);
+const onSubmit = async (data: FormData) => {
+  try {
+    setLoginStatus(null);
 
-      await login({
-        email: data.email,
-        password: data.password,
-      }).unwrap();
+    const normalizedEmail =
+      data.email.trim().toLowerCase();
 
-      navigate("/auth/verify", {
-        state: {
-          email: data.email,
-          purpose: "login",
-        },
-      });
-    } catch (error: any) {
-      setLoginStatus("Invalid credentials");
-    }
-  };
+    await login({
+      email: normalizedEmail,
+      password: data.password,
+    }).unwrap();
+
+    navigate("/auth/verify", {
+      state: {
+        email: normalizedEmail,
+        purpose: "login",
+        source: "signin",
+      },
+    });
+  } catch (error: any) {
+    setLoginStatus("Invalid credentials");
+  }
+};
 
   return (
     <AuthLayout>

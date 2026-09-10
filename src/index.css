@@ -298,3 +298,42 @@ html[data-wholesaler-theme] * {
 .driver-active-element {
   border-radius: 12px;
 }
+
+
+/* =========================================================
+   WALKTHROUGH - SKIP TOUR BUTTON
+========================================================= */
+
+.tract-driver-popover .tract-tour-skip-btn {
+  margin-right: auto !important;
+
+  border: 0 !important;
+
+  background: transparent !important;
+
+  padding: 9px 8px !important;
+
+  color: var(--color-text-muted) !important;
+
+  box-shadow: none !important;
+
+  font-size: 10px !important;
+
+  font-weight: 900 !important;
+
+  letter-spacing: 0.12em !important;
+
+  text-transform: uppercase !important;
+
+  text-shadow: none !important;
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease !important;
+}
+
+.tract-driver-popover .tract-tour-skip-btn:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+
+  color: var(--color-danger) !important;
+}

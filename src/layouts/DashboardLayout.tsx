@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import BuyerWalkthrough from "../walkthrough/BuyerWalkthrough";
 import SellerWalkthrough from "../walkthrough/SellerWalkthrough";
+import ProductTourSidebarButton from "../walkthrough/ProductTourSidebarButton";
 
 import { useAuthContext } from "../contexts/AuthContext";
 import DashboardSidebar from "../components/common/DashboardSidebar";
@@ -309,9 +310,15 @@ function DashboardLayout({
     <PartnerThemeContext.Provider value={mode as "light" | "dark"}>
       <div className={rootBg}>
         <div className="flex min-h-screen">
-          <aside className="sticky top-0 hidden h-screen w-[270px] shrink-0 flex-col bg-[var(--color-primary-dark)] text-white shadow-2xl lg:flex">
-            <DashboardSidebar navItems={navItems} />
-          </aside>
+         <aside className="relative sticky top-0 hidden h-screen w-[270px] shrink-0 flex-col bg-[var(--color-primary-dark)] pb-24 text-white shadow-2xl lg:flex">
+  <DashboardSidebar
+    navItems={navItems}
+  />
+
+  <div className="absolute bottom-5 left-4 right-4 z-20">
+    <ProductTourSidebarButton />
+  </div>
+</aside>
 
           {isMobileMenuOpen && (
             <div className="fixed inset-0 z-40 lg:hidden">
@@ -322,12 +329,24 @@ function DashboardLayout({
                 aria-label="Close menu overlay"
               />
 
-              <aside className="relative z-50 flex h-full w-[280px] flex-col bg-[var(--color-primary-dark)] text-white shadow-2xl">
-                <DashboardSidebar
-                  navItems={navItems}
-                  onNavigate={() => setIsMobileMenuOpen(false)}
-                />
-              </aside>
+             <aside className="relative z-50 flex h-full w-[280px] flex-col bg-[var(--color-primary-dark)] pb-24 text-white shadow-2xl">
+  <DashboardSidebar
+    navItems={navItems}
+    onNavigate={() =>
+      setIsMobileMenuOpen(false)
+    }
+  />
+
+  <div className="absolute bottom-5 left-4 right-4 z-20">
+    <ProductTourSidebarButton
+      onStart={() =>
+        setIsMobileMenuOpen(
+          false
+        )
+      }
+    />
+  </div>
+</aside>
             </div>
           )}
 
@@ -662,7 +681,12 @@ function DashboardLayout({
               </div>
             </nav>
 
-            <main className="p-5 lg:p-10">{children ?? <Outlet />}</main>
+            <main className="p-5 lg:p-10">
+  {children ?? <Outlet />}
+</main>
+
+<SellerWalkthrough />
+<BuyerWalkthrough />
             <SellerWalkthrough />
 <BuyerWalkthrough />
           </div>

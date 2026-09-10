@@ -16,6 +16,13 @@ import {
 } from "../../services/authService";
 import { useAuthContext } from "../../contexts/AuthContext";
 import tractLogo from "../../assets/tract-logo.png";
+import {
+  clearRegistrationVerificationPending,
+  isRegistrationVerificationPending,
+  markProductTourPendingAfterSignup,
+} from "../../walkthrough/tourStorage";
+
+
 
 type VerifyPurpose = "login" | "forgot_password";
 
@@ -37,6 +44,12 @@ export default function VerifyPage() {
 
   const email = location.state?.email ?? "";
   const purpose = (location.state?.purpose ?? "login") as VerifyPurpose;
+
+const source =
+  location.state?.source ?? "";
+
+const isSignupFlow =
+  source === "signup";
 
   const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
   const [sendOtp, { isLoading: isResending }] = useSendOtpMutation();
@@ -205,33 +218,100 @@ export default function VerifyPage() {
         return;
       }
 
-      const accessToken =
-        responseData?.accessToken || responseData?.access_token || null;
+    const accessToken =
+  responseData?.accessToken ||
+  responseData?.access_token ||
+  null;
 
-      const user = responseData?.user ?? null;
+const user =
+  responseData?.user ??
+  null;
 
-      if (!accessToken) {
-        setApiError("Login tokens were not returned.");
-        return;
-      }
+if (!accessToken) {
+  setApiError(
+    "Login tokens were not returned."
+  );
 
-      setAuth({
-        user,
-        accessToken,
-      });
+  return;
+}
 
-      navigate("/dashboard", { replace: true });
+/*
+ * =====================================================
+ * NEW REGISTRATION WALKTHROUGH CHECK
+ * =====================================================
+ *
+ * Two conditions must BOTH be true:
+ *
+ * 1. Verify page was opened from SignUp.
+ * 2. Successful registration was previously recorded
+ *    for this exact email.
+ *
+ * A normal SignIn therefore cannot trigger this.
+ */
+const registrationPending =
+  isRegistrationVerificationPending(
+    email
+  );
+
+const isNewlyRegisteredUser =
+  isSignupFlow &&
+  registrationPending;
+
+if (isNewlyRegisteredUser) {
+  /*
+   * OTP verification succeeded for a genuinely
+   * new registration.
+   *
+   * Tell DashboardLayout that this user's
+   * walkthrough should automatically start once.
+   */
+  markProductTourPendingAfterSignup({
+    userId:
+      user?._id ||
+      user?.id ||
+      "",
+
+    email:
+      user?.email ||
+      email,
+  });
+
+  /*
+   * The registration verification marker
+   * has completed its job.
+   */
+  clearRegistrationVerificationPending();
+}
+
+/*
+ * Establish authenticated app state.
+ */
+setAuth({
+  user,
+  accessToken,
+});
+
+/*
+ * Dashboard walkthrough controllers mount here.
+ */
+navigate(
+  "/dashboard",
+  {
+    replace: true,
+  }
+);
     } catch (error: any) {
+    const message =
+      error?.data?.message ||
+      error?.data?.error ||
+      error?.error ||
+      "OTP verification failed. Please try again.";
 
-      const message =
-        error?.data?.message ||
-        error?.data?.error ||
-        error?.error ||
-        "OTP verification failed. Please try again.";
-
-      setApiError(message);
-    }
-  };
+    setApiError(
+      message
+    );
+  }
+};
 
   return (
     <AuthLayout>
