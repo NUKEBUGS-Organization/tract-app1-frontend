@@ -1073,7 +1073,9 @@ export default function ActiveDealsPage() {
     ];
 
   return (
-    <div className="space-y-8 pb-24">
+    <div 
+      data-tour="partner-deals-page"
+    className="space-y-8 pb-24">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>

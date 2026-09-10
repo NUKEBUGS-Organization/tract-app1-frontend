@@ -22,6 +22,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 
+import {
+  markRegistrationVerificationPending,
+} from "../../walkthrough/tourStorage";
+
 import AuthLayout from "../../layouts/AuthLayout";
 import Button from "../../components/common/Button";
 import { useRegisterMutation } from "../../services/authService";
@@ -121,14 +125,37 @@ export default function SignUp() {
     try {
       setApiError(null);
 
-      await registerUser(payload).unwrap();
+    await registerUser(payload).unwrap();
 
-      navigate("/auth/verify", {
-        state: {
-          email: data.email.trim().toLowerCase(),
-          purpose: "login",
-        },
-      });
+const normalizedEmail =
+  data.email.trim().toLowerCase();
+
+/*
+ * Registration API succeeded.
+ *
+ * Remember that the upcoming OTP page
+ * belongs to a NEW ACCOUNT registration.
+ */
+markRegistrationVerificationPending(
+  normalizedEmail
+);
+
+navigate("/auth/verify", {
+  state: {
+    email: normalizedEmail,
+
+    /*
+     * Keep this as "login".
+     * Your backend OTP API already expects it.
+     */
+    purpose: "login",
+
+    /*
+     * Frontend-only marker.
+     */
+    source: "signup",
+  },
+});
     } catch (error: any) {
       const message =
         error?.data?.message ||
@@ -553,19 +580,14 @@ export default function SignUp() {
               className="text-xs leading-5 text-[var(--color-text-muted)] 2xl:text-sm"
             >
               I agree to the{" "}
-              <a
-                href="#"
+              <Link
+                to="/auth/terms"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="font-medium text-[var(--color-text-main)] hover:underline"
               >
-                Terms of Service
-              </a>{" "}
-              and{" "}
-              <a
-                href="#"
-                className="font-medium text-[var(--color-text-main)] hover:underline"
-              >
-                Privacy Policy
-              </a>
+                Terms of Service & Beta Participation Agreement
+              </Link>
             </label>
           </div>
 
@@ -628,17 +650,18 @@ export default function SignUp() {
         <div className="mt-6 flex gap-3 rounded-[var(--radius-input)] border border-[var(--color-secondary)]/25 bg-[var(--color-secondary)]/10 p-4 sm:gap-4 2xl:p-6">
           <ShieldCheck className="h-5 w-5 flex-shrink-0 text-[var(--color-secondary)] 2xl:h-6 2xl:w-6" />
 
-          <div className="flex-grow text-[11px] leading-relaxed text-[var(--color-text-main)] sm:text-xs 2xl:text-sm 2xl:leading-6">
+          <p className="text-[11px] leading-relaxed text-[var(--color-text-main)] sm:text-xs 2xl:text-sm 2xl:leading-6">
             Your identity will be securely verified to protect your account and
-            ensure a trusted community.
-          </div>
-
-          {/* <a
-            href="#"
-            className="self-center whitespace-nowrap text-[11px] font-semibold text-[var(--color-text-main)] sm:text-xs 2xl:text-sm"
-          >
-            Learn more
-          </a> */}
+            ensure a trusted community.{" "}
+            <Link
+              to="/auth/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[var(--color-secondary)] hover:underline"
+            >
+              Learn more
+            </Link>
+          </p>
         </div>
       </form>
     </AuthLayout>

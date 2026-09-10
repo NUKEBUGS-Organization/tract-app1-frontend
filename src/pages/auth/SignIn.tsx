@@ -65,25 +65,29 @@ export default function SignInPage() {
     reValidateMode: "onChange",
   });
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      setLoginStatus(null);
+const onSubmit = async (data: FormData) => {
+  try {
+    setLoginStatus(null);
 
-      await login({
-        email: data.email,
-        password: data.password,
-      }).unwrap();
+    const normalizedEmail =
+      data.email.trim().toLowerCase();
 
-      navigate("/auth/verify", {
-        state: {
-          email: data.email,
-          purpose: "login",
-        },
-      });
-    } catch (error: any) {
-      setLoginStatus("Invalid credentials");
-    }
-  };
+    await login({
+      email: normalizedEmail,
+      password: data.password,
+    }).unwrap();
+
+    navigate("/auth/verify", {
+      state: {
+        email: normalizedEmail,
+        purpose: "login",
+        source: "signin",
+      },
+    });
+  } catch (error: any) {
+    setLoginStatus("Invalid credentials");
+  }
+};
 
   return (
     <AuthLayout>
@@ -277,12 +281,14 @@ export default function SignInPage() {
             <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-xs 2xl:text-sm 2xl:leading-6">
               Your data is protected with industry-leading security and
               compliance standards.{" "}
-              {/* <a
-                href="#"
-                className="font-semibold text-[var(--color-secondary)]"
+              <Link
+                to="/auth/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-[var(--color-secondary)] hover:underline"
               >
                 Learn more
-              </a> */}
+              </Link>
             </p>
           </div>
         </div>

@@ -391,7 +391,9 @@ export default function ListPropertyPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div
+      data-tour="listing-wizard" 
+    className="space-y-8">
       {toast && <ToastPopup toast={toast} onClose={() => setToast(null)} />}
 
       <div className="flex items-start justify-between gap-4">

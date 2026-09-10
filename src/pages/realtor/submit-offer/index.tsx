@@ -264,7 +264,9 @@ export default function RealtorSubmitOfferPage() {
 
   // ── Main render ────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-8">
+    <div
+       data-tour="realtor-offer-wizard"
+    className="space-y-8">
       {/* Toast notification */}
       {toast && (
         <ToastPopup toast={toast} onClose={() => setToast(null)} isDark={isDark} />
@@ -320,10 +322,16 @@ export default function RealtorSubmitOfferPage() {
       </div>
 
       {/* Step indicator — always visible at the top */}
-      <StepIndicator currentStep={step} isDark={isDark} />
+     <div data-tour="realtor-offer-steps">
+  <StepIndicator
+    currentStep={step}
+    isDark={isDark}
+  />
+</div>
 
       {/* Step content card */}
       <div
+        data-tour="realtor-offer-form"
         className={`min-h-[400px] rounded-2xl border p-6 shadow-[var(--shadow-card)] lg:p-8 ${isDark
             ? "border-white/10 bg-white/[0.02]"
             : "border-[var(--color-border-light)] bg-white"

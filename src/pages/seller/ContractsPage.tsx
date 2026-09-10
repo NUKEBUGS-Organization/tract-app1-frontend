@@ -823,7 +823,9 @@ return (
 
       <section className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
-          <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
+          <div
+           data-tour="contract-setup"
+          className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
             <div className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
               <div>
                 <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">
@@ -1168,7 +1170,9 @@ return (
             )}
           </div>
 
-          <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
+          <div 
+           data-tour="contract-signatures"
+          className="rounded-2xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
             <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">
               Signature Status
             </h2>

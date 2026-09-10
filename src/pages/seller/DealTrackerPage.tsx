@@ -980,7 +980,9 @@ async function handleCancelContract() {
   }
 
   return (
-    <div className="space-y-8">
+    <div
+    data-tour="deal-tracker-page"
+    className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-muted)]">

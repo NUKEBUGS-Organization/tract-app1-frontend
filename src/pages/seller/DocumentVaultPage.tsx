@@ -648,7 +648,9 @@ export default function DocumentVaultPage() {
 
   if (!listingId) {
     return (
-      <div className="space-y-8">
+      <div
+       data-tour="document-vault-page"
+      className="space-y-8">
         {toast && <ToastPopup toast={toast} onClose={() => setToast(null)} />}
 
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
@@ -793,7 +795,9 @@ export default function DocumentVaultPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div
+     data-tour="document-vault-page"
+    className="space-y-8">
       {toast && <ToastPopup toast={toast} onClose={() => setToast(null)} />}
 
       <div className="overflow-hidden rounded-3xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">

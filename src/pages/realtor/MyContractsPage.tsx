@@ -408,7 +408,9 @@ export default function RealtorMyContractsPage() {
   }).length;
 
   return (
-    <div className="space-y-8">
+    <div 
+     data-tour="realtor-contracts-page"
+    className="space-y-8">
       {/* Hero header */}
       <section
         className={`relative overflow-hidden rounded-2xl p-8 ${isDark

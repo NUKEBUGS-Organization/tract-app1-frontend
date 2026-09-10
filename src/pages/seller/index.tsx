@@ -367,7 +367,9 @@ if (isLoading) {
 
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-2xl bg-[var(--color-primary)] p-8 shadow-[var(--shadow-card)]">
+      <section
+       data-tour="seller-dashboard"
+       className="relative overflow-hidden rounded-2xl bg-[var(--color-primary)] p-8 shadow-[var(--shadow-card)]">
         <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 px-3 py-1">

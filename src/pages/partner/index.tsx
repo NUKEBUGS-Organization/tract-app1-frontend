@@ -327,6 +327,7 @@ export default function PartnerDashboard() {
   return (
     <div className="space-y-8">
       <section
+      data-tour="partner-dashboard"
         className={`relative overflow-hidden rounded-2xl p-8 ${isDark
           ? "bg-transparent border border-white/5"
           : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary)]/90"
@@ -426,6 +427,7 @@ export default function PartnerDashboard() {
         {/* Score & Activity Rule Column */}
         <div className="flex flex-col gap-6">
           <section
+            data-tour="partner-reliability"
             className={`flex-1 rounded-2xl border p-6 shadow-[var(--shadow-card)] flex flex-col justify-center transition-all duration-200 ${isDark
               ? "border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/5 to-transparent hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
               : "border-[var(--color-border-light)] bg-white hover:border-[rgba(23,77,52,0.2)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]"

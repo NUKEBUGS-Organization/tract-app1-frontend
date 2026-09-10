@@ -570,7 +570,9 @@ export default function PropertyDetailPage() {
 
 
   return (
-    <div className="space-y-8">
+    <div 
+      data-tour="property-detail-page"
+    className="space-y-8">
       <div>
         <Link
           to="/properties"
@@ -978,7 +980,8 @@ export default function PropertyDetailPage() {
         <div className="lg:sticky lg:top-[110px] lg:self-start space-y-4">
 
           <div
-            className={`rounded-2xl border p-6 ${isDark
+             data-tour="property-action-panel"
+           className={`rounded-2xl border p-6 ${isDark
               ? "border-white/10 bg-white/[0.05] shadow-2xl backdrop-blur"
               : "border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]"
               }`}
@@ -1067,6 +1070,7 @@ export default function PropertyDetailPage() {
             ) : isRealtor ? (
               <Link
                 to={`/properties/${propertyId}/offer`}
+                  data-tour="property-submit-offer"
                 className="flex w-full items-center justify-center gap-2 bg-[var(--color-danger)] py-4 text-[11px] font-black uppercase tracking-[0.25em] text-white shadow-[var(--shadow-premium)] transition hover:scale-[1.02] rounded-xl"
               >
                 <DollarSign className="h-4 w-4" />
@@ -1075,6 +1079,7 @@ export default function PropertyDetailPage() {
             ) : (
               <Link
                 to={`/properties/${propertyId}/bid`}
+                 data-tour="property-submit-bid"
                 className="flex w-full items-center justify-center gap-2 bg-[var(--color-secondary)] py-4 text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] rounded-xl"
               >
                 <DollarSign className="h-4 w-4" />

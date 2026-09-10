@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
+
 import {
   Building2,
   ClipboardList,
@@ -21,6 +22,7 @@ import {
 import { useAuthContext } from "../../contexts/AuthContext";
 import tractLogoSidebar from "../../assets/tract-logo-sidebar.png";
 import LogoutModal from "./LogoutModal";
+import ProductTourSidebarButton from "../../walkthrough/ProductTourSidebarButton";
 
 interface NavItem {
   label: string;
@@ -30,95 +32,212 @@ interface NavItem {
 interface DashboardSidebarProps {
   navItems: NavItem[];
   onNavigate?: () => void;
+  onTourStart?: () => void;
 }
+
+/* =========================================================
+   NAVIGATION ICON
+========================================================= */
 
 function getNavIcon(label: string) {
   const lowerLabel = label.toLowerCase();
 
   if (lowerLabel.includes("dashboard")) return Home;
-  if (lowerLabel.includes("list")) return Building2;
+
   if (lowerLabel.includes("document")) return FolderLock;
-  if (lowerLabel.includes("bid") || lowerLabel.includes("offer")) return Gavel;
+
+  if (lowerLabel.includes("bid") || lowerLabel.includes("offer")) {
+    return Gavel;
+  }
+
   if (lowerLabel.includes("deal")) return Handshake;
+
   if (lowerLabel.includes("profile")) return UserRound;
+
   if (lowerLabel.includes("state")) return MapPinned;
+
   if (lowerLabel.includes("user")) return Users;
-  if (lowerLabel.includes("kyc") || lowerLabel.includes("identity") || lowerLabel.includes("verification")) return ShieldCheck;
-  if (lowerLabel.includes("chat")) return MessageSquareWarning;
-  if (lowerLabel.includes("setting")) return Settings;
-  if (lowerLabel.includes("proof")) return FileCheck;
-  if (lowerLabel.includes("market")) return Building2;
+
+  if (
+    lowerLabel.includes("kyc") ||
+    lowerLabel.includes("identity") ||
+    lowerLabel.includes("verification")
+  ) {
+    return ShieldCheck;
+  }
+
+  if (lowerLabel.includes("chat")) {
+    return MessageSquareWarning;
+  }
+
+  if (lowerLabel.includes("setting")) {
+    return Settings;
+  }
+
+  if (lowerLabel.includes("proof")) {
+    return FileCheck;
+  }
+
+  if (lowerLabel.includes("market")) {
+    return Building2;
+  }
+
+  if (lowerLabel.includes("list")) {
+    return Building2;
+  }
 
   return ClipboardList;
 }
 
+/* =========================================================
+   DRIVER.JS WALKTHROUGH TARGETS
+
+   These values are used by the walkthrough like:
+
+   [data-tour="nav-list-property"]
+========================================================= */
+
+function getTourId(path: string) {
+  const tourIds: Record<string, string> = {
+    "/dashboard": "nav-dashboard",
+
+    // Seller
+    "/list-property": "nav-list-property",
+    "/my-listings": "nav-my-listings",
+    "/document-vault": "nav-document-vault",
+    "/bids": "nav-view-bids",
+
+    // Partner / Realtor
+    "/properties": "nav-marketplace",
+    "/my-bids": "nav-my-bids",
+    "/my-contracts": "nav-contracts",
+    "/proof-of-activity": "nav-proof-of-activity",
+
+    // Shared
+    "/contracts": "nav-contracts",
+    "/deals": "nav-deal-tracker",
+    "/chat": "nav-chat",
+
+    // Admin / future tours
+    "/users": "nav-users",
+    "/verifications": "nav-verifications",
+    "/chat-flags": "nav-chat-flags",
+  };
+
+  return tourIds[path];
+}
+
+/* =========================================================
+   ACTIVE NAVIGATION HELPER
+========================================================= */
+
+function isNavActive(currentPath: string, itemPath: string) {
+  if (!itemPath) return false;
+
+  const cleanItemPath =
+    itemPath !== "/" ? itemPath.replace(/\/+$/, "") : itemPath;
+
+  const cleanCurrentPath =
+    currentPath !== "/"
+      ? currentPath.replace(/\/+$/, "")
+      : currentPath;
+
+  return (
+    cleanCurrentPath === cleanItemPath ||
+    cleanCurrentPath.startsWith(`${cleanItemPath}/`)
+  );
+}
+
+/* =========================================================
+   COMPONENT
+========================================================= */
+
 export default function DashboardSidebar({
   navItems,
   onNavigate,
+  onTourStart,
 }: DashboardSidebarProps) {
   const location = useLocation();
+
   const { logoutAuth } = useAuthContext();
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const supportActive = location.pathname === "/support";
+
+  const [isLogoutModalOpen, setIsLogoutModalOpen] =
+    useState(false);
+
+  const supportActive =
+    location.pathname === "/support";
 
   return (
-    <>
-      <div className="border-b border-white/10 px-6 py-5 flex items-center gap-3">
+    <div className="flex h-full flex-col overflow-y-auto scrollbar-none">
+      {/* ===================================================
+          LOGO
+      ==================================================== */}
+
+      <div className="flex items-center gap-3 border-b border-white/10 px-6 py-5">
         <img
           src={tractLogoSidebar}
           alt="TRACT logo"
           className="h-12 w-auto object-contain"
-
         />
 
-
         <div>
-          <div className="text-3xl font-normal tracking-tight text-white" style={{ fontFamily: '"Cinzel", serif' }}>
+          <div
+            className="text-3xl font-normal tracking-tight text-white"
+            style={{
+              fontFamily: '"Cinzel", serif',
+            }}
+          >
             TRACT
           </div>
 
           <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.3em] text-[var(--color-secondary)]">
-  Buy the best
-  <br />
-  skip the Rest
-</p>
+            Buy the best
+            <br />
+            skip the Rest
+          </p>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-5 py-6">
+      {/* ===================================================
+          NAVIGATION
+      ==================================================== */}
+
+      <nav
+        data-tour="sidebar"
+        className="flex-1 space-y-1 px-5 py-6"
+      >
         {navItems.map((item) => {
-          function isNavActive(currentPath: string, itemPath: string) {
-            if (!itemPath) return false;
+          const active = isNavActive(
+            location.pathname,
+            item.path
+          );
 
-            const cleanItemPath =
-              itemPath !== "/" ? itemPath.replace(/\/+$/, "") : itemPath;
-
-            const cleanCurrentPath =
-              currentPath !== "/" ? currentPath.replace(/\/+$/, "") : currentPath;
-
-            return (
-              cleanCurrentPath === cleanItemPath ||
-              cleanCurrentPath.startsWith(`${cleanItemPath}/`)
-            );
-          }
-
-          const active = isNavActive(location.pathname, item.path);
           const Icon = getNavIcon(item.label);
+
+          const tourId = getTourId(item.path);
 
           return (
             <Link
               key={item.path}
               to={item.path}
               onClick={onNavigate}
+
+              /*
+               * Driver.js walkthrough target.
+               *
+               * Example:
+               * data-tour="nav-list-property"
+               */
+              data-tour={tourId}
               className={`group flex items-center gap-4 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${active
-                ? "bg-[var(--color-primary)] text-[var(--color-secondary)] shadow-lg"
-                : "text-white/40 hover:bg-white/10 hover:text-white"
+                  ? "bg-[var(--color-primary)] text-[var(--color-secondary)] shadow-lg"
+                  : "text-white/40 hover:bg-white/10 hover:text-white"
                 }`}
             >
               <Icon
                 className={`h-5 w-5 ${active
-                  ? "text-[var(--color-secondary)]"
-                  : "text-white/30 group-hover:text-white"
+                    ? "text-[var(--color-secondary)]"
+                    : "text-white/30 group-hover:text-white"
                   }`}
               />
 
@@ -128,34 +247,51 @@ export default function DashboardSidebar({
         })}
       </nav>
 
+      {/* ===================================================
+          SUPPORT / LOGOUT
+      ==================================================== */}
+
       <div className="space-y-3 px-5 pb-6">
         <Link
           to="/support"
           onClick={onNavigate}
-          className={`flex w-full items-center justify-center gap-2 rounded-none border px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] transition ${supportActive
-            ? "border-[var(--color-secondary)] bg-[var(--color-secondary)] text-[var(--color-primary-dark)]"
-            : "border-[var(--color-secondary)] text-[var(--color-secondary)] hover:bg-[var(--color-secondary)] hover:text-[var(--color-primary-dark)]"
+          data-tour="nav-support"
+          className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] transition-all duration-200 ${supportActive
+              ? "border-[var(--color-secondary)] bg-[var(--color-secondary)] text-[var(--color-primary-dark)]"
+              : "border-[var(--color-secondary)] text-[var(--color-secondary)] hover:bg-[var(--color-secondary)] hover:text-[var(--color-primary-dark)]"
             }`}
         >
           <LifeBuoy className="h-4 w-4" />
+
           Support
         </Link>
 
         <button
           type="button"
-          onClick={() => setIsLogoutModalOpen(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-white/75 transition hover:bg-[var(--color-danger)] hover:text-white"
+          onClick={() =>
+            setIsLogoutModalOpen(true)
+          }
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] text-white/80 backdrop-blur transition-all duration-200 hover:border-[var(--color-danger)]/50 hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)]"
         >
           <LogOut className="h-4 w-4" />
+
           Logout
         </button>
+
+        <ProductTourSidebarButton onStart={onTourStart} />
       </div>
+
+      {/* ===================================================
+          LOGOUT MODAL
+      ==================================================== */}
 
       <LogoutModal
         isOpen={isLogoutModalOpen}
-        onCancel={() => setIsLogoutModalOpen(false)}
+        onCancel={() =>
+          setIsLogoutModalOpen(false)
+        }
         onConfirm={logoutAuth}
       />
-    </>
+    </div>
   );
 }
