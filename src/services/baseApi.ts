@@ -9,9 +9,10 @@ import {
 import type { RootState } from "../redux/store";
 import { logout, setCredentials } from "../redux/auth/authSlice";
 import { normalizeAuthResponse } from "../redux/auth/authResponse";
+import { getApiBaseUrl } from "../utils/apiBaseUrl";
 
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: import.meta.env.VITE_API_BASE_URL,
+  baseUrl: getApiBaseUrl(),
   credentials: "include",
 
   prepareHeaders: (headers, { getState }) => {

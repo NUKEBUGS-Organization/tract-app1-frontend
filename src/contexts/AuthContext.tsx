@@ -64,9 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dispatch(logout());
           dispatch(baseApi.util.resetApiState());
           dispatch(setAuthReady(true));
+          const isGoogleTransientPage =
+            window.location.pathname === "/auth/google/callback" ||
+            window.location.pathname === "/register/google-complete";
+
           if (
             !window.location.pathname.startsWith("/auth") &&
-            window.location.pathname !== "/unauthorized"
+            window.location.pathname !== "/unauthorized" &&
+            !isGoogleTransientPage
           ) {
             navigate("/auth/signin", { replace: true });
           }

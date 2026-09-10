@@ -317,6 +317,21 @@ export default function ListPropertyPage() {
       return;
     }
 
+    // Pictures are optional — a seller can add them later from the Document Vault.
+    if (propertyPictures.length === 0) {
+      setApiError(null);
+      setSubmitted(true);
+
+      showToast({
+        type: "success",
+        title: "Draft saved",
+        message:
+          "You can add property pictures anytime from the Document Vault.",
+      });
+
+      return;
+    }
+
     try {
       setApiError(null);
 

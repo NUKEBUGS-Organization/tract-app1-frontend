@@ -69,13 +69,14 @@ function getContractStatusConfig(bid: any, contracts: any[], deals: any[]) {
         };
     }
 
-    // Use backend contract.status as source of truth
+    // DealStatus.BACKUP_ACTIVATED is set by the kill switch (missed deadlines etc.);
+    // the contract stays 'signed' in that case, so we treat it as cancelled.
     const contractStatus = String(contract?.status || "pending").toLowerCase();
     const dealStatus = String(deal?.status || "").toLowerCase();
 
-    if (contractStatus === "cancelled" || dealStatus === "cancelled") {
+    if (contractStatus === "cancelled" || dealStatus === "cancelled" || dealStatus === "backup_activated") {
         return {
-            label: dealStatus === "cancelled" ? "Deal Cancelled" : "Contract Cancelled",
+            label: dealStatus === "backup_activated" ? "Backup Activated" : dealStatus === "cancelled" ? "Deal Cancelled" : "Contract Cancelled",
             className: "bg-[var(--color-danger)]/10 text-[var(--color-danger)] border border-[var(--color-danger)]/25",
             icon: XCircle,
             contract,
@@ -147,7 +148,7 @@ function ContractCard({ bid, contracts, deals, isDark }: { bid: any; contracts: 
 
     const contractStatus = String(contract?.status || "pending").toLowerCase();
     const dealStatus = String(deal?.status || "").toLowerCase();
-    const isCancelled = contractStatus === "cancelled" || dealStatus === "cancelled";
+    const isCancelled = contractStatus === "cancelled" || dealStatus === "cancelled" || dealStatus === "backup_activated";
 
     // Buyer needs to sign if seller has signed but buyer hasn't
     const sellerSigned = Boolean(contract?.seller_signed_at);
@@ -311,11 +312,15 @@ export default function MyContractsPage() {
         if (statusFilter === "active" && label.includes("active deal")) return true;
         if (statusFilter === "pending" && (label.includes("pending") || label.includes("awaiting"))) return true;
         if (statusFilter === "closed" && label.includes("closed")) return true;
-        if (statusFilter === "cancelled" && label.includes("cancelled")) return true;
+        if (statusFilter === "cancelled" && (label.includes("cancelled") || label.includes("backup activated"))) return true;
         return false;
     });
 
-    const totalContracts = contractBids.length;
+
+    const totalContracts = bidsWithStatus.filter(({ config }) => {
+        const label = config.label.toLowerCase();
+        return !label.includes("cancelled") && !label.includes("backup activated") && !label.includes("closed");
+    }).length;
 
     return (
         <div
@@ -407,7 +412,7 @@ export default function MyContractsPage() {
                         pending: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("pending") || b.config.label.toLowerCase().includes("awaiting")).length,
                         active: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("active deal")).length,
                         closed: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("closed")).length,
-                        cancelled: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("cancelled")).length,
+                        cancelled: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("cancelled") || b.config.label.toLowerCase().includes("backup activated")).length,
                     };
 
                     const tabs = [
@@ -427,27 +432,25 @@ export default function MyContractsPage() {
                                         <button
                                             key={tab.id}
                                             onClick={() => setStatusFilter(tab.id)}
-                                            className={`group relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-300 ${
-                                                isActive
+                                            className={`group relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-300 ${isActive
                                                     ? isDark
                                                         ? "bg-white text-black shadow-[0_4px_12px_rgba(255,255,255,0.1)]"
                                                         : "bg-white text-[var(--color-primary)] shadow-sm"
                                                     : isDark
                                                         ? "text-white/50 hover:bg-[#d4af37]/10 hover:text-[#d4af37]"
                                                         : "text-[var(--color-text-muted)] hover:bg-white hover:text-[var(--color-primary)] hover:shadow-sm"
-                                            }`}
+                                                }`}
                                         >
                                             <span>{tab.label}</span>
                                             <span
-                                                className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-black tabular-nums transition-colors ${
-                                                    isActive
+                                                className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-black tabular-nums transition-colors ${isActive
                                                         ? isDark
                                                             ? "bg-black/10 text-black"
                                                             : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
                                                         : isDark
                                                             ? "bg-white/10 text-white/50 group-hover:bg-[#d4af37]/20 group-hover:text-[#d4af37]"
                                                             : "bg-black/10 text-[var(--color-text-muted)] group-hover:bg-[var(--color-primary)]/10 group-hover:text-[var(--color-primary)]"
-                                                }`}
+                                                    }`}
                                             >
                                                 {tab.count}
                                             </span>

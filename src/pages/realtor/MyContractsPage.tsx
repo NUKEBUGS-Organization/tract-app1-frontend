@@ -79,9 +79,11 @@ function getContractStatusConfig(bid: any, contracts: any[], deals: any[]) {
   const contractStatus = String(contract?.status || "pending").toLowerCase();
   const dealStatus = String(deal?.status || "").toLowerCase();
 
-  if (contractStatus === "cancelled" || dealStatus === "cancelled") {
+  // DealStatus.BACKUP_ACTIVATED is set by the kill switch; the contract stays
+  // 'signed' in that case, so treat it as cancelled.
+  if (contractStatus === "cancelled" || dealStatus === "cancelled" || dealStatus === "backup_activated") {
     return {
-      label: dealStatus === "cancelled" ? "Deal Cancelled" : "Agreement Cancelled",
+      label: dealStatus === "backup_activated" ? "Backup Activated" : dealStatus === "cancelled" ? "Deal Cancelled" : "Agreement Cancelled",
       className:
         "bg-[var(--color-danger)]/10 text-[var(--color-danger)] border border-[var(--color-danger)]/25",
       icon: XCircle,
@@ -175,7 +177,7 @@ function ContractCard({
 
   const contractStatus = String(contract?.status || "pending").toLowerCase();
   const dealStatus = String(deal?.status || "").toLowerCase();
-  const isCancelled = contractStatus === "cancelled" || dealStatus === "cancelled";
+  const isCancelled = contractStatus === "cancelled" || dealStatus === "cancelled" || dealStatus === "backup_activated";
 
   const sellerSigned = Boolean(contract?.seller_signed_at);
   const buyerSigned = Boolean(contract?.buyer_signed_at);
@@ -184,15 +186,14 @@ function ContractCard({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 ${
-        isCancelled
+      className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 ${isCancelled
           ? isDark
             ? "border-white/8 bg-white/[0.025] opacity-60"
             : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)] opacity-60"
           : isDark
             ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/5 shadow-[0_0_30px_rgba(212,175,55,0.08)] hover:border-[var(--color-secondary)]/50"
             : "border-[var(--color-secondary)]/40 bg-white shadow-[0_0_30px_rgba(212,175,55,0.12)] hover:border-[var(--color-secondary)]/60 hover:shadow-[0_0_40px_rgba(212,175,55,0.15)]"
-      }`}
+        }`}
     >
       {!isCancelled && (
         <div className="h-0.5 w-full bg-gradient-to-r from-[var(--color-secondary)] to-transparent" />
@@ -203,17 +204,15 @@ function ContractCard({
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p
-              className={`truncate text-sm font-black ${
-                isDark ? "text-white" : "text-[var(--color-primary)]"
-              }`}
+              className={`truncate text-sm font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
+                }`}
             >
               {listingAddress}
             </p>
             {listingCity && (
               <p
-                className={`mt-0.5 text-[11px] ${
-                  isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
-                }`}
+                className={`mt-0.5 text-[11px] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+                  }`}
               >
                 {listingCity}
                 {listingState ? `, ${listingState}` : ""}
@@ -231,11 +230,10 @@ function ContractCard({
         {/* Action required */}
         {needsRealtorSignature && (
           <div
-            className={`mt-4 flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-semibold ${
-              isDark
+            className={`mt-4 flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-semibold ${isDark
                 ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
                 : "bg-[var(--color-danger)]/8 text-[var(--color-danger)]"
-            }`}
+              }`}
           >
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             Your signature is required to activate this listing.
@@ -244,11 +242,10 @@ function ContractCard({
 
         {/* Offer price + commission */}
         <div
-          className={`mt-4 rounded-xl border p-3 ${
-            isDark
+          className={`mt-4 rounded-xl border p-3 ${isDark
               ? "border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/8"
               : "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/5"
-          }`}
+            }`}
         >
           <p className="text-[9px] font-black uppercase tracking-wider text-[var(--color-secondary)]/70">
             My Representation Offer
@@ -258,9 +255,8 @@ function ContractCard({
           </p>
           {commissionPct && (
             <p
-              className={`mt-0.5 text-[10px] font-semibold ${
-                isDark ? "text-white/35" : "text-[var(--color-text-muted)]"
-              }`}
+              className={`mt-0.5 text-[10px] font-semibold ${isDark ? "text-white/35" : "text-[var(--color-text-muted)]"
+                }`}
             >
               {commissionPct}% commission
             </p>
@@ -272,11 +268,10 @@ function ContractCard({
           {listingId && (
             <Link
               to={`/properties/${listingId}`}
-              className={`flex items-center gap-1.5 border px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] transition ${
-                isDark
+              className={`flex items-center gap-1.5 border px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] transition ${isDark
                   ? "border-white/10 bg-white/5 text-white/60 hover:border-white/25 hover:text-white hover:bg-white/10"
                   : "border-[var(--color-border-light)] bg-white text-[var(--color-text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-[var(--color-bg-soft)]"
-              }`}
+                }`}
             >
               View Property
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -296,9 +291,8 @@ function ContractCard({
           {!isCancelled && listingId && !needsRealtorSignature && (
             <Link
               to={`/deals?listingId=${listingId}`}
-              className={`flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] ${
-                isDark ? "hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]" : ""
-              }`}
+              className={`flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] ${isDark ? "hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]" : ""
+                }`}
             >
               Go to Deal
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -308,9 +302,8 @@ function ContractCard({
 
         {(bid?.submitted_at || bid?.created_at) && (
           <p
-            className={`mt-3 text-[10px] ${
-              isDark ? "text-white/25" : "text-[var(--color-text-muted)]"
-            }`}
+            className={`mt-3 text-[10px] ${isDark ? "text-white/25" : "text-[var(--color-text-muted)]"
+              }`}
           >
             Submitted{" "}
             {new Date(bid.submitted_at || bid.created_at).toLocaleDateString(undefined, {
@@ -363,12 +356,12 @@ export default function RealtorMyContractsPage() {
   const rawOffers = normalizeOffers(bidsData);
   const allOffers = currentUserId
     ? rawOffers.filter((b: any) => {
-        const bidderId =
-          typeof b?.bidder_id === "object"
-            ? b.bidder_id?._id || b.bidder_id?.id || ""
-            : String(b?.bidder_id || "");
-        return bidderId === currentUserId;
-      })
+      const bidderId =
+        typeof b?.bidder_id === "object"
+          ? b.bidder_id?._id || b.bidder_id?.id || ""
+          : String(b?.bidder_id || "");
+      return bidderId === currentUserId;
+    })
     : rawOffers;
 
   // Build a set of bid IDs that have a contract record (any status).
@@ -404,11 +397,15 @@ export default function RealtorMyContractsPage() {
     )
       return true;
     if (statusFilter === "closed" && label.includes("closed")) return true;
-    if (statusFilter === "cancelled" && label.includes("cancelled")) return true;
+    if (statusFilter === "cancelled" && (label.includes("cancelled") || label.includes("backup activated"))) return true;
     return false;
   });
 
-  const totalContracts = contractOffers.length;
+  // Only count genuinely active contracts — exclude cancelled, backup_activated, and closed
+  const totalContracts = offersWithStatus.filter(({ config }) => {
+    const label = config.label.toLowerCase();
+    return !label.includes("cancelled") && !label.includes("backup activated") && !label.includes("closed");
+  }).length;
 
   return (
     <div 
@@ -416,19 +413,17 @@ export default function RealtorMyContractsPage() {
     className="space-y-8">
       {/* Hero header */}
       <section
-        className={`relative overflow-hidden rounded-2xl p-8 ${
-          isDark
+        className={`relative overflow-hidden rounded-2xl p-8 ${isDark
             ? "bg-transparent border border-white/5"
             : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary)]/90"
-        }`}
+          }`}
       >
         {/* Dot-grid texture */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.35]"
           style={{
-            backgroundImage: `radial-gradient(${
-              isDark ? "rgba(212,175,55,0.35)" : "rgba(212,175,55,0.45)"
-            } 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(${isDark ? "rgba(212,175,55,0.35)" : "rgba(212,175,55,0.45)"
+              } 1px, transparent 1px)`,
             backgroundSize: "18px 18px",
             maskImage:
               "radial-gradient(ellipse 80% 80% at 70% 30%, black 0%, transparent 70%)",
@@ -437,38 +432,33 @@ export default function RealtorMyContractsPage() {
           }}
         />
         <div
-          className={`pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-2 ${
-            isDark
+          className={`pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full border-2 ${isDark
               ? "border-[#d4af37]/20 shadow-[0_0_60px_rgba(212,175,55,0.1)]"
               : "border-white/10"
-          }`}
+            }`}
         />
         <div
-          className={`pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border-2 ${
-            isDark
+          className={`pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border-2 ${isDark
               ? "border-[#d4af37]/30 shadow-[0_0_50px_rgba(212,175,55,0.15)]"
               : "border-[var(--color-secondary)]/20"
-          }`}
+            }`}
         />
 
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div
-              className={`mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 backdrop-blur-sm ${
-                isDark
+              className={`mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 backdrop-blur-sm ${isDark
                   ? "border-[#d4af37]/30 bg-[#d4af37]/10"
                   : "border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/15"
-              }`}
+                }`}
             >
               <FileText
-                className={`h-3 w-3 ${
-                  isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]"
-                }`}
+                className={`h-3 w-3 ${isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]"
+                  }`}
               />
               <span
-                className={`text-[10px] font-black uppercase tracking-[0.25em] ${
-                  isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]"
-                }`}
+                className={`text-[10px] font-black uppercase tracking-[0.25em] ${isDark ? "text-[#d4af37]" : "text-[var(--color-secondary)]"
+                  }`}
               >
                 Agreement Tracker
               </span>
@@ -478,15 +468,13 @@ export default function RealtorMyContractsPage() {
                 My Contracts
               </h1>
               <div
-                className={`mt-1 h-0.5 w-16 rounded-full ${
-                  isDark ? "bg-[#d4af37]/60" : "bg-[var(--color-secondary)]/60"
-                }`}
+                className={`mt-1 h-0.5 w-16 rounded-full ${isDark ? "bg-[#d4af37]/60" : "bg-[var(--color-secondary)]/60"
+                  }`}
               />
             </div>
             <p
-              className={`mt-4 max-w-xl text-sm leading-relaxed ${
-                isDark ? "text-white/60" : "text-white/70"
-              }`}
+              className={`mt-4 max-w-xl text-sm leading-relaxed ${isDark ? "text-white/60" : "text-white/70"
+                }`}
             >
               Track your listing agreements, pending signatures, and deal history all in
               one place.
@@ -504,18 +492,16 @@ export default function RealtorMyContractsPage() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                className={`group flex items-center gap-3 rounded-2xl border px-5 py-3 transition hover:scale-[1.02] hover:shadow-lg ${
-                  isDark
+                className={`group flex items-center gap-3 rounded-2xl border px-5 py-3 transition hover:scale-[1.02] hover:shadow-lg ${isDark
                     ? "border-white/10 bg-white/5 hover:bg-white/10 hover:border-[#d4af37]/30"
                     : "border-white/20 bg-white/10 hover:bg-white/20"
-                }`}
+                  }`}
               >
                 <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
                 <div>
                   <p
-                    className={`text-[9px] font-black uppercase tracking-wider ${
-                      isDark ? "text-white/40" : "text-white/50"
-                    }`}
+                    className={`text-[9px] font-black uppercase tracking-wider ${isDark ? "text-white/40" : "text-white/50"
+                      }`}
                   >
                     {stat.label}
                   </p>
@@ -530,11 +516,10 @@ export default function RealtorMyContractsPage() {
               type="button"
               onClick={handleRefresh}
               disabled={isFetching}
-              className={`flex items-center gap-2 rounded-2xl border px-5 py-3 transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 ${
-                isDark
+              className={`flex items-center gap-2 rounded-2xl border px-5 py-3 transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 ${isDark
                   ? "border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:border-[#d4af37]/30"
                   : "border-white/20 bg-white/10 text-white hover:bg-white/20"
-              }`}
+                }`}
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
               <span className="text-[10px] font-black uppercase tracking-wider">Refresh</span>
@@ -548,14 +533,12 @@ export default function RealtorMyContractsPage() {
         <div className="flex min-h-[300px] items-center justify-center">
           <div className="text-center">
             <Loader2
-              className={`mx-auto h-8 w-8 animate-spin ${
-                isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"
-              }`}
+              className={`mx-auto h-8 w-8 animate-spin ${isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"
+                }`}
             />
             <p
-              className={`mt-3 text-sm font-semibold ${
-                isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
-              }`}
+              className={`mt-3 text-sm font-semibold ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+                }`}
             >
               Loading your agreements...
             </p>
@@ -566,21 +549,18 @@ export default function RealtorMyContractsPage() {
       {/* Empty state */}
       {!isLoading && contractOffers.length === 0 && (
         <div
-          className={`rounded-2xl border p-12 text-center ${
-            isDark
+          className={`rounded-2xl border p-12 text-center ${isDark
               ? "border-white/8 bg-white/[0.03]"
               : "border-[var(--color-border-light)] bg-[var(--color-bg-soft)]"
-          }`}
+            }`}
         >
           <FileText
-            className={`mx-auto h-8 w-8 ${
-              isDark ? "text-white/20" : "text-[var(--color-text-muted)]"
-            }`}
+            className={`mx-auto h-8 w-8 ${isDark ? "text-white/20" : "text-[var(--color-text-muted)]"
+              }`}
           />
           <p
-            className={`mt-3 text-sm font-bold ${
-              isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
-            }`}
+            className={`mt-3 text-sm font-bold ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+              }`}
           >
             No listing agreements yet. When a seller accepts your offer, it will appear
             here.
@@ -612,7 +592,8 @@ export default function RealtorMyContractsPage() {
               b.config.label.toLowerCase().includes("closed"),
             ).length,
             cancelled: offersWithStatus.filter((b) =>
-              b.config.label.toLowerCase().includes("cancelled"),
+              b.config.label.toLowerCase().includes("cancelled") ||
+              b.config.label.toLowerCase().includes("backup activated"),
             ).length,
           };
 
@@ -627,11 +608,10 @@ export default function RealtorMyContractsPage() {
           return (
             <div className="w-full overflow-x-auto pb-2">
               <div
-                className={`inline-flex items-center gap-1.5 rounded-2xl p-1.5 ${
-                  isDark
+                className={`inline-flex items-center gap-1.5 rounded-2xl p-1.5 ${isDark
                     ? "bg-white/[0.03] border border-white/5"
                     : "bg-black/[0.03] border border-black/5"
-                }`}
+                  }`}
               >
                 {tabs.map((tab) => {
                   const isActiveTab = statusFilter === tab.id;
@@ -639,27 +619,25 @@ export default function RealtorMyContractsPage() {
                     <button
                       key={tab.id}
                       onClick={() => setStatusFilter(tab.id)}
-                      className={`group relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-300 ${
-                        isActiveTab
+                      className={`group relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-300 ${isActiveTab
                           ? isDark
                             ? "bg-white text-black shadow-[0_4px_12px_rgba(255,255,255,0.1)]"
                             : "bg-white text-[var(--color-primary)] shadow-sm"
                           : isDark
                             ? "text-white/50 hover:bg-[#d4af37]/10 hover:text-[#d4af37]"
                             : "text-[var(--color-text-muted)] hover:bg-white hover:text-[var(--color-primary)] hover:shadow-sm"
-                      }`}
+                        }`}
                     >
                       <span>{tab.label}</span>
                       <span
-                        className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-black tabular-nums transition-colors ${
-                          isActiveTab
+                        className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-black tabular-nums transition-colors ${isActiveTab
                             ? isDark
                               ? "bg-black/10 text-black"
                               : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
                             : isDark
                               ? "bg-white/10 text-white/50 group-hover:bg-[#d4af37]/20 group-hover:text-[#d4af37]"
                               : "bg-black/10 text-[var(--color-text-muted)] group-hover:bg-[var(--color-primary)]/10 group-hover:text-[var(--color-primary)]"
-                        }`}
+                          }`}
                       >
                         {tab.count}
                       </span>
@@ -675,9 +653,8 @@ export default function RealtorMyContractsPage() {
       {!isLoading && contractOffers.length > 0 && (
         <div>
           <p
-            className={`mb-4 text-[10px] font-black uppercase tracking-[0.2em] ${
-              isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
-            }`}
+            className={`mb-4 text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/40" : "text-[var(--color-text-muted)]"
+              }`}
           >
             Showing {filteredOffers.length} Result
             {filteredOffers.length !== 1 && "s"}
@@ -685,14 +662,12 @@ export default function RealtorMyContractsPage() {
 
           {filteredOffers.length === 0 ? (
             <div
-              className={`rounded-xl border p-8 text-center ${
-                isDark ? "border-white/5 bg-white/[0.02]" : "border-black/5 bg-black/[0.02]"
-              }`}
+              className={`rounded-xl border p-8 text-center ${isDark ? "border-white/5 bg-white/[0.02]" : "border-black/5 bg-black/[0.02]"
+                }`}
             >
               <p
-                className={`text-sm font-semibold ${
-                  isDark ? "text-white/40" : "text-black/40"
-                }`}
+                className={`text-sm font-semibold ${isDark ? "text-white/40" : "text-black/40"
+                  }`}
               >
                 No agreements match this filter.
               </p>
