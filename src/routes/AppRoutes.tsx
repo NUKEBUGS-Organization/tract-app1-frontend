@@ -21,6 +21,9 @@ import ProfilePage from "../pages/profile";
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
 import SupportPage from "../pages/common/SupportPage";
+import SupportTicketsListPage from "../pages/common/support/SupportTicketsListPage";
+import NewSupportTicketPage from "../pages/common/support/NewSupportTicketPage";
+import SupportTicketDetailPage from "../pages/common/support/SupportTicketDetailPage";
 import TermsOfService from "../pages/common/TermsOfService";
 
 // Seller pages
@@ -181,6 +184,33 @@ function AppRoutes() {
             element={
               <RoleRoute allowedRoles={ALL_APP_ROLES}>
                 <SupportPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/support/tickets"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SupportTicketsListPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/support/tickets/new"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <NewSupportTicketPage />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/support/tickets/:id"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SupportTicketDetailPage />
               </RoleRoute>
             }
           />

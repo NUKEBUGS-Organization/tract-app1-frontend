@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router";
 import {
   Building2,
   DollarSign,
   HelpCircle,
   LifeBuoy,
+  MessageSquare,
+  Plus,
   ShieldCheck,
 } from "lucide-react";
 
@@ -165,6 +168,50 @@ export default function SupportPage() {
 
           <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--color-secondary)]/20 text-[var(--color-primary)]">
             <LifeBuoy className="h-8 w-8" />
+          </div>
+        </div>
+      </section>
+
+
+      {/* ── Direct help CTA ─────────────────────────────── */}
+      <section className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
+        <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-secondary)]/20 text-[var(--color-primary)]">
+              <MessageSquare className="h-6 w-6" />
+            </div>
+
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[var(--color-secondary)]">
+                Direct Support
+              </p>
+
+              <h2 className="mt-1 font-serif text-2xl font-black text-[var(--color-primary)]">
+                Need direct help?
+              </h2>
+
+              <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--color-text-muted)]">
+                Open a support ticket and our team will get back to you within
+                24 hours. You can also track existing tickets anytime.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 flex-wrap items-center gap-3">
+            <Link
+              to="/support/tickets/new"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-secondary)] px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition-all hover:scale-[1.03]"
+            >
+              <Plus className="h-4 w-4" />
+              Open a Ticket
+            </Link>
+
+            <Link
+              to="/support/tickets"
+              className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border-light)] bg-[var(--color-bg-soft)] px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-primary)] transition-all hover:bg-white hover:shadow-sm"
+            >
+              View My Tickets
+            </Link>
           </div>
         </div>
       </section>
