@@ -11,3 +11,10 @@ export function getApiBaseUrl(): string {
 export function getApiOrigin(): string {
   return getApiBaseUrl().replace(/\/api\/v1\/?$/, "");
 }
+
+export function getTicketsApiBaseUrl(): string {
+  return (
+    import.meta.env.VITE_TICKETS_API_BASE_URL ||
+    "http://localhost:3000/api/v1"
+  );
+}

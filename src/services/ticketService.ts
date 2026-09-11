@@ -1,4 +1,20 @@
-import { baseApi } from "./baseApi";
+import {
+  createApi,
+  fetchBaseQuery,
+  type BaseQueryFn,
+  type FetchArgs,
+  type FetchBaseQueryError,
+} from "@reduxjs/toolkit/query/react";
+
+import type { RootState } from "../redux/store";
+import { getTicketsApiBaseUrl } from "../utils/apiBaseUrl";
+import {
+  refreshAuthSession,
+  blockAuthRefresh,
+  allowAuthRefresh,
+} from "./baseApi";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
 export type TicketPriority = "low" | "medium" | "high" | "urgent";
@@ -44,6 +60,8 @@ type ApiEnvelope<T> = {
   data: T;
 };
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 function unwrap<T>(response: ApiEnvelope<T> | T): T {
   if (response && typeof response === "object" && "data" in response) {
     return (response as ApiEnvelope<T>).data;
@@ -58,7 +76,69 @@ function normalizeTicket(ticket: SupportTicket): SupportTicket {
   };
 }
 
-export const ticketService = baseApi.injectEndpoints({
+// ─── Raw base query (tickets → app2-backend) ─────────────────────────────────
+
+const rawTicketsBaseQuery = fetchBaseQuery({
+  baseUrl: getTicketsApiBaseUrl(),
+  credentials: "include",
+  prepareHeaders: (headers, { getState }) => {
+    const accessToken = (getState() as RootState).auth.accessToken;
+    if (accessToken) {
+      headers.set("authorization", `Bearer ${accessToken}`);
+    }
+    return headers;
+  },
+});
+
+// ─── Re-auth wrapper (mirrors baseApi behaviour) ─────────────────────────────
+
+const AUTH_PUBLIC = ["auth/login", "auth/register", "auth/refresh"];
+
+function isTicketsPublicApi(url: string) {
+  return AUTH_PUBLIC.some((p) => url.includes(p));
+}
+
+function getUrl(args: string | FetchArgs): string {
+  if (typeof args === "string") return args;
+  return args.url;
+}
+
+const ticketsBaseQueryWithReAuth: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
+  const requestUrl = getUrl(args);
+
+  let result = await rawTicketsBaseQuery(args, api, extraOptions);
+
+  const status = result.error?.status;
+
+  if (status === 429) return result;
+
+  if (status === 401 && !isTicketsPublicApi(requestUrl)) {
+    const refreshed = await refreshAuthSession(api, extraOptions);
+
+    if (refreshed) {
+      result = await rawTicketsBaseQuery(args, api, extraOptions);
+    } else {
+      blockAuthRefresh();
+      api.dispatch({ type: "auth/logout" });
+      if (window.location.pathname !== "/auth/signin") {
+        window.location.href = "/auth/signin";
+      }
+    }
+  }
+
+  return result;
+};
+
+// ─── RTK Query API ───────────────────────────────────────────────────────────
+
+export const ticketsApi = createApi({
+  reducerPath: "ticketsApi",
+  baseQuery: ticketsBaseQueryWithReAuth,
+  tagTypes: ["Ticket"],
   endpoints: (builder) => ({
     getTickets: builder.query<SupportTicket[], void>({
       query: () => ({ url: "tickets", method: "GET" }),
@@ -126,4 +206,7 @@ export const {
   useCreateTicketMutation,
   useUpdateTicketMutation,
   useClaimTicketMutation,
-} = ticketService;
+} = ticketsApi;
+
+// Re-export helpers so consumers can allow refresh after login if needed
+export { allowAuthRefresh };
