@@ -23,14 +23,6 @@ export default defineConfig({
     proxy: {
       '/api': { target: proxyTarget, changeOrigin: true },
       '/socket.io': { target: proxyTarget, changeOrigin: true, ws: true },
-
-      // The dev proxy rewrites /tickets-api/v1/* → https://buyer-backend.tractcorp.com/api/v1/*
-      // so the browser never makes a cross-origin request (no CORS issue).
-      '/tickets-api': {
-        target: 'https://buyer-backend.tractcorp.com',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/tickets-api/, '/api'),
-      },
     },
   },
 })
