@@ -1,0 +1,94 @@
+import { baseApi } from "./baseApi";
+
+type ApiEnvelope<T> = {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: T;
+};
+
+export type SubscriptionStatus = {
+  required: boolean;
+  amount: number | null;
+  currency: string;
+  interval: string;
+  active: boolean;
+  status: string;
+  paidUntil: string | null;
+  canCancel: boolean;
+  termsVersion: string;
+  mock?: boolean;
+  approvalUrl?: string | null;
+};
+
+export type UsageAllowance = {
+  used: number;
+  freeLimit: number;
+  remaining: number;
+  subscriptionRequired: boolean;
+};
+
+export const BETA_TERMS_VERSION = "2026-09-07";
+
+export const MOCK_SUBSCRIPTIONS =
+  import.meta.env.VITE_SUBSCRIPTION_MODE !== "paypal";
+
+function unwrap<T>(response: ApiEnvelope<T>) {
+  return response.data;
+}
+
+export const subscriptionService = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    getSubscription: builder.query<SubscriptionStatus, void>({
+      query: () => ({ url: "subscriptions/me", method: "GET" }),
+      transformResponse: unwrap,
+      providesTags: ["Subscription"],
+    }),
+
+    getBidAllowance: builder.query<UsageAllowance, void>({
+      query: () => ({ url: "subscriptions/allowance/bid", method: "GET" }),
+      transformResponse: unwrap,
+      providesTags: ["Subscription"],
+    }),
+
+    refreshSubscription: builder.mutation<SubscriptionStatus, void>({
+      query: () => ({ url: "subscriptions/refresh", method: "POST" }),
+      transformResponse: unwrap,
+      invalidatesTags: ["Subscription"],
+    }),
+
+    subscribePaypal: builder.mutation<
+      SubscriptionStatus & { approvalUrl?: string | null },
+      void
+    >({
+      query: () => ({
+        url: "subscriptions/paypal",
+        method: "POST",
+        body: { termsVersion: BETA_TERMS_VERSION },
+      }),
+      transformResponse: unwrap,
+      invalidatesTags: ["Subscription"],
+    }),
+
+    mockCheckout: builder.mutation<SubscriptionStatus, void>({
+      query: () => ({ url: "subscriptions/mock-checkout", method: "POST" }),
+      transformResponse: unwrap,
+      invalidatesTags: ["Subscription"],
+    }),
+
+    cancelSubscription: builder.mutation<SubscriptionStatus, void>({
+      query: () => ({ url: "subscriptions/cancel", method: "POST" }),
+      transformResponse: unwrap,
+      invalidatesTags: ["Subscription"],
+    }),
+  }),
+});
+
+export const {
+  useGetSubscriptionQuery,
+  useGetBidAllowanceQuery,
+  useRefreshSubscriptionMutation,
+  useSubscribePaypalMutation,
+  useMockCheckoutMutation,
+  useCancelSubscriptionMutation,
+} = subscriptionService;

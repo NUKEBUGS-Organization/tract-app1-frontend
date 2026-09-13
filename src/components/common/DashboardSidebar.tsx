@@ -165,7 +165,9 @@ export default function DashboardSidebar({
     useState(false);
 
   const supportActive =
-    location.pathname === "/support";
+    location.pathname === "/support" ||
+    location.pathname.startsWith("/support/");
+  const subscriptionActive = location.pathname === "/settings/subscription";
 
   return (
     <div className="flex h-full flex-col overflow-y-auto scrollbar-none">
@@ -252,6 +254,17 @@ export default function DashboardSidebar({
       ==================================================== */}
 
       <div className="space-y-3 px-5 pb-6">
+        <Link
+          to="/settings/subscription"
+          onClick={onNavigate}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-bold uppercase tracking-[0.18em] transition-all duration-200 ${subscriptionActive
+              ? "border-[var(--color-secondary)] bg-[var(--color-secondary)] text-[var(--color-primary-dark)]"
+              : "border-white/20 text-white/70 hover:border-[var(--color-secondary)] hover:text-[var(--color-secondary)]"
+            }`}
+        >
+          Subscription
+        </Link>
+
         <Link
           to="/support"
           onClick={onNavigate}

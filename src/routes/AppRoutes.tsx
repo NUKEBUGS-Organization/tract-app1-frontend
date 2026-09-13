@@ -20,7 +20,11 @@ import ProfilePage from "../pages/profile";
 
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
-import SupportPage from "../pages/common/SupportPage";
+import SupportListPage from "../pages/support/SupportListPage";
+import SupportNewPage from "../pages/support/SupportNewPage";
+import SupportDetailPage from "../pages/support/SupportDetailPage";
+import SupportFaqPage from "../pages/support/SupportFaqPage";
+import SubscriptionPage from "../pages/settings/SubscriptionPage";
 import TermsOfService from "../pages/common/TermsOfService";
 
 // Seller pages
@@ -180,7 +184,39 @@ function AppRoutes() {
             path="/support"
             element={
               <RoleRoute allowedRoles={ALL_APP_ROLES}>
-                <SupportPage />
+                <SupportListPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/support/new"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SupportNewPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/support/faq"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SupportFaqPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/support/:id"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SupportDetailPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/settings/subscription"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SubscriptionPage />
               </RoleRoute>
             }
           />
