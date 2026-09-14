@@ -28,6 +28,7 @@ import AuthLayout from "../../layouts/AuthLayout";
 import Button from "../../components/common/Button";
 import StatusBadge from "../../components/common/StatusBadge";
 import { useLoginMutation } from "../../services/authService";
+import { useAuthContext } from "../../contexts/AuthContext";
 import tractLogo from "../../assets/tract-logo.png";
 
 const schema = z.object({
@@ -40,6 +41,7 @@ type FormData = z.infer<typeof schema>;
 export default function SignInPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { setAuth } = useAuthContext();
 
   const [showPassword, setShowPassword] = useState(false);
   const [loginStatus, setLoginStatus] = useState<string | null>(null);
@@ -65,29 +67,46 @@ export default function SignInPage() {
     reValidateMode: "onChange",
   });
 
-const onSubmit = async (data: FormData) => {
-  try {
-    setLoginStatus(null);
+  const onSubmit = async (data: FormData) => {
+    try {
+      setLoginStatus(null);
 
-    const normalizedEmail =
-      data.email.trim().toLowerCase();
+      const normalizedEmail = data.email.trim().toLowerCase();
 
-    await login({
-      email: normalizedEmail,
-      password: data.password,
-    }).unwrap();
-
-    navigate("/auth/verify", {
-      state: {
+      const response = await login({
         email: normalizedEmail,
-        purpose: "login",
-        source: "signin",
-      },
-    });
-  } catch (error: any) {
-    setLoginStatus("Invalid credentials");
-  }
-};
+        password: data.password,
+      }).unwrap();
+
+      const payload = response?.data ?? response;
+
+      // TRACTCORP QA accounts: backend skips 2FA and returns tokens immediately.
+      if (payload?.skippedOtp && payload?.accessToken && payload?.user) {
+        setAuth({
+          user: payload.user,
+          accessToken: payload.accessToken,
+        });
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+
+      navigate("/auth/verify", {
+        state: {
+          email: normalizedEmail,
+          purpose: "login",
+          source: "signin",
+        },
+      });
+    } catch (error: any) {
+      const raw = error?.data?.message ?? error?.data?.data?.message;
+      const msg = Array.isArray(raw)
+        ? raw.join(", ")
+        : typeof raw === "string"
+          ? raw
+          : "Invalid credentials";
+      setLoginStatus(msg);
+    }
+  };
 
   return (
     <AuthLayout>
