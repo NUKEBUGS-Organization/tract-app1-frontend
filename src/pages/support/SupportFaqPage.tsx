@@ -144,42 +144,55 @@ function FaqSectionCard({ section }: { section: FaqSection }) {
   );
 }
 
-export default function SupportPage() {
+export default function SupportFaqPage() {
   return (
-    <div className="space-y-8">
-      <section className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
-        <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
-              Help Center
-            </p>
+    <div className="space-y-6">
+      {/* ── Section switcher ────────────────────────────── */}
+      <div className="inline-flex items-center gap-1 rounded-xl border border-[var(--color-border-light)] bg-white p-1 shadow-sm">
+        <Link
+          to="/support"
+          className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-bg-soft)] hover:text-[var(--color-primary)]"
+        >
+          <LifeBuoy className="h-3.5 w-3.5" />
+          Tickets
+        </Link>
 
-            <h1 className="mt-2 font-serif text-4xl font-black text-[var(--color-primary)]">
-              Support FAQs
-            </h1>
+        <span className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--color-primary)]">
+          <HelpCircle className="h-3.5 w-3.5" />
+          FAQs
+        </span>
+      </div>
 
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-text-muted)]">
-              Quick answers about TRACT account setup, pricing, listing
-              management, offers, security, and transaction handling.
-            </p>
+      <div className="space-y-8">
+        {/* ── Hero header ─────────────────────────────────────── */}
+        <section className="rounded-3xl border border-[var(--color-border-light)] bg-white p-8 shadow-[var(--shadow-card)]">
+          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
+                Help Center
+              </p>
 
-            <Link
-              to="/support"
-              className="mt-4 inline-block text-sm font-bold text-[var(--color-primary)] underline"
-            >
-              Back to my tickets
-            </Link>
+              <h1 className="mt-2 font-serif text-4xl font-black text-[var(--color-primary)]">
+                Support & FAQs
+              </h1>
+
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--color-text-muted)]">
+                Quick answers about TRACT account setup, pricing, listing
+                management, offers, security, and transaction handling.
+              </p>
+            </div>
+
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--color-secondary)]/20 text-[var(--color-primary)]">
+              <LifeBuoy className="h-8 w-8" />
+            </div>
           </div>
+        </section>
 
-          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[var(--color-secondary)]/20 text-[var(--color-primary)]">
-            <LifeBuoy className="h-8 w-8" />
-          </div>
-        </div>
-      </section>
-
-      {FAQ_SECTIONS.map((section) => (
-        <FaqSectionCard key={section.title} section={section} />
-      ))}
+        {/* ── FAQ sections ────────────────────────────────────── */}
+        {FAQ_SECTIONS.map((section) => (
+          <FaqSectionCard key={section.title} section={section} />
+        ))}
+      </div>
     </div>
   );
 }
