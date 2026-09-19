@@ -125,37 +125,37 @@ export default function SignUp() {
     try {
       setApiError(null);
 
-    await registerUser(payload).unwrap();
+      await registerUser(payload).unwrap();
 
-const normalizedEmail =
-  data.email.trim().toLowerCase();
+      const normalizedEmail =
+        data.email.trim().toLowerCase();
 
-/*
- * Registration API succeeded.
- *
- * Remember that the upcoming OTP page
- * belongs to a NEW ACCOUNT registration.
- */
-markRegistrationVerificationPending(
-  normalizedEmail
-);
+      /*
+       * Registration API succeeded.
+       *
+       * Remember that the upcoming OTP page
+       * belongs to a NEW ACCOUNT registration.
+       */
+      markRegistrationVerificationPending(
+        normalizedEmail
+      );
 
-navigate("/auth/verify", {
-  state: {
-    email: normalizedEmail,
+      navigate("/auth/verify", {
+        state: {
+          email: normalizedEmail,
 
-    /*
-     * Keep this as "login".
-     * Your backend OTP API already expects it.
-     */
-    purpose: "login",
+          /*
+           * Keep this as "login".
+           * Your backend OTP API already expects it.
+           */
+          purpose: "login",
 
-    /*
-     * Frontend-only marker.
-     */
-    source: "signup",
-  },
-});
+          /*
+           * Frontend-only marker.
+           */
+          source: "signup",
+        },
+      });
     } catch (error: any) {
       const message =
         error?.data?.message ||
@@ -560,7 +560,7 @@ navigate("/auth/verify", {
           )}
         </div>
 
-        {/* 
+
         <div>
           <div className="flex items-start gap-2 pt-2">
             <input
@@ -596,7 +596,7 @@ navigate("/auth/verify", {
               {errors.terms.message}
             </p>
           )}
-        </div> */}
+        </div>
 
         <Button
           type="submit"
