@@ -69,43 +69,6 @@ function toAddressSuggestions(value: any): AddressSuggestion[] {
   return [];
 }
 
-function formatMoney(value: any) {
-  if (value === undefined || value === null || value === "") return "-";
-
-  const numericValue = Number(value);
-
-  if (!Number.isFinite(numericValue)) return "-";
-
-  return numericValue.toLocaleString(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  });
-}
-
-function formatNumber(value: any) {
-  if (value === undefined || value === null || value === "") return "-";
-
-  const numericValue = Number(value);
-
-  if (!Number.isFinite(numericValue)) return "-";
-
-  return numericValue.toLocaleString();
-}
-
-function formatDate(value: any) {
-  if (!value) return "-";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return "-";
-
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 function getLookupErrorMessage(error: any) {
   const status = error?.status;
@@ -118,99 +81,43 @@ function getLookupErrorMessage(error: any) {
   }
 
   if (status === 404) {
-    return "No ATTOM property record was found for this address. You can still fill the form manually.";
+    return "We couldn't find that address. Check it, or fill the form manually.";
   }
 
   if (status === 502) {
     return "Property search is unavailable right now. Please fill in manually.";
   }
 
-  if (status === 500) {
-    return "Property lookup is not configured on the backend.";
+  if (status === 500 || status === 503) {
+    return "Address lookup is unavailable right now. Please fill in manually.";
   }
 
   return message || "Couldn't fetch property details. Please fill in manually.";
 }
 
 function PropertyLookupSummary({ result }: { result: PropertyLookupResult }) {
-  const facts = [
-    result.bedrooms !== null ? `${result.bedrooms} bed` : null,
-    result.bathrooms !== null ? `${result.bathrooms} bath` : null,
-    result.square_footage !== null
-      ? `${formatNumber(result.square_footage)} sqft`
-      : null,
-    result.lot_size_acres !== null ? `${result.lot_size_acres} acres` : null,
-  ].filter(Boolean);
-
+  const complete = result.street_address_complete;
   return (
     <div className="mt-4 rounded-xl border border-[var(--color-primary)]/15 bg-[var(--color-primary)]/5 p-4">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-primary)] text-white">
-          <CheckCircle2 className="h-4 w-4" />
+          {complete ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
         </div>
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-black text-[var(--color-primary)]">
-            Property data found
+            {complete ? "Address filled" : "Address needs a house number"}
           </p>
 
           <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">
-            ATTOM data was used to prefill available fields. Please review and
-            edit anything that looks incorrect.
+            {complete
+              ? "Address, state and ZIP were filled from Google. Review them, then enter the property details below."
+              : "Google matched a street but not a specific house number. Add the house number, then enter the property details below."}
           </p>
 
-          {facts.length > 0 && (
-            <p className="mt-3 text-sm font-bold text-[var(--color-text-main)]">
-              {facts.join(" · ")}
-            </p>
-          )}
-
-          <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-            <div>
-              <span className="font-black uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                Suggested Price
-              </span>
-
-              <p className="mt-1 font-bold text-[var(--color-text-main)]">
-                {formatMoney(result.suggested_price)}
-              </p>
-            </div>
-
-            <div>
-              <span className="font-black uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                Last Sale
-              </span>
-
-              <p className="mt-1 font-bold text-[var(--color-text-main)]">
-                {result.last_sale_price
-                  ? `${formatMoney(result.last_sale_price)}${result.last_sale_date
-                    ? ` on ${formatDate(result.last_sale_date)}`
-                    : ""
-                  }`
-                  : "-"}
-              </p>
-            </div>
-
-            <div>
-              <span className="font-black uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                APN
-              </span>
-
-              <p className="mt-1 font-bold text-[var(--color-text-main)]">
-                {result.apn || "-"}
-              </p>
-            </div>
-
-            <div>
-              <span className="font-black uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                County FIPS
-              </span>
-
-              <p className="mt-1 font-bold text-[var(--color-text-main)]">
-                {result.county_fips || "-"}
-              </p>
-            </div>
-          </div>
+          <p className="mt-3 text-sm font-bold text-[var(--color-text-main)]">
+            {result.address}
+          </p>
         </div>
       </div>
     </div>
@@ -228,30 +135,6 @@ function applyLookupToForm(result: PropertyLookupResult, set: Props["set"]) {
 
   if (result.zip_code) {
     set("zip", result.zip_code);
-  }
-
-  if (result.property_type) {
-    set("propertyType", result.property_type);
-  }
-
-  if (result.property_type && result.property_type !== "multi_family") {
-    set("unitCount", "");
-  }
-
-  if (result.unit_count !== null && result.unit_count !== undefined) {
-    set("unitCount", String(result.unit_count));
-  }
-
-  if (result.year_built !== null && result.year_built !== undefined) {
-    set("yearBuilt", String(result.year_built));
-  }
-
-  if (result.zoning) {
-    set("zoning", result.zoning);
-  }
-
-  if (result.suggested_price !== null && result.suggested_price !== undefined) {
-    set("marketPrice", String(result.suggested_price));
   }
 }
 
@@ -481,7 +364,7 @@ set("address", suggestion.description);
       {isSelecting && (
         <div className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--color-primary)]/15 bg-[var(--color-primary)]/5 p-3 text-xs font-bold text-[var(--color-primary)]">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Fetching property details from ATTOM...
+          Resolving address with Google...
         </div>
       )}
 
@@ -541,9 +424,8 @@ set("address", suggestion.description);
           <Home className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-primary)]" />
 
           <p>
-            Select a suggested address to auto-fill property type, state, ZIP,
-            year built, zoning, and suggested market price. You can still edit
-            everything manually.
+            Select a suggested address to auto-fill the address, state and ZIP.
+            Enter the remaining property details manually.
           </p>
         </div>
       )}
