@@ -29,7 +29,7 @@ function loadPayPalSdk(clientId: string, currency: string) {
   return new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
     script.id = id;
-    script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&vault=true&intent=subscription&currency=${encodeURIComponent(currency)}&components=buttons&enable-funding=card&disable-funding=paypal,venmo,paylater`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&vault=true&intent=subscription&currency=${encodeURIComponent(currency)}&components=buttons&enable-funding=card&disable-funding=venmo,paylater`;
     script.async = true;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error("Could not load PayPal card checkout."));
@@ -48,6 +48,18 @@ export default function PayPalCardSubscriptionButton({ disabled }: { disabled?: 
 
   useEffect(() => {
     let cancelled = false;
+    const buttonOptions = {
+      style: { layout: "vertical", label: "pay", tagline: false },
+      createSubscription: (_data: unknown, actions: any) =>
+        actions.subscription.create({ plan_id: config?.planId, custom_id: (user as { _id?: string; id?: string } | null)?._id || (user as { id?: string } | null)?.id }),
+      onApprove: async (data: { subscriptionID?: string }) => {
+        if (!data.subscriptionID) throw new Error("PayPal did not return a subscription ID.");
+        await confirmSubscription({ subscriptionId: data.subscriptionID }).unwrap();
+      },
+      onError: (err: unknown) => {
+        setError(err instanceof Error ? err.message : "Card checkout failed. Please retry.");
+      },
+    };
     async function render() {
       if (disabled || renderedRef.current || !containerRef.current || !config) return;
       try {
@@ -55,19 +67,15 @@ export default function PayPalCardSubscriptionButton({ disabled }: { disabled?: 
         await loadPayPalSdk(config.clientId, config.currency);
         if (cancelled || !containerRef.current || !window.paypal?.Buttons) return;
         renderedRef.current = true;
-        await window.paypal.Buttons({
-          fundingSource: window.paypal.FUNDING?.CARD,
-          style: { layout: "vertical", label: "pay", tagline: false },
-          createSubscription: (_data: unknown, actions: any) =>
-            actions.subscription.create({ plan_id: config.planId, custom_id: (user as { _id?: string; id?: string } | null)?._id || (user as { id?: string } | null)?.id }),
-          onApprove: async (data: { subscriptionID?: string }) => {
-            if (!data.subscriptionID) throw new Error("PayPal did not return a subscription ID.");
-            await confirmSubscription({ subscriptionId: data.subscriptionID }).unwrap();
-          },
-          onError: (err: unknown) => {
-            setError(err instanceof Error ? err.message : "Card checkout failed. Please retry.");
-          },
-        }).render(containerRef.current);
+        try {
+          await window.paypal.Buttons({
+            ...buttonOptions,
+            fundingSource: window.paypal.FUNDING?.CARD,
+          }).render(containerRef.current);
+        } catch {
+          containerRef.current.innerHTML = "";
+          await window.paypal.Buttons(buttonOptions).render(containerRef.current);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Card checkout is unavailable. Please retry.");
       } finally {
