@@ -10,6 +10,7 @@ type ApiEnvelope<T> = {
 export type SubscriptionStatus = {
   required: boolean;
   amount: number | null;
+  amountDue?: number | null;
   currency: string;
   interval: string;
   active: boolean;
@@ -19,6 +20,20 @@ export type SubscriptionStatus = {
   termsVersion: string;
   mock?: boolean;
   approvalUrl?: string | null;
+  coupon?: {
+    code: string;
+    amountWaived: number | null;
+    freeUntil: string;
+  } | null;
+};
+
+export type CouponPreview = {
+  code: string;
+  description: string;
+  amountBefore: number;
+  amountDue: number;
+  percentOff: number;
+  freeUntil: string;
 };
 
 export type UsageAllowance = {
@@ -103,6 +118,25 @@ export const subscriptionService = baseApi.injectEndpoints({
       invalidatesTags: ["Subscription"],
     }),
 
+    previewCoupon: builder.mutation<CouponPreview, string>({
+      query: (code) => ({
+        url: "subscriptions/coupon/preview",
+        method: "POST",
+        body: { code },
+      }),
+      transformResponse: unwrap,
+    }),
+
+    redeemCoupon: builder.mutation<SubscriptionStatus, string>({
+      query: (code) => ({
+        url: "subscriptions/coupon/redeem",
+        method: "POST",
+        body: { code },
+      }),
+      transformResponse: unwrap,
+      invalidatesTags: ["Subscription"],
+    }),
+
     cancelSubscription: builder.mutation<SubscriptionStatus, void>({
       query: () => ({ url: "subscriptions/cancel", method: "POST" }),
       transformResponse: unwrap,
@@ -119,5 +153,7 @@ export const {
   useGetPayPalCardConfigQuery,
   useConfirmPayPalSubscriptionMutation,
   useMockCheckoutMutation,
+  usePreviewCouponMutation,
+  useRedeemCouponMutation,
   useCancelSubscriptionMutation,
 } = subscriptionService;

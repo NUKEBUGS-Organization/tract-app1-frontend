@@ -7,10 +7,101 @@ import {
   useCancelSubscriptionMutation,
   useGetSubscriptionQuery,
   useMockCheckoutMutation,
+  usePreviewCouponMutation,
+  useRedeemCouponMutation,
   useRefreshSubscriptionMutation,
   useSubscribePaypalMutation,
 } from "../../services/subscriptionService";
 import PayPalCardSubscriptionButton from "../../components/payments/PayPalCardSubscriptionButton";
+
+function errorTextOf(error: unknown): string | null {
+  if (!error) return null;
+  if (typeof error === "object" && "data" in error) {
+    const message = (error as { data?: { message?: string | string[] } }).data
+      ?.message;
+    if (Array.isArray(message)) return message.join(", ");
+    if (message) return message;
+  }
+  return error instanceof Error ? error.message : "Request failed";
+}
+
+function CouponForm({ amount }: { amount: number | null }) {
+  const [code, setCode] = useState("");
+  const [previewCoupon, previewState] = usePreviewCouponMutation();
+  const [redeemCoupon, redeemState] = useRedeemCouponMutation();
+  const quoted = previewState.data;
+  const matchesTyped = quoted && quoted.code === code.trim().toUpperCase();
+  const errorText = errorTextOf(previewState.error || redeemState.error);
+
+  return (
+    <div className="space-y-3 rounded-xl border border-[var(--color-border-light)] p-4">
+      <label htmlFor="coupon-code" className="block text-sm font-bold">
+        Have a coupon code?
+      </label>
+      <p className="text-sm text-[var(--color-text-muted)]">
+        Beta testers can waive the subscription fee entirely.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <input
+          id="coupon-code"
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value.toUpperCase());
+            previewState.reset();
+            redeemState.reset();
+          }}
+          placeholder="COUPON123"
+          autoComplete="off"
+          spellCheck={false}
+          maxLength={32}
+          className="min-w-0 flex-1 rounded-lg border border-[var(--color-border-light)] px-3 py-2 font-mono uppercase tracking-wider"
+        />
+        <button
+          type="button"
+          disabled={!code.trim() || previewState.isLoading || redeemState.isLoading}
+          onClick={() => previewCoupon(code.trim())}
+          className="rounded-lg border border-[var(--color-border-light)] px-4 py-2 disabled:opacity-50"
+        >
+          {previewState.isLoading ? "Checking…" : "Apply"}
+        </button>
+      </div>
+
+      {matchesTyped ? (
+        <div role="status" className="space-y-2">
+          <p className="text-sm">
+            <span className="font-bold">{quoted.code}</span> applied —{" "}
+            <span className="text-[var(--color-text-muted)] line-through">
+              ${quoted.amountBefore}
+            </span>{" "}
+            <span className="font-bold">${quoted.amountDue}</span> / month,
+            free through {new Date(quoted.freeUntil).toLocaleDateString()}.
+          </p>
+          <button
+            type="button"
+            disabled={redeemState.isLoading}
+            onClick={() => redeemCoupon(quoted.code)}
+            className="rounded-lg bg-[var(--color-secondary)] px-5 py-3 text-[var(--color-primary-dark)] disabled:opacity-50"
+          >
+            {redeemState.isLoading
+              ? "Redeeming…"
+              : `Redeem — pay $${quoted.amountDue} today`}
+          </button>
+        </div>
+      ) : null}
+
+      {amount !== null && !matchesTyped && !errorText ? (
+        <p className="text-xs text-[var(--color-text-muted)]">
+          Without a coupon you will be billed ${amount}/month.
+        </p>
+      ) : null}
+      {errorText ? (
+        <p role="alert" className="text-sm text-[var(--color-danger)]">
+          {errorText}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 export default function SubscriptionPage() {
   const theme = usePartnerTheme();
@@ -109,7 +200,16 @@ export default function SubscriptionPage() {
             )}
             {status && (
               <p className="text-2xl font-semibold text-[var(--color-primary)]">
-                ${status.amount}
+                {status.coupon ? (
+                  <>
+                    <span className="text-[var(--color-text-muted)] line-through">
+                      ${status.amount}
+                    </span>{" "}
+                    $0
+                  </>
+                ) : (
+                  <>${status.amount}</>
+                )}
                 <span className="text-sm font-normal"> USD / month</span>
               </p>
             )}
@@ -120,9 +220,11 @@ export default function SubscriptionPage() {
             </p>
             {status?.active ? (
               <p role="status">
-                {MOCK_SUBSCRIPTIONS
-                  ? "Paid (test). Access through "
-                  : "Paid access through "}
+                {status.coupon
+                  ? `Coupon ${status.coupon.code} applied — free access through `
+                  : MOCK_SUBSCRIPTIONS
+                    ? "Paid (test). Access through "
+                    : "Paid access through "}
                 {status.paidUntil
                   ? new Date(status.paidUntil).toLocaleDateString()
                   : "—"}
@@ -170,6 +272,7 @@ export default function SubscriptionPage() {
                     </button>
                   </>
                 )}
+                <CouponForm amount={status?.amount ?? null} />
               </>
             )}
             <button
