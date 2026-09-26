@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useAuthContext } from "../../contexts/AuthContext";
-import { isAllowedRole, PARTNER_ROLES, REALTOR_ROLES } from "../../constants/roles";
+import { isAllowedRole } from "../../constants/roles";
 
 const SELLER_URL = import.meta.env.VITE_SELLER_PORTAL_URL || "https://seller.tractcorp.com";
 const BUYER_URL = import.meta.env.VITE_BUYER_PORTAL_URL || "https://buyer.tractcorp.com";
@@ -13,10 +13,7 @@ export default function PortalSwitch() {
       ? "buyer"
       : "seller";
   const show = useMemo(
-    () =>
-      role === "seller" ||
-      isAllowedRole(role, PARTNER_ROLES) ||
-      isAllowedRole(role, REALTOR_ROLES),
+    () => isAllowedRole(role, ["wholesaler", "realtor"]),
     [role],
   );
 
