@@ -9,6 +9,7 @@ import {
   useRefreshSubscriptionMutation,
   useSubscribePaypalMutation,
 } from "../../services/subscriptionService";
+import PayPalCardSubscriptionButton from "../../components/payments/PayPalCardSubscriptionButton";
 
 export default function SubscriptionPage() {
   const { data: status, isLoading, error, refetch } = useGetSubscriptionQuery();
@@ -135,20 +136,28 @@ export default function SubscriptionPage() {
                     </span>
                   </label>
                 )}
-                <button
-                  type="button"
-                  disabled={
-                    (!MOCK_SUBSCRIPTIONS && !accepted) || pending || !status
-                  }
-                  onClick={onSubscribe}
-                  className="rounded-xl bg-[var(--color-secondary)] px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary-dark)] disabled:opacity-50"
-                >
-                  {pending
-                    ? MOCK_SUBSCRIPTIONS
-                      ? "Updating…"
-                      : "Opening PayPal…"
-                    : "Subscribe with PayPal"}
-                </button>
+                {MOCK_SUBSCRIPTIONS ? (
+                  <button
+                    type="button"
+                    disabled={pending || !status}
+                    onClick={onSubscribe}
+                    className="rounded-xl bg-[var(--color-secondary)] px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary-dark)] disabled:opacity-50"
+                  >
+                    {pending ? "Updating…" : "Activate test subscription"}
+                  </button>
+                ) : (
+                  <>
+                    <PayPalCardSubscriptionButton disabled={!accepted || pending || !status} />
+                    <button
+                      type="button"
+                      disabled={!accepted || pending || !status}
+                      onClick={onSubscribe}
+                      className="text-sm underline disabled:opacity-50"
+                    >
+                      {pending ? "Opening PayPal…" : "Use PayPal account instead"}
+                    </button>
+                  </>
+                )}
               </>
             )}
             <button

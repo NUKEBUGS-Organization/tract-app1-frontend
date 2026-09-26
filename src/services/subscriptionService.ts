@@ -28,6 +28,15 @@ export type UsageAllowance = {
   subscriptionRequired: boolean;
 };
 
+export type PayPalCardConfig = {
+  clientId: string;
+  planId: string;
+  amount: number;
+  currency: string;
+  termsVersion: string;
+  mode: string;
+};
+
 export const BETA_TERMS_VERSION = "2026-09-07";
 
 export const MOCK_SUBSCRIPTIONS =
@@ -70,6 +79,24 @@ export const subscriptionService = baseApi.injectEndpoints({
       invalidatesTags: ["Subscription"],
     }),
 
+    getPayPalCardConfig: builder.query<PayPalCardConfig, void>({
+      query: () => ({ url: "subscriptions/paypal/card-config", method: "GET" }),
+      transformResponse: unwrap,
+    }),
+
+    confirmPayPalSubscription: builder.mutation<
+      SubscriptionStatus,
+      { subscriptionId: string }
+    >({
+      query: ({ subscriptionId }) => ({
+        url: "subscriptions/paypal/confirm",
+        method: "POST",
+        body: { subscriptionId, termsVersion: BETA_TERMS_VERSION },
+      }),
+      transformResponse: unwrap,
+      invalidatesTags: ["Subscription"],
+    }),
+
     mockCheckout: builder.mutation<SubscriptionStatus, void>({
       query: () => ({ url: "subscriptions/mock-checkout", method: "POST" }),
       transformResponse: unwrap,
@@ -89,6 +116,8 @@ export const {
   useGetBidAllowanceQuery,
   useRefreshSubscriptionMutation,
   useSubscribePaypalMutation,
+  useGetPayPalCardConfigQuery,
+  useConfirmPayPalSubscriptionMutation,
   useMockCheckoutMutation,
   useCancelSubscriptionMutation,
 } = subscriptionService;
