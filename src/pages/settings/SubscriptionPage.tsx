@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { usePartnerTheme } from "../../hooks/usePartnerTheme";
 import {
   BETA_TERMS_VERSION,
   MOCK_SUBSCRIPTIONS,
@@ -12,6 +13,7 @@ import {
 import PayPalCardSubscriptionButton from "../../components/payments/PayPalCardSubscriptionButton";
 
 export default function SubscriptionPage() {
+  const theme = usePartnerTheme();
   const { data: status, isLoading, error, refetch } = useGetSubscriptionQuery();
   const [subscribePaypal, paypalState] = useSubscribePaypalMutation();
   const [mockCheckout, mockState] = useMockCheckoutMutation();
@@ -40,6 +42,16 @@ export default function SubscriptionPage() {
             "Request failed",
         )
       : null;
+  const isDark = theme === "dark";
+  const eyebrowClass = isDark
+    ? "text-white/50"
+    : "text-[var(--color-text-muted)]";
+  const headingClass = isDark
+    ? "text-white"
+    : "text-[var(--color-primary)]";
+  const mutedClass = isDark
+    ? "text-white/60"
+    : "text-[var(--color-text-muted)]";
 
   const onSubscribe = async () => {
     if (MOCK_SUBSCRIPTIONS) {
@@ -70,19 +82,19 @@ export default function SubscriptionPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
+        <p className={`text-[10px] font-black uppercase tracking-[0.3em] ${eyebrowClass}`}>
           Billing
         </p>
-        <h1 className="font-serif text-3xl font-black text-[var(--color-primary)]">
+        <h1 className={`font-serif text-3xl font-black ${headingClass}`}>
           SaaS subscription
         </h1>
-        <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+        <p className={`mt-2 text-sm ${mutedClass}`}>
           Shared with Buy TRACT — pay once, status applies in both apps.
           Terms version {BETA_TERMS_VERSION}.
         </p>
       </div>
 
-      <section className="space-y-4 rounded-3xl border border-[var(--color-border-light)] bg-white p-6 shadow-[var(--shadow-card)]">
+      <section className="space-y-4 rounded-3xl border border-[var(--color-border-light)] bg-white p-6 text-[var(--color-text-main)] shadow-[var(--shadow-card)]">
         {isLoading ? (
           <p>Checking subscription…</p>
         ) : status?.required === false ? (
