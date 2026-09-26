@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, Outlet, useSearchParams } from "react-router";
 import {
   ChevronDown,
+  ExternalLink,
   FileText,
   Menu,
   Moon,
@@ -96,6 +97,18 @@ function getPrimaryAction(title: string) {
   return {
     label: "Create New Listing",
     path: "/list-property",
+  };
+}
+
+function getPortalSwitch(role: string | undefined) {
+  if (!isAllowedRole(role, PARTNER_ROLES) && role !== "seller") return null;
+
+  const buyerPortalUrl =
+    import.meta.env.VITE_BUYER_PORTAL_URL || "https://buyer.tractcorp.com";
+
+  return {
+    label: "Buyer Portal",
+    href: buyerPortalUrl,
   };
 }
 
@@ -221,6 +234,7 @@ function DashboardLayout({
   const isRealtor = isAllowedRole(userRole, REALTOR_ROLES);
 
   const primaryAction = getPrimaryAction(title);
+  const portalSwitch = getPortalSwitch(userRole);
   const searchValue = searchParams.get("search") || "";
   const showPropertySearch = false;
 
@@ -504,6 +518,19 @@ function DashboardLayout({
                       </div>
                     )}
                   </div>
+                )}
+
+                {portalSwitch && (
+                  <a
+                    href={portalSwitch.href}
+                    className={`hidden h-11 items-center justify-center gap-2 rounded-none border px-5 text-xs font-black uppercase tracking-[0.14em] shadow-sm transition md:inline-flex ${isDark
+                      ? "border-white/15 bg-white/10 text-white hover:bg-white/15"
+                      : "border-[var(--color-border-light)] bg-white/80 text-[var(--color-primary)] hover:border-[var(--color-secondary)]"
+                      }`}
+                  >
+                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                    {portalSwitch.label}
+                  </a>
                 )}
 
                 {primaryAction && (
