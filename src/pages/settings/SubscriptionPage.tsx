@@ -127,6 +127,7 @@ export default function SubscriptionPage() {
   const [accepted, setAccepted] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [redeemedStatus, setRedeemedStatus] = useState<SubscriptionStatus | null>(null);
+  const [statusCheckMessage, setStatusCheckMessage] = useState<string | null>(null);
   const effectiveStatus = redeemedStatus ?? status;
 
   const pending =
@@ -159,6 +160,20 @@ export default function SubscriptionPage() {
   const mutedClass = isDark
     ? "text-white/60"
     : "text-[var(--color-text-muted)]";
+  const describeStatus = (nextStatus = effectiveStatus) => {
+    if (!nextStatus) return "Payment status could not be loaded yet.";
+    if (nextStatus.required === false) return "No subscription is required for this account.";
+    if (!nextStatus.active) {
+      return "Payment status: inactive. Please activate your subscription to continue.";
+    }
+    const until = nextStatus.paidUntil
+      ? new Date(nextStatus.paidUntil).toLocaleDateString()
+      : "the current month";
+    if (nextStatus.coupon) {
+      return `Payment status: subscription activated with coupon ${nextStatus.coupon.code}. Access is active through ${until}. Reactivate after this monthly period ends.`;
+    }
+    return `Payment status: active. You already paid the subscription for this month. Access is active through ${until}. Reactivate after this monthly period ends.`;
+  };
 
   const onSubscribe = async () => {
     if (MOCK_SUBSCRIPTIONS) {
@@ -235,20 +250,23 @@ export default function SubscriptionPage() {
               subscription. Sellers are not charged.
             </p>
             {effectiveStatus?.active ? (
-              <div className="space-y-3">
-                <p role="status">
-                {effectiveStatus.coupon
-                  ? `Subscription activated. Coupon ${effectiveStatus.coupon.code} applied — free access through `
-                  : MOCK_SUBSCRIPTIONS
-                    ? "Subscription activated. Test access through "
-                    : "You already paid the subscription for this month. Access through "}
-                {effectiveStatus.paidUntil
-                  ? new Date(effectiveStatus.paidUntil).toLocaleDateString()
-                  : "—"}
-                {effectiveStatus.status === "CANCELLED" ? ". Renewal cancelled." : "."}
+              <div className="space-y-3 rounded-xl border border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/10 p-4">
+                <p role="status" className="font-bold">
+                  Subscription activated.
+                </p>
+                <p className="text-sm">
+                  {effectiveStatus.coupon
+                    ? `Coupon ${effectiveStatus.coupon.code} applied. Your subscription is active through `
+                    : MOCK_SUBSCRIPTIONS
+                      ? "Test subscription active through "
+                      : "You already paid the subscription for this month. Access through "}
+                  {effectiveStatus.paidUntil
+                    ? new Date(effectiveStatus.paidUntil).toLocaleDateString()
+                    : "—"}
+                  {effectiveStatus.status === "CANCELLED" ? ". Renewal cancelled." : ". Reactivate after this monthly period ends."}
                 </p>
                 <Link
-                  to="/"
+                  to="/dashboard"
                   className="inline-flex rounded-xl bg-[var(--color-secondary)] px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary-dark)]"
                 >
                   Continue to dashboard
@@ -301,12 +319,21 @@ export default function SubscriptionPage() {
             )}
             <button
               type="button"
-              onClick={async () => setRedeemedStatus(await refresh().unwrap())}
+              onClick={async () => {
+                const nextStatus = await refresh().unwrap();
+                setRedeemedStatus(nextStatus);
+                setStatusCheckMessage(describeStatus(nextStatus));
+              }}
               disabled={pending}
               className="ml-0 text-sm underline"
             >
               Check payment status
             </button>
+            {statusCheckMessage ? (
+              <p role="status" className="text-sm font-semibold text-[var(--color-text-main)]">
+                {statusCheckMessage}
+              </p>
+            ) : null}
             {effectiveStatus?.canCancel && (
               <div className="pt-2">
                 {confirmCancel ? (

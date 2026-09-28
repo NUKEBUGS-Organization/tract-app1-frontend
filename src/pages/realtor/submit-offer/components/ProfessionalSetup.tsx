@@ -201,8 +201,8 @@ export default function ProfessionalSetup({
         )}
       </div>
 
-      {/* Transparency Engine — live Net-to-Seller calculator */}
-      {parsedOfferPrice > 0 && (
+      {/* Transparency Engine calculator hidden for now; keep code for quick restore. */}
+      {false && parsedOfferPrice > 0 && (
         <div
           className={`rounded-xl border p-5 ${isDark
               ? "border-[#d4af37]/20 bg-[#d4af37]/5"
