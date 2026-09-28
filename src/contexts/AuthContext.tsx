@@ -1,25 +1,36 @@
 import {
   createContext,
   useContext,
+  useEffect,
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router";
 
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
-import { logout, setCredentials } from "../redux/auth/authSlice";
+import {
+  logout,
+  setAuthReady,
+  setCredentials,
+} from "../redux/auth/authSlice";
 import type { AuthUser } from "../redux/auth/authSlice";
 import { useLogoutUserMutation } from "../services/authService";
+import {
+  allowAuthRefresh,
+  blockAuthRefresh,
+  baseApi,
+  bootRefreshAuthSession,
+} from "../services/baseApi";
+import { store } from "../redux/store";
 
 interface AuthContextValue {
   user: AuthUser | null;
   accessToken: string | null;
-  refreshToken: string | null;
   role: string | null;
   isAuthenticated: boolean;
+  authReady: boolean;
   setAuth: (payload: {
     user?: AuthUser | null;
     accessToken?: string | null;
-    refreshToken?: string | null;
   }) => void;
   logoutAuth: () => Promise<void>;
 }
@@ -30,22 +41,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const { user, accessToken, refreshToken, role, isAuthenticated } =
+  const { user, accessToken, role, isAuthenticated, authReady } =
     useAppSelector((state) => state.auth);
 
   const [logoutUser] = useLogoutUserMutation();
 
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // Module-level bootRefreshAuthSession guards StrictMode double-invoke.
+        const ok = await bootRefreshAuthSession(
+          { getState: store.getState, dispatch: store.dispatch },
+          {}
+        );
+        if (cancelled) return;
+
+        if (!ok) {
+          // Local logout only — do NOT POST /auth/logout (would kill SSO siblings).
+          blockAuthRefresh();
+          dispatch(logout());
+          dispatch(baseApi.util.resetApiState());
+          dispatch(setAuthReady(true));
+          const isGoogleTransientPage =
+            window.location.pathname === "/auth/google/callback" ||
+            window.location.pathname === "/register/google-complete";
+
+          if (
+            !window.location.pathname.startsWith("/auth") &&
+            window.location.pathname !== "/unauthorized" &&
+            !isGoogleTransientPage
+          ) {
+            navigate("/auth/signin", { replace: true });
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          blockAuthRefresh();
+          dispatch(logout());
+          dispatch(baseApi.util.resetApiState());
+          dispatch(setAuthReady(true));
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // Boot once on mount — do not re-run when navigate identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
+
   const setAuth: AuthContextValue["setAuth"] = (payload) => {
+    allowAuthRefresh();
     dispatch(setCredentials(payload));
   };
 
   const logoutAuth = async () => {
     try {
+      // Explicit user logout — server revoke is intentional here.
       await logoutUser().unwrap();
-    } catch (error) {
-      
+    } catch {
+      // Cookie may already be cleared / session expired
     } finally {
+      blockAuthRefresh();
       dispatch(logout());
+      dispatch(baseApi.util.resetApiState());
       navigate("/auth/signin", { replace: true });
     }
   };
@@ -55,9 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         accessToken,
-        refreshToken,
         role,
         isAuthenticated,
+        authReady,
         setAuth,
         logoutAuth,
       }}

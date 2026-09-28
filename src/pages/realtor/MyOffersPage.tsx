@@ -502,15 +502,17 @@ export default function RealtorMyOffersPage() {
   // to be silently dropped due to ObjectId format mismatches.
   const allOffers = rawOffers;
 
-  const activeOffers = allOffers.filter((b) =>
-    ["active", "selected"].includes(getOfferStatus(b)),
+  const activeOffers = allOffers.filter(
+    (b) => getOfferStatus(b) === "active",
   );
   const pastOffers = allOffers.filter((b) =>
     ["backup", "rejected", "deleted"].includes(getOfferStatus(b)),
   );
 
   return (
-    <div className="space-y-8">
+    <div 
+     data-tour="realtor-my-offers"
+    className="space-y-8">
       {/* Header */}
       <section
         className={`relative overflow-hidden rounded-2xl p-8 ${isDark

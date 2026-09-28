@@ -247,7 +247,7 @@ function AdminUserDetailsPage() {
   const fullAddress = getFullAddress(user);
   const role = normalizeValue(getRawRole(user));
   const kycStatus = normalizeValue(getKycStatus(user));
-  const isBanned = user?.is_banned === true;
+  const isBanned = user?.isBanned === true;
 
   return (
     <div className="min-w-0 space-y-6 overflow-x-hidden">

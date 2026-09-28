@@ -203,11 +203,13 @@ function PropertyCard({
   isDark,
   delay = 0,
   isRealtor = false,
+  walkthroughTarget = false,
 }: {
   listing: any;
   isDark: boolean;
   delay?: number;
   isRealtor?: boolean;
+  walkthroughTarget?: boolean;
 }) {
   const id = String(listing?._id || listing?.id || "");
   const bidCount = getBidCount(listing);
@@ -219,6 +221,11 @@ function PropertyCard({
 
   return (
     <div
+     data-tour={
+    walkthroughTarget
+      ? "property-card"
+      : undefined
+  }
       className={`group relative flex animate-[cardIn_0.45s_ease-out_backwards] flex-col overflow-hidden rounded-2xl border transition-all duration-300 ${isDark
         ? "border-white/10 bg-white/[0.05] hover:border-[var(--color-secondary)]/40 hover:shadow-[0_0_0_1px_rgba(212,175,55,0.15),0_20px_60px_rgba(0,0,0,0.25)]"
         : "border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)] hover:-translate-y-1 hover:shadow-xl hover:border-[var(--color-secondary)]/40"
@@ -333,12 +340,16 @@ function PropertyCard({
         </div>
 
 
-        <BidCapBar bidCount={bidCount} maxBids={maxBids} isDark={isDark} />
-
+        <div data-tour={walkthroughTarget ? "property-card-bid-cap" : undefined}>
+          <BidCapBar bidCount={bidCount} maxBids={maxBids} isDark={isDark} />
+        </div>
 
         <div className="mt-auto flex gap-2 pt-2">
           <Link
             to={`/properties/${id}`}
+            data-tour={
+              walkthroughTarget ? "property-card-view-details" : undefined
+            }
             className={`flex-1 rounded-xl border py-2.5 text-center text-[10px] font-black uppercase tracking-[0.18em] transition ${isDark
               ? "border-white/10 bg-white/5 text-white/60 hover:border-white/25 hover:text-white"
               : "border-[var(--color-border-light)] bg-white text-[var(--color-text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-[var(--color-bg-soft)]"
@@ -350,6 +361,13 @@ function PropertyCard({
           {isFull ? (
             <div
               title="This property has reached its bid cap"
+              data-tour={
+                walkthroughTarget
+                  ? isRealtor
+                    ? "property-card-offer"
+                    : "property-card-bid"
+                  : undefined
+              }
               className="flex-1 cursor-not-allowed rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/8 py-2.5 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-danger)]/60"
             >
               Cap Reached
@@ -357,6 +375,11 @@ function PropertyCard({
           ) : isRealtor ? (
             <Link
               to={`/properties/${id}/offer`}
+               data-tour={
+    walkthroughTarget
+      ? "property-card-offer"
+      : undefined
+  }
               className="flex-1 rounded-xl bg-[var(--color-secondary)] py-2.5 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:bg-[var(--color-secondary)] hover:brightness-110 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]"
             >
               Submit Offer
@@ -365,6 +388,11 @@ function PropertyCard({
 
             <Link
               to={`/properties/${id}/bid`}
+                data-tour={
+    walkthroughTarget
+      ? "property-card-bid"
+      : undefined
+  }
               className="flex-1 rounded-xl bg-[var(--color-secondary)] py-2.5 text-center text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:bg-[var(--color-secondary)] hover:brightness-110 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]"
             >
               Submit Bid
@@ -479,7 +507,9 @@ export default function PropertyStreamPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div
+    data-tour="property-marketplace"
+    className="space-y-8">
       <style>{`
         @keyframes cardIn {
           from { opacity: 0; transform: translateY(10px); }
@@ -839,15 +869,23 @@ export default function PropertyStreamPage() {
 
       {!isLoading && filtered.length > 0 && (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((listing: any, i: number) => (
-            <PropertyCard
-              key={String(listing?._id || listing?.id)}
-              listing={listing}
-              isDark={isDark}
-              delay={Math.min(i, 8) * 40}
-              isRealtor={isRealtor}
-            />
-          ))}
+       {filtered.map(
+  (listing: any, i: number) => (
+    <PropertyCard
+      key={String(
+        listing?._id ||
+          listing?.id
+      )}
+      listing={listing}
+      isDark={isDark}
+      delay={
+        Math.min(i, 8) * 40
+      }
+      isRealtor={isRealtor}
+      walkthroughTarget={i === 0}
+    />
+  )
+)}
         </div>
       )}
     </div>

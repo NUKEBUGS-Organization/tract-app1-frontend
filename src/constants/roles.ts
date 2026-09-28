@@ -1,3 +1,11 @@
+// Backend auth/API roles (canonical). Legacy aliases below are UI/route-only.
+export const BACKEND_ROLES = {
+  SELLER: "seller",
+  WHOLESALER: "wholesaler",
+  REALTOR: "realtor",
+  ADMIN: "admin",
+} as const;
+
 //src\constants\roles.ts
 export const ROLES = {
   SELLER: "seller",

@@ -69,13 +69,14 @@ function getContractStatusConfig(bid: any, contracts: any[], deals: any[]) {
         };
     }
 
-    // Use backend contract.status as source of truth
+    // DealStatus.BACKUP_ACTIVATED is set by the kill switch (missed deadlines etc.);
+    // the contract stays 'signed' in that case, so we treat it as cancelled.
     const contractStatus = String(contract?.status || "pending").toLowerCase();
     const dealStatus = String(deal?.status || "").toLowerCase();
 
-    if (contractStatus === "cancelled" || dealStatus === "cancelled") {
+    if (contractStatus === "cancelled" || dealStatus === "cancelled" || dealStatus === "backup_activated") {
         return {
-            label: dealStatus === "cancelled" ? "Deal Cancelled" : "Contract Cancelled",
+            label: dealStatus === "backup_activated" ? "Backup Activated" : dealStatus === "cancelled" ? "Deal Cancelled" : "Contract Cancelled",
             className: "bg-[var(--color-danger)]/10 text-[var(--color-danger)] border border-[var(--color-danger)]/25",
             icon: XCircle,
             contract,
@@ -145,11 +146,9 @@ function ContractCard({ bid, contracts, deals, isDark }: { bid: any; contracts: 
     const listingCity = bid?.listing?.city || bid?.property_id?.city;
     const listingState = bid?.listing?.state_code || bid?.property_id?.state_code;
 
-    const contractId = contract?._id || contract?.id;
     const contractStatus = String(contract?.status || "pending").toLowerCase();
     const dealStatus = String(deal?.status || "").toLowerCase();
-    const isSigned = contractStatus === "signed";
-    const isCancelled = contractStatus === "cancelled" || dealStatus === "cancelled";
+    const isCancelled = contractStatus === "cancelled" || dealStatus === "cancelled" || dealStatus === "backup_activated";
 
     // Buyer needs to sign if seller has signed but buyer hasn't
     const sellerSigned = Boolean(contract?.seller_signed_at);
@@ -221,21 +220,18 @@ function ContractCard({ bid, contracts, deals, isDark }: { bid: any; contracts: 
                     )}
 
                     {/* Needs buyer signature → go to deal tracker to sign */}
-                    {needsBuyerSignature && contractId && (
+                    {needsBuyerSignature && (
                         <Link
                             to={`/deals?listingId=${listingId}`}
-                            className={`flex items-center gap-1.5 border px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] transition ${isDark
-                                ? "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
-                                : "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
-                                }`}
+                            className="flex items-center gap-1.5 border border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5 px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"
                         >
                             Sign Contract
                             <FileSignature className="h-3.5 w-3.5" />
                         </Link>
                     )}
 
-                    {/* Both signed → go to deal tracker */}
-                    {isSigned && listingId && (
+                    {/* Active contract / deal → go to deal tracker */}
+                    {!isCancelled && listingId && !needsBuyerSignature && (
                         <Link
                             to={`/deals?listingId=${listingId}`}
                             className={`flex items-center gap-1.5 bg-[var(--color-secondary)] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-primary-dark)] shadow-[var(--shadow-premium)] transition hover:scale-[1.02] ${isDark ? "hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]" : ""}`}
@@ -289,10 +285,21 @@ export default function MyContractsPage() {
         })
         : rawBids;
 
-    // Only show selected bids (winner bids that become contracts)
-    const contractBids = allBids.filter((b) =>
-        getBidStatus(b) === "selected",
+    // Build a set of bid IDs that have a contract record (any status).
+    // When a contract is cancelled the backend demotes the bid to REJECTED,
+    // so filtering only on bid.status==='selected' would silently drop
+    // cancelled contracts. We use the contracts list as the source of truth.
+    const bidIdsWithContract = new Set(
+        (contractsData as any[]).map((c: any) => {
+            const cBidId = typeof c.bid_id === "object" ? c.bid_id?._id || c.bid_id?.id : c.bid_id;
+            return String(cBidId || "");
+        }).filter(Boolean)
     );
+
+    const contractBids = allBids.filter((b) => {
+        const bidId = String(b?._id || b?.id || "");
+        return getBidStatus(b) === "selected" || bidIdsWithContract.has(bidId);
+    });
 
     const bidsWithStatus = contractBids.map(bid => {
         const config = getContractStatusConfig(bid, contractsData, allDeals);
@@ -305,14 +312,20 @@ export default function MyContractsPage() {
         if (statusFilter === "active" && label.includes("active deal")) return true;
         if (statusFilter === "pending" && (label.includes("pending") || label.includes("awaiting"))) return true;
         if (statusFilter === "closed" && label.includes("closed")) return true;
-        if (statusFilter === "cancelled" && label.includes("cancelled")) return true;
+        if (statusFilter === "cancelled" && (label.includes("cancelled") || label.includes("backup activated"))) return true;
         return false;
     });
 
-    const totalContracts = contractBids.length;
+
+    const totalContracts = bidsWithStatus.filter(({ config }) => {
+        const label = config.label.toLowerCase();
+        return !label.includes("cancelled") && !label.includes("backup activated") && !label.includes("closed");
+    }).length;
 
     return (
-        <div className="space-y-8">
+        <div
+            data-tour="partner-contracts-page"
+        className="space-y-8">
             {/* Hero header */}
             <section
                 className={`relative overflow-hidden rounded-2xl p-8 ${isDark
@@ -399,7 +412,7 @@ export default function MyContractsPage() {
                         pending: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("pending") || b.config.label.toLowerCase().includes("awaiting")).length,
                         active: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("active deal")).length,
                         closed: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("closed")).length,
-                        cancelled: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("cancelled")).length,
+                        cancelled: bidsWithStatus.filter(b => b.config.label.toLowerCase().includes("cancelled") || b.config.label.toLowerCase().includes("backup activated")).length,
                     };
 
                     const tabs = [
@@ -419,27 +432,25 @@ export default function MyContractsPage() {
                                         <button
                                             key={tab.id}
                                             onClick={() => setStatusFilter(tab.id)}
-                                            className={`group relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-300 ${
-                                                isActive
+                                            className={`group relative flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all duration-300 ${isActive
                                                     ? isDark
                                                         ? "bg-white text-black shadow-[0_4px_12px_rgba(255,255,255,0.1)]"
                                                         : "bg-white text-[var(--color-primary)] shadow-sm"
                                                     : isDark
                                                         ? "text-white/50 hover:bg-[#d4af37]/10 hover:text-[#d4af37]"
                                                         : "text-[var(--color-text-muted)] hover:bg-white hover:text-[var(--color-primary)] hover:shadow-sm"
-                                            }`}
+                                                }`}
                                         >
                                             <span>{tab.label}</span>
                                             <span
-                                                className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-black tabular-nums transition-colors ${
-                                                    isActive
+                                                className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-black tabular-nums transition-colors ${isActive
                                                         ? isDark
                                                             ? "bg-black/10 text-black"
                                                             : "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
                                                         : isDark
                                                             ? "bg-white/10 text-white/50 group-hover:bg-[#d4af37]/20 group-hover:text-[#d4af37]"
                                                             : "bg-black/10 text-[var(--color-text-muted)] group-hover:bg-[var(--color-primary)]/10 group-hover:text-[var(--color-primary)]"
-                                                }`}
+                                                    }`}
                                             >
                                                 {tab.count}
                                             </span>

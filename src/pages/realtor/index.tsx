@@ -24,6 +24,7 @@ import { useGetMyDealsQuery } from "../../services/dealService";
 import { useGetMeQuery } from "../../services/userService";
 import { useGetRealtorVerificationStatusQuery } from "../../services/verificationService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
+import { useSkipUnlessAuthenticated } from "../../hooks/useSkipUnlessAuthenticated";
 
 const PENALTY_TABLE = [
   { violation: "Slow Response to Seller", penalty: -10, icon: Clock },
@@ -40,40 +41,53 @@ interface StatCardProps {
 }
 
 function StatCard({ label, value, note, icon: Icon, isDark }: StatCardProps) {
+  const valueStr = String(value);
+  const fontSizeClass =
+    valueStr.length > 14
+      ? "text-lg sm:text-xl lg:text-2xl"
+      : valueStr.length > 10
+      ? "text-xl sm:text-2xl lg:text-3xl"
+      : valueStr.length > 7
+      ? "text-2xl sm:text-3xl lg:text-3xl"
+      : "text-3xl lg:text-4xl";
+
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 ${
+      className={`group relative min-w-0 overflow-hidden rounded-2xl border p-5 sm:p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between ${
         isDark
           ? "border-white/10 bg-white/[0.06] backdrop-blur shadow-xl hover:border-[var(--color-secondary)]/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] hover:bg-white/[0.12]"
           : "border-[var(--color-border-light)] bg-white hover:shadow-xl"
       }`}
     >
-      <div className="mb-5 flex items-start justify-between">
-        <p
-          className={`max-w-[150px] text-[11px] font-black uppercase tracking-[0.22em] ${
-            isDark ? "text-white/45" : "text-[var(--color-text-muted)]"
-          }`}
-        >
-          {label}
-        </p>
-        <Icon
-          className={`h-5 w-5 ${
-            isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"
-          }`}
-        />
-      </div>
+      <div>
+        <div className="mb-4 flex items-start justify-between gap-2">
+          <p
+            className={`max-w-[160px] text-[11px] font-black uppercase tracking-[0.2em] ${
+              isDark ? "text-white/45" : "text-[var(--color-text-muted)]"
+            }`}
+          >
+            {label}
+          </p>
+          <Icon
+            className={`h-5 w-5 shrink-0 ${
+              isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]"
+            }`}
+          />
+        </div>
 
-      <div
-        className={`font-serif text-4xl font-black ${
-          isDark ? "text-white" : "text-[var(--color-primary)]"
-        }`}
-      >
-        {value}
+        <div
+          className={`font-serif font-black tracking-tight break-words min-w-0 ${fontSizeClass} ${
+            isDark ? "text-white" : "text-[var(--color-primary)]"
+          }`}
+          title={valueStr}
+        >
+          {value}
+        </div>
       </div>
 
       <p
-        className={`mt-2 text-xs font-semibold ${
-          isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]/70"
+        className={`mt-3 text-xs font-semibold leading-snug break-words min-w-0 ${
+          isDark ? "text-[var(--color-secondary)]" : "text-[var(--color-primary)]/75"
         }`}
       >
         {note}
@@ -93,13 +107,16 @@ function StatCard({ label, value, note, icon: Icon, isDark }: StatCardProps) {
 export default function RealtorDashboard() {
   const theme = usePartnerTheme();
   const isDark = theme === "dark";
+  const skip = useSkipUnlessAuthenticated();
 
-  const { data: meData, isLoading: isLoadingMe } = useGetMeQuery();
+  const { data: meData, isLoading: isLoadingMe } = useGetMeQuery(undefined, {
+    skip,
+  });
   const userName =
-    (meData as any)?.data?.full_name || (meData as any)?.full_name || "Realtor";
+    (meData as any)?.data?.fullName || (meData as any)?.fullName || "Realtor";
   const professionalScore: number =
-    (meData as any)?.data?.professional_score ??
-    (meData as any)?.professional_score ??
+    (meData as any)?.data?.professionalScore ??
+    (meData as any)?.professionalScore ??
     100;
   const scoreTier =
     professionalScore >= 90 ? "Perfect Standing" :
@@ -114,7 +131,7 @@ export default function RealtorDashboard() {
     isLoading: isLoadingListings,
   } = useGetListingsQuery(
     { status: "live" },
-    { refetchOnMountOrArgChange: true },
+    { skip, refetchOnMountOrArgChange: true },
   );
 
   const allListings: any[] = (() => {
@@ -127,7 +144,10 @@ export default function RealtorDashboard() {
     return [];
   })();
 
-  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
+  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery(
+    undefined,
+    { skip },
+  );
   const allBids: any[] = (() => {
     const raw: any = bidsData;
     const payload = raw?.data ?? raw;
@@ -145,10 +165,11 @@ export default function RealtorDashboard() {
     data: dealsData,
     isLoading: isLoadingDeals,
     refetch: refetchDeals,
-  } = useGetMyDealsQuery();
+  } = useGetMyDealsQuery(undefined, { skip });
   const allDeals: any[] = Array.isArray(dealsData) ? (dealsData as any[]) : [];
 
-  const { data: verificationData, isLoading: isLoadingVerification } = useGetRealtorVerificationStatusQuery();
+  const { data: verificationData, isLoading: isLoadingVerification } =
+    useGetRealtorVerificationStatusQuery(undefined, { skip });
 
   const isLoading = isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals || isLoadingVerification;
 
@@ -162,16 +183,18 @@ export default function RealtorDashboard() {
     ["active", "selected", "backup"].includes(String(b?.status || "").toLowerCase()),
   ).length;
 
-  const kycStatusStr = String((meData as any)?.data?.kyc_status || (meData as any)?.kyc_status || "").toLowerCase();
+  const kycStatusStr = String((meData as any)?.data?.kycStatus || (meData as any)?.kycStatus || "").toLowerCase();
   const isKycDone = ["verified", "approved"].includes(kycStatusStr);
 
   const licenseStatusStr = String(verificationData?.data?.status || verificationData?.status || "").toLowerCase();
   const isLicenseDone = licenseStatusStr === "approved";
 
-  const isProfileDone = Boolean((meData as any)?.data?.state_code || (meData as any)?.state_code);
+  const isProfileDone = Boolean((meData as any)?.data?.stateCode || (meData as any)?.stateCode);
   const isStreamDone = allListings.length > 0;
   const isOfferDone = allBids.length > 0;
   const isContractDone = allDeals.length > 0;
+
+  const isLicenseSubmitted = ["pending", "approved"].includes(licenseStatusStr);
 
   const journeySteps = [
     {
@@ -182,6 +205,8 @@ export default function RealtorDashboard() {
       done: isKycDone,
       link: "/kyc",
       linkLabel: "View",
+      isSubmitted: isKycDone,
+      alwaysShowLink: true,
     },
     {
       id: "license",
@@ -190,7 +215,9 @@ export default function RealtorDashboard() {
       desc: "Submit your State License Number, Brokerage Name, Managing Broker, and Office Address for admin review.",
       done: isLicenseDone,
       link: "/realtor-verification",
-      linkLabel: "Submit",
+      linkLabel: isLicenseSubmitted ? "View" : "Submit",
+      isSubmitted: isLicenseSubmitted,
+      alwaysShowLink: true,
     },
     {
       id: "profile",
@@ -199,7 +226,9 @@ export default function RealtorDashboard() {
       desc: "Configure commission, agency role, and payment source.",
       done: isProfileDone,
       link: "/profile",
-      linkLabel: "Setup",
+      linkLabel: isProfileDone ? "View" : "Setup",
+      isSubmitted: isProfileDone,
+      alwaysShowLink: true,
     },
     {
       id: "stream",
@@ -299,6 +328,7 @@ export default function RealtorDashboard() {
     <div className="space-y-8">
       {/* Hero Banner */}
       <section
+      data-tour="realtor-dashboard"
         className={`relative overflow-hidden rounded-2xl p-8 ${
           isDark
             ? "bg-transparent border border-white/5"
@@ -409,6 +439,7 @@ export default function RealtorDashboard() {
         <div className="flex flex-col gap-6">
           {/* Professional Score */}
           <section
+          data-tour="realtor-professional-score"
           className={`flex-1 rounded-2xl border p-6 shadow-[var(--shadow-card)] flex flex-col justify-center transition-all duration-200 ${
             isDark
               ? "border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/5 to-transparent hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
@@ -726,7 +757,7 @@ export default function RealtorDashboard() {
                       {step.desc}
                     </p>
                   </div>
-                  {(step.done || isNext) && (
+                  {(step.done || isNext || (step as any).isSubmitted || (step as any).alwaysShowLink) && (
                     <Link
                       to={step.link}
                       className="shrink-0 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)] hover:underline"

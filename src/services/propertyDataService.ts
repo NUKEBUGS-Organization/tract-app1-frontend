@@ -7,28 +7,18 @@ export type AddressSuggestion = {
   secondary_text: string | null;
 };
 
+// Google Places is the only provider: address fields only. Year built,
+// property type, zoning and price are entered manually on the form.
 export type PropertyLookupResult = {
   address: string;
-  zip_code: string | null;
+  street_address: string;
+  city: string | null;
   state_code: string | null;
-  year_built: number | null;
-  property_type: "sfh" | "multi_family" | "land" | null;
-  zoning: string | null;
-  unit_count: number | null;
-  suggested_price: number | null;
-
-  bedrooms: number | null;
-  bathrooms: number | null;
-  square_footage: number | null;
-  lot_size_acres: number | null;
+  zip_code: string | null;
   latitude: number | null;
   longitude: number | null;
-  county_fips: string | null;
-  apn: string | null;
-  last_sale_price: number | null;
-  last_sale_date: string | null;
-
-  source: "attom";
+  street_address_complete: boolean;
+  source: "google";
 };
 
 type SearchAddressQuery = {

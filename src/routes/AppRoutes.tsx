@@ -12,13 +12,20 @@ import SignInPage from "../pages/auth/SignIn";
 import VerifyPage from "../pages/auth/Verify";
 import ForgotPasswordPage from "../pages/auth/ForgotPassword";
 import ResetPasswordPage from "../pages/auth/ResetPassword";
+import GoogleCallbackPage from "../pages/auth/GoogleCallbackPage";
+import GoogleCompleteRegistrationPage from "../pages/auth/GoogleCompleteRegistrationPage";
 
 import KycPage from "../pages/kyc";
 import ProfilePage from "../pages/profile";
 
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
-import SupportPage from "../pages/common/SupportPage";
+import SupportListPage from "../pages/support/SupportListPage";
+import SupportNewPage from "../pages/support/SupportNewPage";
+import SupportDetailPage from "../pages/support/SupportDetailPage";
+import SupportFaqPage from "../pages/support/SupportFaqPage";
+import SubscriptionPage from "../pages/settings/SubscriptionPage";
+import TermsOfService from "../pages/common/TermsOfService";
 
 // Seller pages
 import ListPropertyPage from "../pages/seller/ListPropertyPage";
@@ -121,7 +128,25 @@ function AppRoutes() {
         />
       </Route>
 
+      {/* =====================================================
+          GOOGLE OAUTH CALLBACK ROUTES
+          These are NOT under PublicRoute/ProtectedRoute — they
+          are transient landing pages that set up the session
+          themselves and immediately redirect onward.
+      ====================================================== */}
+
+      <Route
+        path="/auth/google/callback"
+        element={<GoogleCallbackPage />}
+      />
+
+      <Route
+        path="/register/google-complete"
+        element={<GoogleCompleteRegistrationPage />}
+      />
+
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
+      <Route path="/auth/terms" element={<TermsOfService />} />
 
       {/* =====================================================
           PROTECTED APPLICATION ROUTES
@@ -159,7 +184,39 @@ function AppRoutes() {
             path="/support"
             element={
               <RoleRoute allowedRoles={ALL_APP_ROLES}>
-                <SupportPage />
+                <SupportListPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/support/new"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SupportNewPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/support/faq"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SupportFaqPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/support/:id"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SupportDetailPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/settings/subscription"
+            element={
+              <RoleRoute allowedRoles={ALL_APP_ROLES}>
+                <SubscriptionPage />
               </RoleRoute>
             }
           />

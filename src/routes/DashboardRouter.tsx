@@ -3,7 +3,6 @@ import { Navigate } from "react-router";
 import DashboardLayout from "../layouts/DashboardLayout";
 
 import { useAuthContext } from "../contexts/AuthContext";
-import { tokenStorage } from "../redux/auth/tokenStorage";
 import { getRoleFromToken } from "../redux/auth/jwtUtils";
 import { useThemeMode } from "../hooks/useThemeMode";
 
@@ -33,6 +32,7 @@ const partnerNav = [
   { label: "My Bids", path: "/my-bids" },
   { label: "Contracts", path: "/my-contracts" },
   { label: "Deal Tracker", path: "/deals" },
+  { label: "Proof of Activity", path: "/proof-of-activity" },
   { label: "Chat", path: "/chat" },
 ];
 
@@ -42,6 +42,7 @@ const realtorNav = [
   { label: "My Offers", path: "/my-bids" },
   { label: "Contracts", path: "/contracts" },
   { label: "Deal Tracker", path: "/deals" },
+  { label: "License Verification", path: "/realtor-verification" },
   { label: "Chat", path: "/chat" },
 ];
 
@@ -70,8 +71,7 @@ const adminNav = [
 export default function DashboardRouter() {
   const { role, accessToken } = useAuthContext();
 
-  const token = accessToken || tokenStorage.getAccessToken();
-  const userRole = normalizeRole(role || getRoleFromToken(token));
+  const userRole = normalizeRole(role || getRoleFromToken(accessToken));
 
   const isPartner = isAllowedRole(userRole, PARTNER_ROLES);
   const isRealtor = isAllowedRole(userRole, REALTOR_ROLES);

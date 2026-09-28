@@ -1,4 +1,5 @@
 import { io, type Socket } from "socket.io-client";
+import { getApiBaseUrl } from "./apiBaseUrl";
 
 let socket: Socket | null = null;
 
@@ -7,7 +8,7 @@ function getSocketBaseUrl() {
 
   if (socketUrl) return socketUrl;
 
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1";
+  const apiBaseUrl = getApiBaseUrl();
 
   return apiBaseUrl.replace(/\/api\/v1\/?$/, "");
 }

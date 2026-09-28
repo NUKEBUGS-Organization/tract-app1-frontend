@@ -112,7 +112,7 @@ export default function ProofOfActivityPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-150px)] space-y-8">
+    <div data-tour="proof-of-activity-page" className="min-h-[calc(100vh-150px)] space-y-8">
       <section
         className={`relative overflow-hidden rounded-2xl p-8 shadow-[var(--shadow-card)] ${isDark
           ? "bg-gradient-to-br from-white/[0.08] to-white/[0.02] border border-white/10"

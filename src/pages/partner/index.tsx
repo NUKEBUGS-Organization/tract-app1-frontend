@@ -22,6 +22,7 @@ import {
 import { useGetListingsQuery } from "../../services/listingService";
 import { useGetMyBidsQuery } from "../../services/listingService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
+import { useSkipUnlessAuthenticated } from "../../hooks/useSkipUnlessAuthenticated";
 import { useGetMyDealsQuery } from "../../services/dealService";
 import { useGetMeQuery } from "../../services/userService";
 import { useGetProofOfActivityStatusQuery } from "../../services/verificationService";
@@ -35,40 +36,53 @@ interface StatCardProps {
   isDark: boolean;
 }
 function StatCard({ label, value, note, icon: Icon, isDark }: StatCardProps) {
+  const valueStr = String(value);
+  const fontSizeClass =
+    valueStr.length > 14
+      ? "text-lg sm:text-xl lg:text-2xl"
+      : valueStr.length > 10
+      ? "text-xl sm:text-2xl lg:text-3xl"
+      : valueStr.length > 7
+      ? "text-2xl sm:text-3xl lg:text-3xl"
+      : "text-3xl lg:text-4xl";
+
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 ${isDark
+      className={`group relative min-w-0 overflow-hidden rounded-2xl border p-5 sm:p-6 shadow-[var(--shadow-card)] transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between ${isDark
         ? "border-white/10 bg-white/[0.06] backdrop-blur shadow-xl hover:border-[var(--color-secondary)]/50 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] hover:bg-white/[0.12]"
         : "border-[var(--color-border-light)] bg-white hover:shadow-xl"
         }`}
     >
-      <div className="mb-5 flex items-start justify-between">
-        <p
-          className={`max-w-[150px] text-[11px] font-black uppercase tracking-[0.22em] ${isDark ? "text-white/45" : "text-[var(--color-text-muted)]"
+      <div>
+        <div className="mb-4 flex items-start justify-between gap-2">
+          <p
+            className={`max-w-[160px] text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? "text-white/45" : "text-[var(--color-text-muted)]"
+              }`}
+          >
+            {label}
+          </p>
+
+          <Icon
+            className={`h-5 w-5 shrink-0 ${isDark
+              ? "text-[var(--color-secondary)]"
+              : "text-[var(--color-primary)]"
+              }`}
+          />
+        </div>
+
+        <div
+          className={`font-serif font-black tracking-tight break-words min-w-0 ${fontSizeClass} ${isDark ? "text-white" : "text-[var(--color-primary)]"
             }`}
+          title={valueStr}
         >
-          {label}
-        </p>
-
-        <Icon
-          className={`h-5 w-5 ${isDark
-            ? "text-[var(--color-secondary)]"
-            : "text-[var(--color-primary)]"
-            }`}
-        />
-      </div>
-
-      <div
-        className={`font-serif text-4xl font-black ${isDark ? "text-white" : "text-[var(--color-primary)]"
-          }`}
-      >
-        {value}
+          {value}
+        </div>
       </div>
 
       <p
-        className={`mt-2 text-xs font-semibold ${isDark
+        className={`mt-3 text-xs font-semibold leading-snug break-words min-w-0 ${isDark
           ? "text-[var(--color-secondary)]"
-          : "text-[var(--color-primary)]/70"
+          : "text-[var(--color-primary)]/75"
           }`}
       >
         {note}
@@ -93,10 +107,13 @@ const PENALTY_TABLE = [
 export default function PartnerDashboard() {
   const theme = usePartnerTheme();
   const isDark = theme === "dark";
+  const skip = useSkipUnlessAuthenticated();
 
-  const { data: meData, isLoading: isLoadingMe } = useGetMeQuery();
+  const { data: meData, isLoading: isLoadingMe } = useGetMeQuery(undefined, {
+    skip,
+  });
   const userName =
-    (meData as any)?.data?.full_name || (meData as any)?.full_name || "Partner";
+    (meData as any)?.data?.fullName || (meData as any)?.fullName || "Partner";
   const currentUserId =
     (meData as any)?.data?._id ||
     (meData as any)?.data?.id ||
@@ -104,8 +121,8 @@ export default function PartnerDashboard() {
     (meData as any)?.id ||
     "";
   const reliabilityScore: number =
-    (meData as any)?.data?.reliability_score ??
-    (meData as any)?.reliability_score ??
+    (meData as any)?.data?.reliabilityScore ??
+    (meData as any)?.reliabilityScore ??
     100;
   const scoreTier =
     reliabilityScore >= 90 ? "Perfect Standing" :
@@ -120,7 +137,7 @@ export default function PartnerDashboard() {
     isLoading: isLoadingListings,
   } = useGetListingsQuery(
     { status: "live" },
-    { refetchOnMountOrArgChange: true },
+    { skip, refetchOnMountOrArgChange: true },
   );
   const allListings: any[] = (() => {
     const payload =
@@ -133,7 +150,10 @@ export default function PartnerDashboard() {
     return [];
   })();
 
-  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery();
+  const { data: bidsData, isLoading: isLoadingBids } = useGetMyBidsQuery(
+    undefined,
+    { skip },
+  );
   const allBids: any[] = (() => {
     const raw: any = bidsData;
     const payload = raw?.data ?? raw;
@@ -155,10 +175,11 @@ export default function PartnerDashboard() {
     data: dealsData,
     isLoading: isLoadingDeals,
     refetch: refetchDeals,
-  } = useGetMyDealsQuery();
+  } = useGetMyDealsQuery(undefined, { skip });
   const allDeals: any[] = Array.isArray(dealsData) ? (dealsData as any[]) : [];
 
-  const { data: verificationData, isLoading: isLoadingVerification } = useGetProofOfActivityStatusQuery();
+  const { data: verificationData, isLoading: isLoadingVerification } =
+    useGetProofOfActivityStatusQuery(undefined, { skip });
 
   const isLoading =
     isLoadingMe || isLoadingListings || isLoadingBids || isLoadingDeals || isLoadingVerification;
@@ -184,11 +205,12 @@ export default function PartnerDashboard() {
   ).length;
   const winRate = totalBids > 0 ? Math.round((wonBids / totalBids) * 100) : 0;
 
-  const kycStatusStr = String((meData as any)?.data?.kyc_status || (meData as any)?.kyc_status || "").toLowerCase();
+  const kycStatusStr = String((meData as any)?.data?.kycStatus || (meData as any)?.kycStatus || "").toLowerCase();
   const isKycDone = ["verified", "approved"].includes(kycStatusStr);
 
   const proofStatusStr = String(verificationData?.data?.status || verificationData?.status || "").toLowerCase();
   const isProofDone = proofStatusStr === "approved";
+  const isProofSubmitted = ["pending", "approved"].includes(proofStatusStr);
 
   const isStreamDone = allListings.length > 0;
   const isBidDone = allBids.length > 0;
@@ -203,6 +225,8 @@ export default function PartnerDashboard() {
       done: isKycDone,
       link: "/kyc",
       linkLabel: "View",
+      isSubmitted: isKycDone,
+      alwaysShowLink: true,
     },
     {
       id: "proof_of_activity",
@@ -211,7 +235,9 @@ export default function PartnerDashboard() {
       desc: "Provide recent transaction history.",
       done: isProofDone,
       link: "/proof-of-activity",
-      linkLabel: "Upload",
+      linkLabel: isProofSubmitted ? "View" : "Upload",
+      isSubmitted: isProofSubmitted,
+      alwaysShowLink: true,
     },
     {
       id: "stream",
@@ -301,6 +327,7 @@ export default function PartnerDashboard() {
   return (
     <div className="space-y-8">
       <section
+      data-tour="partner-dashboard"
         className={`relative overflow-hidden rounded-2xl p-8 ${isDark
           ? "bg-transparent border border-white/5"
           : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary)]/90"
@@ -400,6 +427,7 @@ export default function PartnerDashboard() {
         {/* Score & Activity Rule Column */}
         <div className="flex flex-col gap-6">
           <section
+            data-tour="partner-reliability"
             className={`flex-1 rounded-2xl border p-6 shadow-[var(--shadow-card)] flex flex-col justify-center transition-all duration-200 ${isDark
               ? "border-white/10 bg-gradient-to-br from-[var(--color-secondary)]/5 to-transparent hover:border-white/15 hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
               : "border-[var(--color-border-light)] bg-white hover:border-[rgba(23,77,52,0.2)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)]"
@@ -665,7 +693,7 @@ export default function PartnerDashboard() {
                     </p>
                   </div>
 
-                  {(step.done || isNext) && (
+                  {(step.done || isNext || (step as any).isSubmitted || (step as any).alwaysShowLink) && (
                     <Link
                       to={step.link}
                       className="shrink-0 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-secondary)] hover:underline"

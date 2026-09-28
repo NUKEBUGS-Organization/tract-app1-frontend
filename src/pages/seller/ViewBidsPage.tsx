@@ -156,7 +156,7 @@ function getBidderName(bid: any) {
 
   if (bidder && typeof bidder === "object") {
     return (
-      bidder.full_name ||
+      bidder.fullName ||
       bidder.name ||
       bidder.email ||
       cleanBid?.bidder_name ||
@@ -520,15 +520,19 @@ export default function ViewBidsPage() {
 
   const listings = getListingsFromDashboard(dashboardData);
 
-  const selectedListing =
-    listings.find((listing: any) => listing?._id === listingIdFromUrl) ||
-    listings[0];
+  // Prefer URL id only when it belongs to this seller; otherwise fall back.
+  // Blindly using listingIdFromUrl caused 403s on /bids while UI showed another listing.
+  const ownedFromUrl = listings.find(
+    (listing: any) => String(listing?._id || "") === listingIdFromUrl
+  );
+  const selectedListing = ownedFromUrl || listings[0];
 
-  const activeListingId =
-    listingIdFromUrl || selectedListing?._id || manualListingId || "";
+  const activeListingId = ownedFromUrl
+    ? listingIdFromUrl
+    : String(selectedListing?._id || manualListingId || "");
 
   const activeListing = listings.find(
-    (listing: any) => listing?._id === activeListingId
+    (listing: any) => String(listing?._id || "") === activeListingId
   );
 
   const activeListingLabel = activeListing
@@ -654,7 +658,10 @@ if (showInitialSkeleton) {
 }
 
 return (
-  <div className="space-y-8">
+  <div 
+  data-tour="view-bids-page"
+
+  className="space-y-8">
       {modal && (
         <ConfirmModal
           bid={modal.bid}
@@ -820,7 +827,9 @@ return (
         </section>
       )}
 
-      <section className="rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
+      <section 
+       data-tour="listing-bids-section"
+      className="rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
         <div className="flex flex-col justify-between gap-4 border-b border-[var(--color-border-light)] p-5 lg:flex-row lg:items-center">
           <div>
             <h2 className="font-serif text-xl font-black text-[var(--color-primary)]">

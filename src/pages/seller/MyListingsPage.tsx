@@ -361,7 +361,9 @@ if (isLoading) {
 }
 
   return (
-    <div className="space-y-8">
+    <div
+     data-tour="my-listings-page"
+    className="space-y-8">
       <div>
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
           Seller Portal
