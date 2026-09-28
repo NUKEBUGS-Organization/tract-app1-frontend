@@ -4,6 +4,7 @@ import { usePartnerTheme } from "../../hooks/usePartnerTheme";
 import {
   BETA_TERMS_VERSION,
   MOCK_SUBSCRIPTIONS,
+  type SubscriptionStatus,
   useCancelSubscriptionMutation,
   useGetSubscriptionQuery,
   useMockCheckoutMutation,
@@ -25,7 +26,13 @@ function errorTextOf(error: unknown): string | null {
   return error instanceof Error ? error.message : "Request failed";
 }
 
-function CouponForm({ amount }: { amount: number | null }) {
+function CouponForm({
+  amount,
+  onRedeemed,
+}: {
+  amount: number | null;
+  onRedeemed: (status: SubscriptionStatus) => void;
+}) {
   const [code, setCode] = useState("");
   const [previewCoupon, previewState] = usePreviewCouponMutation();
   const [redeemCoupon, redeemState] = useRedeemCouponMutation();
@@ -34,7 +41,9 @@ function CouponForm({ amount }: { amount: number | null }) {
   const errorText = errorTextOf(previewState.error || redeemState.error);
   const applyCoupon = async () => {
     const quotedCoupon = await previewCoupon(code.trim()).unwrap();
-    if (quotedCoupon.amountDue === 0) await redeemCoupon(quotedCoupon.code).unwrap();
+    if (quotedCoupon.amountDue === 0) {
+      onRedeemed(await redeemCoupon(quotedCoupon.code).unwrap());
+    }
   };
 
   return (
@@ -118,6 +127,8 @@ export default function SubscriptionPage() {
   const [cancel, cancelState] = useCancelSubscriptionMutation();
   const [accepted, setAccepted] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [redeemedStatus, setRedeemedStatus] = useState<SubscriptionStatus | null>(null);
+  const effectiveStatus = redeemedStatus ?? status;
 
   const pending =
     paypalState.isLoading ||
@@ -194,7 +205,7 @@ export default function SubscriptionPage() {
       <section className="space-y-4 rounded-3xl border border-[var(--color-border-light)] bg-white p-6 text-[var(--color-text-main)] shadow-[var(--shadow-card)]">
         {isLoading ? (
           <p>Checking subscription…</p>
-        ) : status?.required === false ? (
+        ) : effectiveStatus?.required === false ? (
           <p>Your role does not require a subscription.</p>
         ) : (
           <>
@@ -204,17 +215,17 @@ export default function SubscriptionPage() {
                 <code>VITE_SUBSCRIPTION_MODE=paypal</code> for live billing.
               </p>
             )}
-            {status && (
+            {effectiveStatus && (
               <p className="text-2xl font-semibold text-[var(--color-primary)]">
-                {status.coupon ? (
+                {effectiveStatus.coupon ? (
                   <>
                     <span className="text-[var(--color-text-muted)] line-through">
-                      ${status.amount}
+                      ${effectiveStatus.amount}
                     </span>{" "}
                     $0
                   </>
                 ) : (
-                  <>${status.amount}</>
+                  <>${effectiveStatus.amount}</>
                 )}
                 <span className="text-sm font-normal"> USD / month</span>
               </p>
@@ -224,18 +235,26 @@ export default function SubscriptionPage() {
               subscription. Contract signing also requires an active
               subscription. Sellers are not charged.
             </p>
-            {status?.active ? (
-              <p role="status">
-                {status.coupon
-                  ? `Coupon ${status.coupon.code} applied — free access through `
+            {effectiveStatus?.active ? (
+              <div className="space-y-3">
+                <p role="status">
+                {effectiveStatus.coupon
+                  ? `Subscription activated. Coupon ${effectiveStatus.coupon.code} applied — free access through `
                   : MOCK_SUBSCRIPTIONS
-                    ? "Paid (test). Access through "
-                    : "Paid access through "}
-                {status.paidUntil
-                  ? new Date(status.paidUntil).toLocaleDateString()
+                    ? "Subscription activated. Test access through "
+                    : "Subscription activated. Paid access through "}
+                {effectiveStatus.paidUntil
+                  ? new Date(effectiveStatus.paidUntil).toLocaleDateString()
                   : "—"}
-                {status.status === "CANCELLED" ? ". Renewal cancelled." : "."}
-              </p>
+                {effectiveStatus.status === "CANCELLED" ? ". Renewal cancelled." : "."}
+                </p>
+                <Link
+                  to="/"
+                  className="inline-flex rounded-xl bg-[var(--color-secondary)] px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary-dark)]"
+                >
+                  Continue to dashboard
+                </Link>
+              </div>
             ) : (
               <>
                 {!MOCK_SUBSCRIPTIONS && (
@@ -259,7 +278,7 @@ export default function SubscriptionPage() {
                 {MOCK_SUBSCRIPTIONS ? (
                   <button
                     type="button"
-                    disabled={pending || !status}
+                    disabled={pending || !effectiveStatus}
                     onClick={onSubscribe}
                     className="rounded-xl bg-[var(--color-secondary)] px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--color-primary-dark)] disabled:opacity-50"
                   >
@@ -267,10 +286,10 @@ export default function SubscriptionPage() {
                   </button>
                 ) : (
                   <>
-                    <PayPalCardSubscriptionButton disabled={!accepted || pending || !status} />
+                    <PayPalCardSubscriptionButton disabled={!accepted || pending || !effectiveStatus} />
                     <button
                       type="button"
-                      disabled={!accepted || pending || !status}
+                      disabled={!accepted || pending || !effectiveStatus}
                       onClick={onSubscribe}
                       className="text-sm underline disabled:opacity-50"
                     >
@@ -278,7 +297,7 @@ export default function SubscriptionPage() {
                     </button>
                   </>
                 )}
-                <CouponForm amount={status?.amount ?? null} />
+                <CouponForm amount={effectiveStatus?.amount ?? null} onRedeemed={setRedeemedStatus} />
               </>
             )}
             <button
@@ -289,7 +308,7 @@ export default function SubscriptionPage() {
             >
               Check payment status
             </button>
-            {status?.canCancel && (
+            {effectiveStatus?.canCancel && (
               <div className="pt-2">
                 {confirmCancel ? (
                   <>
