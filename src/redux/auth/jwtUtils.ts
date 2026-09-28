@@ -16,7 +16,6 @@ export interface DecodedAccessToken {
   sub?: string;
   email?: string;
   role?: TokenUserRole;
-  full_name?: string;
   fullName?: string;
   exp?: number;
   iat?: number;
@@ -25,8 +24,7 @@ export interface DecodedAccessToken {
     id?: string;
     email?: string;
     role?: TokenUserRole;
-    full_name?: string;
-    fullName?: string;
+      fullName?: string;
   };
 
   data?: {

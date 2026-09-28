@@ -11,6 +11,7 @@ import {
   Loader2,
   RefreshCw,
   ShieldCheck,
+  Store,
 } from "lucide-react";
 
 import { PageSkeleton } from "../../components/common/Skeleton";
@@ -30,6 +31,7 @@ import {
 import DocuSealSignButton from "./contracts/DocuSealSignButton";
 
 import { useGetMyDealsQuery } from "../../services/dealService";
+import { getEntityId, resolveOwnedListingId } from "../../utils/ids";
 
 function getDashboardPayload(response: any) {
   return response?.data ?? response ?? {};
@@ -78,10 +80,7 @@ function getArrayPayload(value: any) {
 }
 
 function getId(item: any) {
-  if (!item) return "";
-  if (typeof item === "string") return item;
-
-  return item?._id || item?.id || "";
+  return getEntityId(item);
 }
 
 function getListingLabel(listing: any) {
@@ -102,9 +101,9 @@ function getSelectedBid(bids: any[]) {
 
 function getBidderName(bid: any, contract?: any) {
   return (
-    bid?.bidder_id?.full_name ||
+    bid?.bidder_id?.fullName ||
     bid?.bidder_id?.email ||
-    contract?.buyer_id?.full_name ||
+    contract?.buyer_id?.fullName ||
     contract?.buyer_id?.email ||
     "Selected Partner"
   );
@@ -231,6 +230,28 @@ function formatStatus(status?: string) {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+/** App2 listing pipeline label for closed App1 deals (fail-soft: unknown → not an error). */
+function formatApp2ListingStatus(status?: string | null) {
+  switch (String(status || "").toLowerCase()) {
+    case "marketing_pending":
+      return "Marketing (Pending)";
+    case "listed":
+      return "Listed on Buyer Tract";
+    case "under_contract":
+      return "Under Contract";
+    case "sold":
+      return "Sold";
+    case "source_deal_fell_through":
+      return "Source deal fell through";
+    case "cancelled":
+      return "Cancelled";
+    case "unknown":
+      return "Status unavailable";
+    default:
+      return "Status unavailable";
+  }
 }
 
 function getErrorMessage(error: any, fallback: string) {
@@ -472,18 +493,18 @@ export default function DealTrackerPage() {
 
   const listings = getListingsFromDashboard(dashboardData);
 
-  const selectedListing =
-    listings.find((listing: any) => getId(listing) === listingIdFromUrl) ||
-    listings.find((listing: any) =>
-      ["under_contract", "live"].includes(String(listing?.status).toLowerCase())
-    ) ||
-    listings[0];
+  const preferredStatuses = listings.filter((listing: any) =>
+    ["under_contract", "live"].includes(String(listing?.status).toLowerCase())
+  );
+  const fallbackPool = preferredStatuses.length > 0 ? preferredStatuses : listings;
 
-  const activeListingId = listingIdFromUrl || getId(selectedListing);
+  const activeListingId =
+    resolveOwnedListingId(listings, listingIdFromUrl) ||
+    resolveOwnedListingId(fallbackPool, "");
 
   const activeListing =
     listings.find((listing: any) => getId(listing) === activeListingId) ||
-    selectedListing;
+    listings[0];
 
   const {
     data: bidsData = [],
@@ -600,9 +621,21 @@ export default function DealTrackerPage() {
   const marketingProofUrl = activeDeal?.marketing_proof_url;
   const marketLaunchProofUrl = activeDeal?.market_launch_proof_url;
   const proceedToClosingAt = activeDeal?.proceed_to_closing_at;
- const dealStatus = activeDeal?.status;
+const dealStatus = activeDeal?.status;
 const isDealTerminal = isTerminalDealStatus(dealStatus);
 const isFlowStopped = isCancelled || isDealTerminal;
+const isDealClosed = String(dealStatus || "").toLowerCase() === "closed";
+const isDealCancelledOrBackup = ["cancelled", "canceled", "backup_activated"].includes(
+  String(dealStatus || "").toLowerCase(),
+);
+/** Red "cancelled" banner — not for successfully closed deals. */
+const showCancelledBanner = isCancelled || isDealCancelledOrBackup;
+const app2ListingStatusLabel = isDealClosed
+  ? formatApp2ListingStatus(activeDeal?.app2Status?.status)
+  : null;
+const sourceDealFellThrough =
+  String(activeDeal?.app2Status?.status || "").toLowerCase() ===
+  "source_deal_fell_through";
 
 const hasMarketingTracking = Boolean(marketingDeadline || marketLaunchDeadline);
 const hasProofUploaded = Boolean(marketingProofUrl || marketLaunchProofUrl);
@@ -947,7 +980,9 @@ async function handleCancelContract() {
   }
 
   return (
-    <div className="space-y-8">
+    <div
+    data-tour="deal-tracker-page"
+    className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
@@ -981,7 +1016,7 @@ async function handleCancelContract() {
         </div>
       )}
 
-      {isFlowStopped && (
+      {showCancelledBanner && (
   <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
     This contract/deal is cancelled. Deal tracker timer and actions are disabled.
   </div>
@@ -1050,7 +1085,7 @@ async function handleCancelContract() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+      <div className={`grid grid-cols-1 gap-5 md:grid-cols-2 ${isDealClosed ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
         <StatCard
           title="Signatures"
           value={`${sellerSigned ? "Seller ✓" : "Seller -"} / ${buyerSigned ? "Buyer ✓" : "Buyer -"
@@ -1075,6 +1110,14 @@ async function handleCancelContract() {
           value={hasProofUploaded ? "Uploaded" : "Pending"}
           icon={ShieldCheck}
         />
+
+        {isDealClosed && app2ListingStatusLabel ? (
+          <StatCard
+            title="Buyer Tract Status"
+            value={app2ListingStatusLabel}
+            icon={Store}
+          />
+        ) : null}
       </div>
 
       <div className="rounded-2xl border border-[var(--color-border-light)] bg-white shadow-[var(--shadow-card)]">
@@ -1096,9 +1139,27 @@ async function handleCancelContract() {
           </div>
 
           <StatusPill
-  status={isFlowStopped ? "cancelled" : activeDeal?.status || contract?.status || "not_started"}
+  status={
+    showCancelledBanner
+      ? "cancelled"
+      : activeDeal?.status || contract?.status || "not_started"
+  }
 />
         </div>
+
+        {sourceDealFellThrough ? (
+          <div className="mx-6 mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span className="mt-0.5 font-black uppercase tracking-wider text-[10px] text-amber-700">
+              Warning
+            </span>
+            <p>
+              An App2 listing is still linked to this deal after it fell through
+              (cancelled or backup activated). The wholesaler may still be
+              marketing this property — follow up before assuming assignment
+              progress.
+            </p>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-4">
@@ -1233,6 +1294,24 @@ async function handleCancelContract() {
                 </div>
               </div>
             )}
+
+            {isDealClosed && app2ListingStatusLabel ? (
+              <div className="rounded-2xl border border-[var(--color-border-light)] bg-white p-5 shadow-[var(--shadow-card)]">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+                  Buyer Tract Status
+                </p>
+
+                <h3 className="mt-2 font-serif text-xl font-black text-[var(--color-primary)]">
+                  {app2ListingStatusLabel}
+                </h3>
+
+                <p className="mt-3 text-sm leading-6 text-[var(--color-text-muted)]">
+                  {String(activeDeal?.app2Status?.status || "").toLowerCase() === "unknown"
+                    ? "Marketplace status is temporarily unavailable. Check back later."
+                    : "Status of this property after it was listed on Buyer Tract."}
+                </p>
+              </div>
+            ) : null}
 
             {!selectedBid && !contract && (
               <Link

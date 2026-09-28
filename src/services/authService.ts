@@ -1,18 +1,17 @@
-import { baseApi } from "./baseApi";
+import { baseApi, blockAuthRefresh } from "./baseApi";
 import { logout } from "../redux/auth/authSlice";
-
 
 export const authService = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     register: builder.mutation<
       any,
       {
-        full_name: string;
+        fullName: string;
         email: string;
         phone: string;
         password: string;
         role: string;
-        state_code: string;
+        stateCode: string;
         dob: string;
       }
     >({
@@ -66,16 +65,11 @@ export const authService = baseApi.injectEndpoints({
       }),
     }),
 
-    refreshToken: builder.mutation<
-      any,
-      {
-        refresh_token: string;
-      }
-    >({
-      query: (body) => ({
+    refreshToken: builder.mutation<any, void>({
+      query: () => ({
         url: "auth/refresh",
         method: "POST",
-        body,
+        body: {},
       }),
     }),
 
@@ -89,7 +83,9 @@ export const authService = baseApi.injectEndpoints({
         try {
           await queryFulfilled;
         } finally {
+          blockAuthRefresh();
           dispatch(logout());
+          dispatch(baseApi.util.resetApiState());
         }
       },
     }),
@@ -97,8 +93,8 @@ export const authService = baseApi.injectEndpoints({
     resetPassword: builder.mutation<
       any,
       {
-        reset_token: string;
-        new_password: string;
+        resetToken: string;
+        newPassword: string;
       }
     >({
       query: (body) => ({

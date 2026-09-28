@@ -81,13 +81,15 @@ export const registerSchema = z
 
     state: z.string().min(1, "State is required"),
 
-    role: z.enum(["seller", "wholesaler", "realtor", "admin"], {
+    role: z.enum(["seller", "wholesaler", "realtor"], {
       message: "Please select a role",
     }),
 
     terms: z
       .boolean()
       .refine((value) => value === true, "You must agree to the terms"),
+
+    // terms: z.boolean().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",

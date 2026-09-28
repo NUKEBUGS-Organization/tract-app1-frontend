@@ -13,8 +13,8 @@ export const userService = baseApi.injectEndpoints({
     updateMe: builder.mutation<
       any,
       {
-        full_name?: string;
-        state_code?: string;
+        fullName?: string;
+        stateCode?: string;
         dob?: string;
       }
     >({
@@ -29,8 +29,8 @@ export const userService = baseApi.injectEndpoints({
     changePassword: builder.mutation<
       any,
       {
-        current_password: string;
-        new_password: string;
+        currentPassword: string;
+        newPassword: string;
       }
     >({
       query: (body) => ({

@@ -79,7 +79,7 @@ function getUserKycStatus(user: any, localStatuses: Record<string, string>) {
   const doc = getApiDoc(user);
   const userId = getMongoId(doc);
 
-  return localStatuses[userId] || doc?.kyc_status || "pending";
+  return localStatuses[userId] || doc?.kycStatus || "pending";
 }
 
 function getVerificationUser(verification: any) {
@@ -150,7 +150,7 @@ function buildSearchText(item: VerificationItem) {
     getPersonName(user),
     getEmail(user),
     getRole(user),
-    doc?.kyc_status,
+    doc?.kycStatus,
     doc?.state_license_number,
     doc?.brokerage_name,
     doc?.managing_broker,

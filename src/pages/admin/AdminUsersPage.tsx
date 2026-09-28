@@ -64,11 +64,11 @@ function getUserRole(user: any) {
 }
 
 function getUserKycStatus(user: any) {
-  return user?.kyc_status || "unknown";
+  return user?.kycStatus || "unknown";
 }
 
 function getUserBanStatus(user: any) {
-  return user?.is_banned ? "banned" : "active";
+  return user?.isBanned ? "banned" : "active";
 }
 
 
@@ -89,7 +89,7 @@ function isPendingKyc(status: string) {
 function getUserCounts(users: any[]) {
   return users.reduce(
     (counts, user) => {
-      if (user?.is_banned) counts.banned += 1;
+      if (user?.isBanned) counts.banned += 1;
       else counts.active += 1;
 
       const status = getUserKycStatus(user);
@@ -369,7 +369,7 @@ function UserCard({
 
         <StatusBadge
           label={formatLabel(banStatus)}
-          variant={user.is_banned ? "danger" : "success"}
+          variant={user.isBanned ? "danger" : "success"}
         />
       </div>
 
@@ -417,7 +417,7 @@ function UserCard({
           View Details
         </Link>
 
-        {user.is_banned ? (
+        {user.isBanned ? (
           <Button
             type="button"
             variant="outline"
@@ -787,8 +787,8 @@ function AdminUsersPage() {
 
                       <td className="px-6 py-5">
                         <StatusBadge
-                          label={user.is_banned ? "Banned" : "Active"}
-                          variant={user.is_banned ? "danger" : "success"}
+                          label={user.isBanned ? "Banned" : "Active"}
+                          variant={user.isBanned ? "danger" : "success"}
                         />
                       </td>
 
@@ -800,7 +800,7 @@ function AdminUsersPage() {
                         <div className="flex min-w-[92px] items-center justify-center gap-2">
                           <ViewUserButton user={user} />
 
-                          {user.is_banned ? (
+                          {user.isBanned ? (
                             <ActionIconButton
                               label="Unban User"
                               variant="success"

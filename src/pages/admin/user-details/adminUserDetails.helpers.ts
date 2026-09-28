@@ -73,13 +73,13 @@ export function getRawRole(user: any) {
 export function getKycStatus(user: any) {
   const doc = getDoc(user);
 
-  return doc?.kyc_status || doc?.kycStatus || "-";
+  return doc?.kycStatus || "-";
 }
 
 export function getBanReason(user: any) {
   const doc = getDoc(user);
 
-  return doc?.ban_reason || doc?.banReason || "-";
+  return doc?.banReason || "-";
 }
 
 export function getCreatedAt(user: any) {

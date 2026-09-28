@@ -431,6 +431,15 @@ interface UnifiedEntry {
   bidId?: string;
   inspectionPeriod?: number | null;
   dueDiligencePeriod?: number | null;
+  /** Enriched by App1 getMyDeals from App2 by-app1-deal (when eligible). */
+  app2Status?: {
+    status?: string;
+    currentStep?: string;
+    listingId?: string;
+    dealId?: string;
+    closedAt?: string | null;
+    titleRepAssigned?: boolean;
+  } | null;
 }
 
 export default function ActiveDealsPage() {
@@ -484,6 +493,7 @@ export default function ActiveDealsPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showCancelContractConfirm, setShowCancelContractConfirm] = useState(false);
   const [docuSealError, setDocuSealError] = useState("");
+  const [docuSealSuccess, setDocuSealSuccess] = useState("");
   const [isDocuSealRefreshing, setIsDocuSealRefreshing] = useState(false);
 
   const isLoading = isLoadingDeals || isLoadingBids;
@@ -533,6 +543,7 @@ export default function ActiveDealsPage() {
         chatUnlocked: deal?.chat_unlocked,
         inspectionPeriod: matchingBid?.inspection_period ?? null,
         dueDiligencePeriod: matchingBid?.due_diligence_period ?? null,
+        app2Status: deal?.app2Status ?? null,
       });
     }
 
@@ -556,7 +567,7 @@ export default function ActiveDealsPage() {
       if (dealListingIds.has(listingId) && !isContractCancelled) continue;
 
       entries.push({
-        _entryKey: isContractCancelled ? `${listingId}-cancelled-${bidId}` : listingId,
+        _entryKey: listingId,
         _type: "pending_contract",
         _raw: bid,
         address:
@@ -595,6 +606,18 @@ export default function ActiveDealsPage() {
     }
   }, [activeEntryKey, listingIdFromUrl, isLoading, setSearchParams]);
 
+  // After cancellation the refetch may change what entries exist. If the URL
+  // param no longer matches any entry, clear it so the page auto-selects the
+  // first available entry instead of rendering a blank page.
+  useEffect(() => {
+    if (listingIdFromUrl && !isLoading && unifiedEntries.length > 0) {
+      const stillExists = unifiedEntries.some((e) => e._entryKey === listingIdFromUrl);
+      if (!stillExists) {
+        setSearchParams({ listingId: unifiedEntries[0]._entryKey }, { replace: true });
+      }
+    }
+  }, [unifiedEntries, listingIdFromUrl, isLoading, setSearchParams]);
+
   const activeEntry = unifiedEntries.find(
     (e) => e._entryKey === activeEntryKey,
   );
@@ -616,7 +639,7 @@ export default function ActiveDealsPage() {
   // Derive data from active entry
   const entryStatus = activeEntry?.status || "not_started";
   const statusConfig = getDealStatusConfig(entryStatus);
-  const isCancelled = entryStatus === "cancelled";
+  const isCancelled = ["cancelled", "canceled", "backup_activated"].includes(entryStatus);
 
   const pendingContractObj = isPendingContract ? contractByBidData : null;
 
@@ -653,6 +676,63 @@ export default function ActiveDealsPage() {
   const activeCountdown = getCountdownParts(marketingDeadline, now);
   const proofUrl = activeEntry?.proofUrl;
   const proceedToClosing = Boolean(activeEntry?.proceedToClosingAt);
+  const app2StatusRaw = activeEntry?.app2Status;
+  const app2ListingStatus = String(app2StatusRaw?.status || "").toLowerCase();
+  const app2CurrentStep = String(app2StatusRaw?.currentStep || "").toLowerCase();
+  const app2TitleRepAssigned = Boolean(app2StatusRaw?.titleRepAssigned);
+  // Early App2 steps (buyer/wholesaler) — before title-rep pipeline
+  const app2EarlySteps = new Set([
+    "contract_signed",
+    "emd_deposited",
+    "inspection_period",
+  ]);
+  // Title-rep steps start at appraisal_ordered (App2 advance steps 4–8)
+  const app2MidSteps = new Set([
+    "appraisal_ordered",
+    "financing_approved",
+    "title_search_complete",
+    "clear_to_close",
+  ]);
+  const app2DealOpen =
+    app2ListingStatus === "under_contract" || app2ListingStatus === "sold";
+  const app2PastEscrow =
+    app2MidSteps.has(app2CurrentStep) ||
+    app2CurrentStep === "funded_closed" ||
+    app2CurrentStep === "clear_to_close";
+  const app1DealClosed = String(activeEntry?.status || "").toLowerCase() === "closed";
+  // Title & Escrow: Buyer Tract deal is open (title rep assign is operational, not a
+  // blocker for this partner step). Any mid/late App2 step also implies escrow opened.
+  const step10Done =
+    app1DealClosed ||
+    app2ListingStatus === "sold" ||
+    (app2ListingStatus === "under_contract" &&
+      (app2TitleRepAssigned ||
+        app2EarlySteps.has(app2CurrentStep) ||
+        app2PastEscrow ||
+        Boolean(app2CurrentStep)));
+  // Clear to Close / Funded: treat later steps as completing earlier ones
+  const step12Done =
+    app1DealClosed ||
+    app2ListingStatus === "sold" ||
+    app2CurrentStep === "funded_closed";
+  const step11Done =
+    step12Done ||
+    app2CurrentStep === "clear_to_close" ||
+    app2ListingStatus === "sold";
+  const step10Current =
+    Boolean(proceedToClosing) &&
+    !step10Done &&
+    !step11Done &&
+    !step12Done;
+  const step11Current =
+    app2ListingStatus === "under_contract" &&
+    app2MidSteps.has(app2CurrentStep) &&
+    app2CurrentStep !== "clear_to_close" &&
+    !step12Done;
+  const step12Current =
+    !step12Done &&
+    app2ListingStatus === "under_contract" &&
+    app2CurrentStep === "funded_closed";
 
   // Due Diligence: uses actual due_diligence_period from the bid (in calendar days)
   const ddDays = activeEntry?.dueDiligencePeriod ?? 10; // fallback to 10 days
@@ -663,7 +743,7 @@ export default function ActiveDealsPage() {
     : undefined;
   const ddCountdown = getCountdownParts(ddDeadline, now);
   const ddActive = Boolean(proofUrl && !proceedToClosing);
-  const ddDone = proceedToClosing || (ddCountdown?.expired ?? false);
+  const ddDone = proceedToClosing || (Boolean(proofUrl) && (ddCountdown?.expired ?? false));
 
   // Inspection Period: uses actual inspection_period from the bid (in calendar days)
   const inspectionDays = activeEntry?.inspectionPeriod ?? 7; // fallback to 7 days
@@ -727,10 +807,12 @@ export default function ActiveDealsPage() {
     try {
       setIsDocuSealRefreshing(true);
       setDocuSealError("");
+      setDocuSealSuccess("");
       await refetchDeals();
       if (_pendingBidId) {
         await refetchContractByBid();
       }
+      setDocuSealSuccess("Contract refreshed. If signing is not updated yet, wait a few seconds and refresh again.");
     } finally {
       setIsDocuSealRefreshing(false);
     }
@@ -947,32 +1029,53 @@ export default function ActiveDealsPage() {
       },
       {
         title: "Title & Escrow Opened",
-        description: proceedToClosing
-          ? "Title Company Assigned · Escrow File Created · Earnest Money Verified"
-          : "Pending confirmation to proceed.",
-        done: false,
-        current: proceedToClosing,
-        locked: !proceedToClosing,
+        description: step10Done
+          ? step12Done || app2ListingStatus === "sold"
+            ? "Title & escrow complete — deal funded on Buyer Tract."
+            : app2TitleRepAssigned
+              ? "Title rep assigned · title & escrow open on Buyer Tract."
+              : `Buyer Tract deal in progress (${app2CurrentStep.replace(/_/g, " ") || "under contract"}).`
+          : app2DealOpen && !app2TitleRepAssigned
+            ? "Buyer Tract deal open — assign a title rep on Buyer Tract to staff title & escrow."
+            : proceedToClosing
+              ? "Waiting for Buyer Tract listing / deal to open title & escrow."
+              : "Pending confirmation to proceed.",
+        done: step10Done,
+        current: step10Current,
+        locked: !proceedToClosing && !step10Done,
       },
       {
         title: "Clear to Close",
-        description:
-          "Title Search Complete ✓ · Documents Approved ✓ · Closing Scheduled ✓",
-        done: false,
-        current: false,
-        locked: true,
+        description: step11Done
+          ? step12Done
+            ? "Clear to close completed on Buyer Tract."
+            : "Title search, documents, and closing cleared on Buyer Tract."
+          : step11Current
+            ? `Title rep pipeline active (${app2CurrentStep.replace(/_/g, " ")}). Advance through Appraisal ordered → Clear to close.`
+            : step10Done
+              ? "Waiting for admin/title rep to advance Buyer Tract to Appraisal ordered."
+              : "Title Search Complete · Documents Approved · Closing Scheduled",
+        done: step11Done,
+        current: step11Current,
+        locked: !step10Done && !step11Current && !step11Done,
       },
       {
         title: "Funded & Closed",
-        description: "Final payout and transfer.",
-        done: false,
-        current: false,
-        locked: true,
+        description: step12Done
+          ? "Final payout and transfer complete on Buyer Tract."
+          : step12Current
+            ? "Funding / closing in progress on Buyer Tract."
+            : "Final payout and transfer.",
+        done: step12Done,
+        current: step12Current,
+        locked: !step11Done && !step12Current && !step12Done,
       },
     ];
 
   return (
-    <div className="space-y-8 pb-24">
+    <div 
+      data-tour="partner-deals-page"
+    className="space-y-8 pb-24">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -1024,11 +1127,19 @@ export default function ActiveDealsPage() {
 
       {isCancelled && (
         <div className="rounded-xl border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/10 p-4 text-sm font-semibold text-[var(--color-danger)]">
-          This contract is cancelled. Deal tracker actions are disabled.
+          {entryStatus === "backup_activated"
+            ? "You missed the 72-hour marketing deadline. A backup partner has been promoted on the seller's behalf. Deal tracker actions are disabled."
+            : "This contract is cancelled. Deal tracker actions are disabled."}
         </div>
       )}
 
-      {/* 72h Marketing Countdown Banner */}
+      {docuSealSuccess && (
+        <div className={`rounded-xl border p-4 text-sm font-semibold ${isDark ? "border-[var(--color-secondary)]/30 bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]" : "border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 text-[var(--color-primary)]"}`}>
+          {docuSealSuccess}
+        </div>
+      )}
+
+
       {marketingDeadline && !proofUrl && !isCancelled && (
         <PhaseCountdownBanner
           title="Action Required: 72h Marketing Window"
@@ -1581,9 +1692,18 @@ export default function ActiveDealsPage() {
                     disabled={isDocuSealRefreshing}
                     className="flex w-full items-center justify-center gap-2 bg-[var(--color-danger)] px-5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[0_0_20px_rgba(220,38,38,0.2)] transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
                     onError={(msg: string) => setDocuSealError(msg)}
-                    onSigningOpened={() => setDocuSealError("")}
+                    onSigningOpened={() => { setDocuSealError(""); setDocuSealSuccess(""); }}
                     onReturnFromSigning={handleDocuSealReturn}
                   />
+                  {isDocuSealRefreshing && (
+                    <p className={`flex items-center gap-2 text-[11px] font-semibold ${isDark ? "text-white/50" : "text-[var(--color-text-muted)]"}`}>
+                      <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                      </svg>
+                      Refreshing contract data — please wait...
+                    </p>
+                  )}
                 </div>
               )}
 
