@@ -369,9 +369,9 @@ set("address", suggestion.description);
       )}
 
       {isDropdownOpen && canSearch && (
-        <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-xl border border-[var(--color-border-light)] bg-white shadow-xl">
+        <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-xl border border-[var(--color-border-light)] bg-white text-slate-950 shadow-xl">
           {isSearching && (
-            <div className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-[var(--color-text-muted)]">
+            <div className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-slate-600">
               <Loader2 className="h-4 w-4 animate-spin" />
               Searching addresses...
             </div>
@@ -384,7 +384,7 @@ set("address", suggestion.description);
           )}
 
           {!isSearching && !searchError && visibleSuggestions.length === 0 && (
-            <div className="px-4 py-3 text-sm font-semibold text-[var(--color-text-muted)]">
+            <div className="px-4 py-3 text-sm font-semibold text-slate-600">
               No address suggestions found.
             </div>
           )}
@@ -399,17 +399,17 @@ set("address", suggestion.description);
                 onClick={() => handleSelectSuggestion(suggestion)}
                 className="flex w-full items-start gap-3 border-b border-[var(--color-border-light)] px-4 py-3 text-left transition last:border-b-0 hover:bg-[var(--color-primary)]/5"
               >
-                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-bg-soft)] text-[var(--color-primary)]">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[var(--color-primary)]">
                   <MapPin className="h-4 w-4" />
                 </div>
 
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-[var(--color-text-main)]">
+                  <p className="truncate text-sm font-black text-slate-950">
                     {suggestion.main_text || suggestion.description}
                   </p>
 
                   {suggestion.secondary_text && (
-                    <p className="mt-0.5 truncate text-xs font-semibold text-[var(--color-text-muted)]">
+                    <p className="mt-0.5 truncate text-xs font-semibold text-slate-600">
                       {suggestion.secondary_text}
                     </p>
                   )}
