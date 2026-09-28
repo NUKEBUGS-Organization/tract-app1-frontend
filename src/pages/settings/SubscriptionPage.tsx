@@ -242,7 +242,7 @@ export default function SubscriptionPage() {
                   ? `Subscription activated. Coupon ${effectiveStatus.coupon.code} applied — free access through `
                   : MOCK_SUBSCRIPTIONS
                     ? "Subscription activated. Test access through "
-                    : "Subscription activated. Paid access through "}
+                    : "You already paid the subscription for this month. Access through "}
                 {effectiveStatus.paidUntil
                   ? new Date(effectiveStatus.paidUntil).toLocaleDateString()
                   : "—"}
