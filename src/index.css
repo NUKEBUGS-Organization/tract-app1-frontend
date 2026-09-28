@@ -153,3 +153,195 @@ html[data-wholesaler-theme="light"] .modal-surface .modal-body-text {
 html[data-wholesaler-theme] * {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
 } */
+
+
+/* =========================================================
+   TRACT DRIVER.JS WALKTHROUGH
+========================================================= */
+
+.tract-driver-popover.driver-popover {
+  max-width: 370px;
+  padding: 22px;
+
+  border: 1px solid var(--color-border-light);
+  border-radius: 18px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.18),
+    0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+
+/* Title */
+.tract-driver-popover .driver-popover-title {
+  color: var(--color-primary);
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 20px;
+  font-weight: 800;
+
+  line-height: 1.3;
+}
+
+
+/* Description */
+.tract-driver-popover .driver-popover-description {
+  margin-top: 9px;
+
+  color: var(--color-text-muted);
+
+  font-size: 13px;
+  font-weight: 500;
+
+  line-height: 1.65;
+}
+
+
+/* Progress */
+.tract-driver-popover .driver-popover-progress-text {
+  color: var(--color-text-muted);
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+
+/* Footer */
+.tract-driver-popover .driver-popover-footer {
+  margin-top: 20px;
+}
+
+
+/* NEXT / FINISH */
+.tract-driver-popover .driver-popover-next-btn {
+  border: none;
+
+  border-radius: 0;
+
+  background: var(--color-primary) !important;
+
+  padding: 10px 16px;
+
+  color: #ffffff !important;
+
+  font-size: 10px;
+  font-weight: 900;
+
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+
+  text-shadow: none;
+
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+
+.tract-driver-popover .driver-popover-next-btn:hover,
+.tract-driver-popover .driver-popover-next-btn:focus,
+.tract-driver-popover .driver-popover-next-btn:active {
+  background: var(--color-primary) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
+
+/* BACK */
+.tract-driver-popover .driver-popover-prev-btn {
+  border: 1px solid var(--color-border-light);
+
+  border-radius: 0;
+
+  background: #ffffff;
+
+  padding: 10px 14px;
+
+  color: var(--color-primary);
+
+  font-size: 10px;
+  font-weight: 900;
+
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  text-shadow: none;
+}
+
+
+/* CLOSE X */
+.tract-driver-popover .driver-popover-close-btn {
+  color: var(--color-text-muted);
+
+  font-size: 22px;
+  font-weight: 400;
+}
+
+
+.tract-driver-popover .driver-popover-close-btn:hover {
+  color: var(--color-primary);
+}
+
+
+/* Highlighted area */
+.driver-active-element {
+  border-radius: 12px;
+}
+
+
+/* =========================================================
+   WALKTHROUGH - SKIP TOUR BUTTON
+========================================================= */
+
+.tract-driver-popover .tract-tour-skip-btn {
+  margin-right: auto !important;
+
+  border: 0 !important;
+
+  background: transparent !important;
+
+  padding: 9px 8px !important;
+
+  color: var(--color-text-muted) !important;
+
+  box-shadow: none !important;
+
+  font-size: 10px !important;
+
+  font-weight: 900 !important;
+
+  letter-spacing: 0.12em !important;
+
+  text-transform: uppercase !important;
+
+  text-shadow: none !important;
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease !important;
+}
+
+.tract-driver-popover .tract-tour-skip-btn:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+
+  color: var(--color-danger) !important;
+}
+
+/* Hide scrollbar cross-browser while keeping scroll functionality */
+.scrollbar-none {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE / Edge */
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+  /* Chrome / Safari */
+}

@@ -320,7 +320,9 @@ export default function SubmitBidPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div 
+     data-tour="partner-bid-wizard"
+    className="space-y-8">
       {toast && <ToastPopup toast={toast} onClose={() => setToast(null)} />}
 
       {/* Header */}
@@ -361,12 +363,16 @@ export default function SubmitBidPage() {
       </div>
 
       {/* Step Indicator */}
-      <div className="overflow-x-auto pb-2">
-        <BidStepIndicator current={step} />
-      </div>
+    <div
+  data-tour="partner-bid-steps"
+  className="overflow-x-auto pb-2"
+>
+  <BidStepIndicator current={step} />
+</div>
 
       {/* Step Content */}
       <div
+        data-tour="partner-bid-form"
         className={`min-h-[400px] rounded-2xl border p-6 lg:p-8 ${isDark
           ? "border-white/10 bg-white/[0.03]"
           : "border-[var(--color-border-light)] bg-white"

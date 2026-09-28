@@ -152,7 +152,9 @@ export default function ChatRoomsPage() {
     return <PageSkeleton />;
   }
   return (
-    <div className="space-y-8">
+    <div 
+        data-tour="chat-page"
+    className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--color-text-muted)]">
@@ -232,7 +234,7 @@ export default function ChatRoomsPage() {
                     </p>
 
                     <h2 className="mt-2 truncate font-serif text-2xl font-black text-[var(--color-primary)]">
-                      {otherUser?.full_name || otherUser?.email || "Deal Chat"}
+                      {otherUser?.fullName || otherUser?.email || "Deal Chat"}
                     </h2>
 
                     <div className="mt-4">

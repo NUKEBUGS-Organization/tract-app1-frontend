@@ -154,7 +154,7 @@ export default function RealtorVerificationPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-150px)] space-y-8">
+    <div data-tour="realtor-verification-page" className="min-h-[calc(100vh-150px)] space-y-8">
       {/* ── Hero Header ── */}
       <section
         className={`relative overflow-hidden rounded-2xl p-8 shadow-[var(--shadow-card)] ${isDark

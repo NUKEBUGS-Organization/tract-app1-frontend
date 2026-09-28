@@ -33,6 +33,7 @@ import {
   useGetMeQuery,
   useUpdateMeMutation,
 } from "../../services/userService";
+import { useSkipUnlessAuthenticated } from "../../hooks/useSkipUnlessAuthenticated";
 
 import { DetailPageSkeleton } from "../../components/common/Skeleton";
 import StatusBadge from "../../components/common/StatusBadge";
@@ -384,7 +385,10 @@ function StateDropdown({
 }
 
 export default function ProfilePage() {
-  const { data, isLoading, refetch, isFetching } = useGetMeQuery();
+  const skip = useSkipUnlessAuthenticated();
+  const { data, isLoading, refetch, isFetching } = useGetMeQuery(undefined, {
+    skip,
+  });
 
   const [updateMe, { isLoading: isUpdating }] = useUpdateMeMutation();
 
@@ -414,9 +418,11 @@ export default function ProfilePage() {
   const isPartner = isAllowedRole(role, PARTNER_ROLES);
   const isRealtor = isAllowedRole(role, REALTOR_ROLES);
 
-  const displayName = profile?.full_name || profile?.email || "User";
+  const displayName = profile?.fullName || profile?.email || "User";
 
-  const kycStatus = isAdmin ? undefined : profile?.kyc_status || "pending";
+  const kycStatus = isAdmin
+    ? undefined
+    : profile?.kycStatus || "pending";
 
   const normalizedKycStatus = String(kycStatus || "").toLowerCase();
 
@@ -426,8 +432,8 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!profile) return;
 
-    setFullName(profile?.full_name || "");
-    setStateCode(normalizeStateCode(profile?.state_code));
+    setFullName(profile?.fullName || "");
+    setStateCode(normalizeStateCode(profile?.stateCode));
     setDob(formatDateForInput(profile?.dob));
   }, [profile]);
 
@@ -438,8 +444,8 @@ export default function ProfilePage() {
   }
 
   function handleCancelEdit() {
-    setFullName(profile?.full_name || "");
-    setStateCode(normalizeStateCode(profile?.state_code));
+    setFullName(profile?.fullName || "");
+    setStateCode(normalizeStateCode(profile?.stateCode));
     setDob(formatDateForInput(profile?.dob));
 
     setProfileError(null);
@@ -473,8 +479,8 @@ export default function ProfilePage() {
       setProfileSuccess(null);
 
       await updateMe({
-        full_name: trimmedName,
-        state_code: normalizedState,
+        fullName: trimmedName,
+        stateCode: normalizedState,
         dob: dob || undefined,
       }).unwrap();
 
@@ -522,8 +528,8 @@ export default function ProfilePage() {
       setPasswordSuccess(null);
 
       await changePassword({
-        current_password: currentPassword,
-        new_password: newPassword,
+        currentPassword: currentPassword,
+        newPassword: newPassword,
       }).unwrap();
 
       setPasswordSuccess("Password changed successfully.");
@@ -612,7 +618,7 @@ export default function ProfilePage() {
       </section>
 
       <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <DetailCard label="Full Name" value={profile?.full_name} icon={User} />
+        <DetailCard label="Full Name" value={profile?.fullName} icon={User} />
 
         <DetailCard label="Email" value={profile?.email} icon={Mail} />
 
@@ -632,7 +638,7 @@ export default function ProfilePage() {
       >
         <DetailCard
           label="State"
-          value={getStateDisplayValue(profile?.state_code)}
+          value={getStateDisplayValue(profile?.stateCode)}
           icon={BadgeCheck}
         />
 
@@ -646,13 +652,13 @@ export default function ProfilePage() {
           <>
             <DetailCard
               label="Bank Verified"
-              value={formatBoolean(profile?.bank_verified)}
+              value={formatBoolean(profile?.bankVerified)}
               icon={CheckCircle2}
             />
 
             <DetailCard
               label="Deal Count"
-              value={profile?.deal_count}
+              value={profile?.app1_totalDealsClosed}
               icon={Star}
             />
           </>
@@ -664,7 +670,7 @@ export default function ProfilePage() {
           {isPartner && (
             <DetailCard
               label="Reliability Score"
-              value={profile?.reliability_score}
+              value={profile?.reliabilityScore}
               icon={Star}
               info={
                 <div className="space-y-3">
@@ -736,7 +742,7 @@ export default function ProfilePage() {
           {isRealtor && (
             <DetailCard
               label="Professional Score"
-              value={profile?.professional_score}
+              value={profile?.professionalScore}
               icon={ShieldCheck}
               info={
                 <div className="space-y-3">

@@ -6,7 +6,6 @@ import RealtorDashboard from "../pages/realtor";
 import AdminDashboard from "../pages/admin";
 
 import { useAuthContext } from "../contexts/AuthContext";
-import { tokenStorage } from "../redux/auth/tokenStorage";
 import { getRoleFromToken } from "../redux/auth/jwtUtils";
 
 import {
@@ -21,8 +20,7 @@ import {
 export default function DashboardHome() {
   const { role, accessToken } = useAuthContext();
 
-  const token = accessToken || tokenStorage.getAccessToken();
-  const userRole = normalizeRole(role || getRoleFromToken(token));
+  const userRole = normalizeRole(role || getRoleFromToken(accessToken));
 
   if (isAllowedRole(userRole, SELLER_ROLES)) {
     return <SellerDashboard />;

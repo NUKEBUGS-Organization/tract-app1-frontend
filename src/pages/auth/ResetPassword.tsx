@@ -59,8 +59,8 @@ export default function ResetPasswordPage() {
       }
 
       await resetPassword({
-        reset_token: resetToken,
-        new_password: data.newPassword,
+        resetToken: resetToken,
+        newPassword: data.newPassword,
       }).unwrap();
 
       navigate("/auth/signin");

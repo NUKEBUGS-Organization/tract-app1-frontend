@@ -20,10 +20,9 @@ export default function PictureUploadStep({
   onRemovePicture,
   onUploadPictures,
 }: PictureUploadStepProps) {
+  const hasPictures = propertyPictures.length >= 1;
   const canUpload =
-    propertyPictures.length >= 1 &&
-    propertyPictures.length <= MAX_IMAGES &&
-    !isUploadingPictures;
+    propertyPictures.length <= MAX_IMAGES && !isUploadingPictures;
 
   return (
     <div className="space-y-8">
@@ -38,9 +37,9 @@ export default function PictureUploadStep({
           </h1>
 
           <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-            Add property pictures for this listing. You must upload at least 1
-            image and can upload a maximum of 10 images. Each image must be 5 MB
-            or smaller.
+            Add up to 10 property pictures for this listing (5 MB or smaller
+            each). Pictures are optional here — you can also add them later from
+            the Document Vault.
           </p>
         </div>
 
@@ -128,7 +127,11 @@ export default function PictureUploadStep({
             disabled={!canUpload}
             className="bg-[var(--color-primary)] px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-[var(--shadow-card)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isUploadingPictures ? "Uploading..." : "Upload Pictures"}
+            {isUploadingPictures
+              ? "Uploading..."
+              : hasPictures
+                ? "Upload Pictures"
+                : "Skip for now"}
           </button>
         </div>
       </div>
