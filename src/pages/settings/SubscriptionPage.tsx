@@ -32,6 +32,10 @@ function CouponForm({ amount }: { amount: number | null }) {
   const quoted = previewState.data;
   const matchesTyped = quoted && quoted.code === code.trim().toUpperCase();
   const errorText = errorTextOf(previewState.error || redeemState.error);
+  const applyCoupon = async () => {
+    const quotedCoupon = await previewCoupon(code.trim()).unwrap();
+    if (quotedCoupon.amountDue === 0) await redeemCoupon(quotedCoupon.code).unwrap();
+  };
 
   return (
     <div className="space-y-3 rounded-xl border border-[var(--color-border-light)] p-4">
@@ -59,10 +63,10 @@ function CouponForm({ amount }: { amount: number | null }) {
         <button
           type="button"
           disabled={!code.trim() || previewState.isLoading || redeemState.isLoading}
-          onClick={() => previewCoupon(code.trim())}
+          onClick={() => void applyCoupon()}
           className="rounded-lg border border-[var(--color-border-light)] px-4 py-2 disabled:opacity-50"
         >
-          {previewState.isLoading ? "Checking…" : "Apply"}
+          {previewState.isLoading || redeemState.isLoading ? "Applying…" : "Apply"}
         </button>
       </div>
 
@@ -76,16 +80,18 @@ function CouponForm({ amount }: { amount: number | null }) {
             <span className="font-bold">${quoted.amountDue}</span> / month,
             free through {new Date(quoted.freeUntil).toLocaleDateString()}.
           </p>
-          <button
-            type="button"
-            disabled={redeemState.isLoading}
-            onClick={() => redeemCoupon(quoted.code)}
-            className="rounded-lg bg-[var(--color-secondary)] px-5 py-3 text-[var(--color-primary-dark)] disabled:opacity-50"
-          >
-            {redeemState.isLoading
-              ? "Redeeming…"
-              : `Redeem — pay $${quoted.amountDue} today`}
-          </button>
+          {quoted.amountDue > 0 ? (
+            <button
+              type="button"
+              disabled={redeemState.isLoading}
+              onClick={() => redeemCoupon(quoted.code)}
+              className="rounded-lg bg-[var(--color-secondary)] px-5 py-3 text-[var(--color-primary-dark)] disabled:opacity-50"
+            >
+              {redeemState.isLoading
+                ? "Redeeming…"
+                : `Redeem — pay $${quoted.amountDue} today`}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
