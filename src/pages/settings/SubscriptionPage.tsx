@@ -26,6 +26,10 @@ function errorTextOf(error: unknown): string | null {
   return error instanceof Error ? error.message : "Request failed";
 }
 
+function isAlreadyRedeemed(error: unknown): boolean {
+  return /already redeemed/i.test(errorTextOf(error) ?? "");
+}
+
 function CouponForm({
   amount,
   onRedeemed,
@@ -36,13 +40,20 @@ function CouponForm({
   const [code, setCode] = useState("");
   const [previewCoupon, previewState] = usePreviewCouponMutation();
   const [redeemCoupon, redeemState] = useRedeemCouponMutation();
+  const [refreshSubscription, refreshState] = useRefreshSubscriptionMutation();
   const quoted = previewState.data;
   const matchesTyped = quoted && quoted.code === code.trim().toUpperCase();
-  const errorText = errorTextOf(previewState.error || redeemState.error);
+  const errorText = errorTextOf(previewState.error || redeemState.error || refreshState.error);
   const applyCoupon = async () => {
     const quotedCoupon = await previewCoupon(code.trim()).unwrap();
-    if (quotedCoupon.amountDue === 0) {
+    try {
       onRedeemed(await redeemCoupon(quotedCoupon.code).unwrap());
+    } catch (err) {
+      if (isAlreadyRedeemed(err)) {
+        onRedeemed(await refreshSubscription().unwrap());
+        return;
+      }
+      throw err;
     }
   };
 
@@ -71,11 +82,11 @@ function CouponForm({
         />
         <button
           type="button"
-          disabled={!code.trim() || previewState.isLoading || redeemState.isLoading}
+          disabled={!code.trim() || previewState.isLoading || redeemState.isLoading || refreshState.isLoading}
           onClick={() => void applyCoupon()}
           className="rounded-lg border border-[var(--color-border-light)] px-4 py-2 disabled:opacity-50"
         >
-          {previewState.isLoading || redeemState.isLoading ? "Applying…" : "Apply"}
+          {previewState.isLoading || redeemState.isLoading || refreshState.isLoading ? "Applying…" : "Apply"}
         </button>
       </div>
 
@@ -89,18 +100,6 @@ function CouponForm({
             <span className="font-bold">${quoted.amountDue}</span> / month,
             free through {new Date(quoted.freeUntil).toLocaleDateString()}.
           </p>
-          {quoted.amountDue > 0 ? (
-            <button
-              type="button"
-              disabled={redeemState.isLoading}
-              onClick={() => redeemCoupon(quoted.code)}
-              className="rounded-lg bg-[var(--color-secondary)] px-5 py-3 text-[var(--color-primary-dark)] disabled:opacity-50"
-            >
-              {redeemState.isLoading
-                ? "Redeeming…"
-                : `Redeem — pay $${quoted.amountDue} today`}
-            </button>
-          ) : null}
         </div>
       ) : null}
 
@@ -302,7 +301,7 @@ export default function SubscriptionPage() {
             )}
             <button
               type="button"
-              onClick={() => refresh()}
+              onClick={async () => setRedeemedStatus(await refresh().unwrap())}
               disabled={pending}
               className="ml-0 text-sm underline"
             >
