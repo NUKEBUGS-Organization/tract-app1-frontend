@@ -28,6 +28,7 @@ import {
   useGetMyBidsQuery,
 } from "../../services/listingService";
 import { usePartnerTheme } from "../../hooks/usePartnerTheme";
+import SharePropertyButton from "../../components/common/SharePropertyButton";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { isAllowedRole, normalizeRole, REALTOR_ROLES } from "../../constants/roles";
 
@@ -627,6 +628,16 @@ export default function PropertyDetailPage() {
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-3">
+          {listingStatus === "live" && propertyId && (
+            <SharePropertyButton
+              listingId={propertyId}
+              title={[formatPropertyType(listing?.property_type), stateCode && `in ${stateCode}`]
+                .filter(Boolean)
+                .join(" ")}
+              isDark={isDark}
+            />
+          )}
           {hoursLeft !== null && (
             <div
               className={`flex items-center gap-2 rounded-2xl border px-5 py-3 ${isUrgent
@@ -647,6 +658,7 @@ export default function PropertyDetailPage() {
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
 
