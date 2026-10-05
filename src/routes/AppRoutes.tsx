@@ -19,6 +19,7 @@ import KycPage from "../pages/kyc";
 import ProfilePage from "../pages/profile";
 
 import UnauthorizedPage from "../pages/common/UnauthorizedPage";
+import PublicPropertyPage from "../pages/common/PublicPropertyPage";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
 import SupportListPage from "../pages/support/SupportListPage";
 import SupportNewPage from "../pages/support/SupportNewPage";
@@ -146,6 +147,8 @@ function AppRoutes() {
       />
 
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
+      {/* Shareable public property page — works signed in or out */}
+      <Route path="/p/:id" element={<PublicPropertyPage />} />
       <Route path="/auth/terms" element={<TermsOfService />} />
 
       {/* =====================================================

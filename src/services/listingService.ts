@@ -36,6 +36,13 @@ export const listingService = baseApi.injectEndpoints({
       providesTags: ["Property"],
     }),
 
+    getPublicListing: builder.query<any, string>({
+      query: (id) => ({
+        url: `public/listings/${id}`,
+        method: "GET",
+      }),
+    }),
+
     updateListing: builder.mutation<any, { id: string; body: any }>({
       query: ({ id, body }) => ({
         url: `listings/${id}`,
@@ -238,6 +245,7 @@ export const {
   useGetListingsQuery,
   useGetListingsDashboardQuery,
   useGetListingByIdQuery,
+  useGetPublicListingQuery,
   useUpdateListingMutation,
   useDeleteListingMutation,
   useSubmitListingMutation,
